@@ -116,7 +116,7 @@ const ChatMode = () => {
                         : "bg-secondary text-foreground"
                     }`}
                   >
-                    <p className="text-sm leading-relaxed">{message.content}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                     {message.source && (
                       <Badge variant="outline" className="mt-2 text-xs">
                         <BookOpen className="w-3 h-3 mr-1" />
