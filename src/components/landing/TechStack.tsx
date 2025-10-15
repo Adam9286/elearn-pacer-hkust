@@ -76,10 +76,10 @@ const TechStack = () => {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-clip-text text-transparent">
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-neon-purple to-white bg-clip-text text-transparent">
             Built with Cutting-Edge Technology
           </h2>
-          <p className="text-white/70 text-xl">A technical deep dive into our architecture</p>
+          <p className="text-white text-xl font-semibold">A technical deep dive into our architecture</p>
         </motion.div>
 
         {/* Architecture Flow */}
@@ -144,9 +144,9 @@ const TechStack = () => {
               
               <ul className="space-y-2">
                 {category.items.map((item, i) => (
-                  <li key={i} className="text-white/60 text-sm flex items-start gap-2">
-                    <span className="text-electric-cyan mt-1">▹</span>
-                    <span>{item}</span>
+                  <li key={i} className="text-white/90 text-sm flex items-start gap-2">
+                    <span className="text-electric-cyan mt-1 text-base">▹</span>
+                    <span className="font-medium">{item}</span>
                   </li>
                 ))}
               </ul>

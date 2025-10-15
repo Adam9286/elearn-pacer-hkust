@@ -3,14 +3,19 @@ import PlatformIntro from "@/components/landing/PlatformIntro";
 import ModesShowcase from "@/components/landing/ModesShowcase";
 import TechStack from "@/components/landing/TechStack";
 import CTA from "@/components/landing/CTA";
+import SectionDivider from "@/components/landing/SectionDivider";
 
 const Landing = () => {
   return (
     <div className="min-h-screen bg-dark-void overflow-x-hidden">
       <Hero />
+      <SectionDivider />
       <PlatformIntro />
+      <SectionDivider />
       <ModesShowcase />
+      <SectionDivider />
       <TechStack />
+      <SectionDivider />
       <CTA />
       
       {/* Footer */}

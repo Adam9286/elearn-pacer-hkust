@@ -105,7 +105,7 @@ const PlatformIntro = () => {
                   <div className="p-3 rounded-lg bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 border border-electric-cyan/30 group-hover:scale-110 transition-smooth">
                     <feature.icon className="w-6 h-6 text-electric-cyan" />
                   </div>
-                  <p className="text-white/80 text-lg pt-3">{feature.text}</p>
+                  <p className="text-white/95 text-lg pt-3 font-medium">{feature.text}</p>
                 </motion.div>
               ))}
             </div>
@@ -114,10 +114,11 @@ const PlatformIntro = () => {
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               transition={{ delay: 1 }}
-              className="mt-8 p-6 glass-card rounded-xl border border-accent/30"
+              className="mt-8 p-6 glass-card rounded-xl border border-accent/30 bg-gradient-to-r from-accent/10 to-neon-blue/10"
             >
-              <p className="text-white/70 text-sm">
-                <span className="text-accent font-semibold">Built for:</span> ELEC3120 Computer Networks at HKUST
+              <p className="text-white/95 text-base">
+                <span className="text-accent font-bold">Built for:</span>{" "}
+                <span className="font-semibold">ELEC3120 Computer Networks at HKUST</span>
               </p>
             </motion.div>
           </motion.div>

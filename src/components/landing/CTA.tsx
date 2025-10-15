@@ -71,7 +71,7 @@ const CTA = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-xl md:text-2xl text-white/70 mb-12"
+            className="text-xl md:text-2xl text-white/90 mb-12 font-medium"
           >
             Start mastering ELEC3120 with AI-powered guidance
           </motion.p>
@@ -109,10 +109,10 @@ const CTA = () => {
               { value: "Real-time", label: "Feedback" }
             ].map((stat, index) => (
               <div key={index} className="glass-card p-4 rounded-lg border border-white/10">
-                <div className="text-2xl font-bold bg-gradient-to-r from-neon-blue to-electric-cyan bg-clip-text text-transparent mb-1">
+                <div className="text-2xl font-bold bg-gradient-to-r from-white to-electric-cyan bg-clip-text text-transparent mb-1">
                   {stat.value}
                 </div>
-                <div className="text-white/60 text-sm">{stat.label}</div>
+                <div className="text-white/80 text-sm font-medium">{stat.label}</div>
               </div>
             ))}
           </motion.div>

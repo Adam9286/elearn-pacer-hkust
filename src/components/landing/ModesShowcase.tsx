@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { MessageSquare, BookOpen, FileText, CheckCircle2, Lock, TrendingUp } from "lucide-react";
+import { MessageSquare, BookOpen, FileText, CheckCircle2, Lock, TrendingUp, Sparkles } from "lucide-react";
 
 const ModesShowcase = () => {
   const [ref, inView] = useInView({
@@ -99,10 +99,21 @@ const ModesShowcase = () => {
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-clip-text text-transparent">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={inView ? { scale: 1 } : {}}
+            transition={{ duration: 0.5, type: "spring" }}
+            className="inline-block mb-6"
+          >
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-neon-blue via-neon-purple to-electric-cyan flex items-center justify-center shadow-glow mx-auto">
+              <Sparkles className="w-10 h-10 text-white animate-sparkle" />
+            </div>
+          </motion.div>
+          
+          <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-neon-blue to-white bg-clip-text text-transparent">
             Three Modes, One Goal
           </h2>
-          <p className="text-white/70 text-xl">Master ELEC3120 your way</p>
+          <p className="text-white text-2xl font-semibold">Master ELEC3120 your way</p>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -127,7 +138,7 @@ const ModesShowcase = () => {
 
                   {/* Content */}
                   <h3 className="text-2xl font-bold text-white mb-3">{mode.title}</h3>
-                  <p className="text-white/70 mb-6">{mode.description}</p>
+                  <p className="text-white/90 text-base mb-6">{mode.description}</p>
 
                   {/* Mockup preview */}
                   <div className="bg-dark-void/50 p-4 rounded-lg mb-6 min-h-[100px] flex items-center justify-center">
@@ -135,17 +146,17 @@ const ModesShowcase = () => {
                   </div>
 
                   {/* Features */}
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {mode.features.map((feature, i) => (
                       <motion.li
                         key={i}
                         initial={{ opacity: 0, x: -10 }}
                         animate={inView ? { opacity: 1, x: 0 } : {}}
                         transition={{ delay: index * 0.2 + i * 0.1 }}
-                        className="flex items-center gap-2 text-white/60 text-sm"
+                        className="flex items-center gap-3 text-white/90 text-sm"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-electric-cyan" />
-                        {feature}
+                        <CheckCircle2 className="w-5 h-5 text-electric-cyan flex-shrink-0" />
+                        <span className="font-medium">{feature}</span>
                       </motion.li>
                     ))}
                   </ul>
