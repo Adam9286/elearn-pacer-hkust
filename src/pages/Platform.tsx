@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { BookOpen, MessageSquare, FileText, Award, TrendingUp, Info } from "lucide-react";
+import { BookOpen, MessageSquare, FileText, Award, TrendingUp, Info, Home } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,26 +9,41 @@ import CourseMode from "@/components/CourseMode";
 import MockExamMode from "@/components/MockExamMode";
 import UserStats from "@/components/UserStats";
 import HowItWorks from "@/components/HowItWorks";
+import ThemeToggle from "@/components/ThemeToggle";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 const Index = () => {
   const [activeMode, setActiveMode] = useState("chat");
 
   return (
-    <div className="min-h-screen bg-background">
+    <ThemeProvider defaultTheme="dark">
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="gradient-hero text-white shadow-lg sticky top-0 z-50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center shadow-glow">
-                <BookOpen className="w-6 h-6 text-navy" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold">LearningPacer</h1>
-                <p className="text-sm text-white/80">ELEC3120: Computer Networks</p>
+            <div className="flex items-center gap-4">
+              <Link 
+                to="/" 
+                className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition-colors"
+              >
+                <Home className="w-4 h-4" />
+                <span>Home</span>
+              </Link>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center shadow-glow">
+                  <BookOpen className="w-6 h-6 text-navy" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold">LearningPacer</h1>
+                  <p className="text-sm text-white/80">ELEC3120: Computer Networks</p>
+                </div>
               </div>
             </div>
-            <UserStats />
+            <div className="flex items-center gap-4">
+              <ThemeToggle />
+              <UserStats />
+            </div>
           </div>
         </div>
       </header>
@@ -105,7 +121,8 @@ const Index = () => {
           </p>
         </div>
       </footer>
-    </div>
+      </div>
+    </ThemeProvider>
   );
 };
 

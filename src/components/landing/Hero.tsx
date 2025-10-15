@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
 import { ChevronDown, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import AnimatedBackground from "./AnimatedBackground";
 
 const Hero = () => {
+  const navigate = useNavigate();
+  
   const scrollToContent = () => {
     window.scrollTo({
       top: window.innerHeight,
@@ -86,21 +89,38 @@ const Hero = () => {
           Where Machine Learning Meets Education
         </motion.p>
 
-        {/* CTA Button */}
-        <motion.button
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.5, duration: 0.5 }}
-          onClick={scrollToContent}
-          className="group relative px-8 py-4 text-lg font-semibold text-white rounded-full overflow-hidden transition-smooth"
-        >
-          <div className="absolute inset-0 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan animate-rotate-gradient"></div>
-          <div className="absolute inset-[2px] bg-dark-void rounded-full"></div>
-          <span className="relative flex items-center gap-2">
-            Explore the Platform
-            <ChevronDown className="w-5 h-5 animate-bounce" />
-          </span>
-        </motion.button>
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 1.5, duration: 0.5 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate("/platform")}
+            className="group relative px-8 py-4 text-lg font-semibold text-white rounded-full overflow-hidden transition-smooth"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan animate-rotate-gradient"></div>
+            <div className="absolute inset-[2px] bg-dark-void rounded-full"></div>
+            <span className="relative flex items-center gap-2">
+              Launch Platform
+              <Sparkles className="w-5 h-5" />
+            </span>
+          </motion.button>
+
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 1.7, duration: 0.5 }}
+            onClick={scrollToContent}
+            className="px-8 py-4 text-lg font-semibold text-white/80 hover:text-white border border-white/20 rounded-full hover:border-white/40 transition-smooth"
+          >
+            <span className="flex items-center gap-2">
+              Learn More
+              <ChevronDown className="w-5 h-5" />
+            </span>
+          </motion.button>
+        </div>
       </div>
 
       {/* Scroll indicator */}
