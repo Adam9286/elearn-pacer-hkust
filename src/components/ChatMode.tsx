@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Send, Lightbulb, BookOpen, MessageSquare } from "lucide-react";
+import { Send, Lightbulb, BookOpen, MessageSquare, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,9 +24,10 @@ const ChatMode = () => {
     },
   ]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -34,8 +35,18 @@ const ChatMode = () => {
       content: input,
     };
 
+    const userInput = input;
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setIsLoading(true);
+
+    // Show loading message
+    const loadingMessage: Message = {
+      id: `loading_${Date.now()}`,
+      role: "assistant",
+      content: "I received your question and I'm processing it…",
+    };
+    setMessages((prev) => [...prev, loadingMessage]);
 
     try {
       const response = await fetch('https://smellycat9286.app.n8n.cloud/webhook-test/4dfc1e83-8e12-47d7-9c62-ffe784259705', {
@@ -44,30 +55,39 @@ const ChatMode = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          chatInput: userInput,
           sessionId,
-          query: input,
-          context: messages,
         }),
       });
 
       const data = await response.json();
       
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: data.answer || data.response || "I received your question and I'm processing it.",
-        source: data.source_document || data.source,
-      };
-      
-      setMessages((prev) => [...prev, aiMessage]);
+      // Remove loading message and add actual response
+      setMessages((prev) => {
+        const withoutLoading = prev.filter(msg => msg.id !== loadingMessage.id);
+        const aiMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: data.output || "I received your question and I'm processing it.",
+          source: data.source_document || data.source,
+        };
+        return [...withoutLoading, aiMessage];
+      });
     } catch (error) {
       console.error('Error calling n8n webhook:', error);
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "Sorry, I encountered an error processing your request. Please try again.",
-      };
-      setMessages((prev) => [...prev, errorMessage]);
+      
+      // Remove loading message and add error message
+      setMessages((prev) => {
+        const withoutLoading = prev.filter(msg => msg.id !== loadingMessage.id);
+        const errorMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.",
+        };
+        return [...withoutLoading, errorMessage];
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -113,12 +133,21 @@ const ChatMode = () => {
               <Input
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleSend()}
+                onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSend()}
                 placeholder="Ask about TCP flow control, routing algorithms, or any ELEC3120 topic..."
                 className="flex-1"
+                disabled={isLoading}
               />
-              <Button onClick={handleSend} className="gradient-primary shadow-glow">
-                <Send className="w-4 h-4" />
+              <Button 
+                onClick={handleSend} 
+                className="gradient-primary shadow-glow" 
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </Button>
             </div>
           </div>
