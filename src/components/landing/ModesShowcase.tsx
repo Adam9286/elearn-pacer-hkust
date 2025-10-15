@@ -25,7 +25,7 @@ const ModesShowcase = () => {
           <motion.div
             animate={{ opacity: [0.5, 1, 0.5] }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="flex gap-2 items-center text-white/70"
+            className="flex gap-2 items-center text-white/80"
           >
             <div className="w-2 h-2 bg-neon-blue rounded-full"></div>
             <span className="text-sm">AI is typing...</span>
@@ -78,7 +78,7 @@ const ModesShowcase = () => {
             transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
             className="w-12 h-12 border-4 border-electric-cyan border-t-transparent rounded-full mx-auto"
           />
-          <div className="text-center text-white/70 text-sm">
+          <div className="text-center text-white/80 text-sm">
             <TrendingUp className="w-4 h-4 inline mr-1" />
             Analyzing performance...
           </div>
@@ -126,7 +126,7 @@ const ModesShowcase = () => {
               whileHover={{ y: -10, transition: { duration: 0.3 } }}
               className="group relative"
             >
-              <div className="glass-card p-8 rounded-2xl border border-white/10 hover:border-white/30 transition-smooth h-full">
+              <div className="glass-card p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth h-full">
                 {/* Gradient glow on hover */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 rounded-2xl transition-smooth blur-xl`}></div>
                 
@@ -138,7 +138,7 @@ const ModesShowcase = () => {
 
                   {/* Content */}
                   <h3 className="text-2xl font-bold text-white mb-3">{mode.title}</h3>
-                  <p className="text-white/90 text-base mb-6">{mode.description}</p>
+                  <p className="text-white text-base mb-6">{mode.description}</p>
 
                   {/* Mockup preview */}
                   <div className="bg-dark-void/50 p-4 rounded-lg mb-6 min-h-[100px] flex items-center justify-center">
@@ -153,7 +153,7 @@ const ModesShowcase = () => {
                         initial={{ opacity: 0, x: -10 }}
                         animate={inView ? { opacity: 1, x: 0 } : {}}
                         transition={{ delay: index * 0.2 + i * 0.1 }}
-                        className="flex items-center gap-3 text-white/90 text-sm"
+                        className="flex items-center gap-3 text-white text-sm"
                       >
                         <CheckCircle2 className="w-5 h-5 text-electric-cyan flex-shrink-0" />
                         <span className="font-medium">{feature}</span>

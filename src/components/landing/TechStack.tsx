@@ -89,7 +89,7 @@ const TechStack = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="mb-16"
         >
-          <div className="glass-card p-8 rounded-2xl border border-electric-cyan/30">
+          <div className="glass-card p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth">
             <h3 className="text-2xl font-bold text-white mb-8 flex items-center gap-3">
               <Brain className="w-8 h-8 text-neon-blue" />
               Technical Architecture
@@ -107,7 +107,7 @@ const TechStack = () => {
                     <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 border border-electric-cyan/30 flex items-center justify-center group-hover:scale-110 transition-smooth">
                       <step.icon className="w-8 h-8 text-electric-cyan" />
                     </div>
-                    <span className="text-white/70 text-sm text-center">{step.label}</span>
+                    <span className="text-white/85 text-sm text-center font-medium">{step.label}</span>
                   </motion.div>
                   
                   {index < architectureSteps.length - 1 && (
@@ -134,7 +134,7 @@ const TechStack = () => {
               initial={{ opacity: 0, y: 30 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
-              className="glass-card p-6 rounded-xl border border-white/10 hover:border-white/30 transition-smooth group"
+              className="glass-card p-6 rounded-xl border border-white/20 hover:border-white/40 transition-smooth group"
             >
               <div className={`w-12 h-12 rounded-lg bg-${category.color}/20 border border-${category.color}/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth`}>
                 <category.icon className={`w-6 h-6 text-${category.color}`} />
@@ -159,7 +159,7 @@ const TechStack = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.8, delay: 0.8 }}
-          className="mt-12 glass-card p-6 rounded-xl border border-neon-purple/30"
+          className="mt-12 glass-card p-6 rounded-xl border border-white/20"
         >
           <div className="flex items-center gap-3 mb-4">
             <div className="flex gap-2">

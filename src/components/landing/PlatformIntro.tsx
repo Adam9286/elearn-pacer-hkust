@@ -29,7 +29,7 @@ const PlatformIntro = () => {
             transition={{ duration: 0.8 }}
             className="relative"
           >
-            <div className="glass-card p-8 rounded-2xl border border-electric-cyan/30 shadow-glow">
+            <div className="glass-card p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth shadow-glow">
               {/* Mock chat interface */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3 mb-6">
@@ -55,7 +55,7 @@ const PlatformIntro = () => {
                   className="bg-accent/20 p-4 rounded-lg border-l-4 border-accent"
                 >
                   <p className="text-white/90 text-sm">TCP congestion control manages network traffic...</p>
-                  <div className="mt-2 text-xs text-white/50">
+                  <div className="mt-2 text-xs text-white/60">
                     📚 Source: Unit 4, Slide 23
                   </div>
                 </motion.div>
@@ -105,7 +105,7 @@ const PlatformIntro = () => {
                   <div className="p-3 rounded-lg bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 border border-electric-cyan/30 group-hover:scale-110 transition-smooth">
                     <feature.icon className="w-6 h-6 text-electric-cyan" />
                   </div>
-                  <p className="text-white/95 text-lg pt-3 font-medium">{feature.text}</p>
+                  <p className="text-white text-lg pt-3 font-medium">{feature.text}</p>
                 </motion.div>
               ))}
             </div>
@@ -114,9 +114,9 @@ const PlatformIntro = () => {
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               transition={{ delay: 1 }}
-              className="mt-8 p-6 glass-card rounded-xl border border-accent/30 bg-gradient-to-r from-accent/10 to-neon-blue/10"
+              className="mt-8 p-6 glass-card rounded-xl border border-white/20 bg-gradient-to-r from-accent/10 to-neon-blue/10"
             >
-              <p className="text-white/95 text-base">
+              <p className="text-white text-base">
                 <span className="text-accent font-bold">Built for:</span>{" "}
                 <span className="font-semibold">ELEC3120 Computer Networks at HKUST</span>
               </p>
