@@ -9,13 +9,13 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-dark-void overflow-x-hidden">
       <Hero />
-      <SectionDivider />
+      <SectionDivider variant="neural" />
       <PlatformIntro />
-      <SectionDivider />
+      <SectionDivider variant="robot" />
       <ModesShowcase />
-      <SectionDivider />
+      <SectionDivider variant="binary" />
       <TechStack />
-      <SectionDivider />
+      <SectionDivider variant="wave" />
       <CTA />
       
       {/* Footer */}
