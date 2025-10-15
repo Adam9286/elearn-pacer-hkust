@@ -6,11 +6,11 @@ import TCPHandshake from "./TCPHandshake";
 
 const Hero = () => {
   const navigate = useNavigate();
-  
+
   const scrollToContent = () => {
     window.scrollTo({
       top: window.innerHeight,
-      behavior: "smooth"
+      behavior: "smooth",
     });
   };
 
@@ -18,58 +18,58 @@ const Hero = () => {
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
       <AnimatedBackground />
       <TCPHandshake />
-      
+
       {/* Content */}
       <div className="relative z-20 text-center px-4 max-w-5xl mx-auto">
         {/* Floating AI Brain/Robot */}
-        <div className="relative z-500">
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="mb-8"
-        >
-          <div className="relative inline-block">
-            <motion.div
-              animate={{ 
-                rotate: 360,
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ 
-                rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-                scale: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-              }}
-              className="w-32 h-32 mx-auto mb-6 relative"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full blur-xl opacity-50 animate-glow-pulse"></div>
-              <div className="absolute inset-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full flex items-center justify-center">
-                <Sparkles className="w-16 h-16 text-white animate-sparkle" />
-              </div>
-            </motion.div>
-            
-            {/* Particle effects */}
-            {[...Array(8)].map((_, i) => (
+        <div className="relative z-30">
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="mb-8"
+          >
+            <div className="relative inline-block">
               <motion.div
-                key={i}
-                className="absolute w-2 h-2 bg-electric-cyan rounded-full"
-                style={{
-                  top: "50%",
-                  left: "50%",
-                }}
                 animate={{
-                  x: [0, Math.cos(i * 45 * Math.PI / 180) * 100],
-                  y: [0, Math.sin(i * 45 * Math.PI / 180) * 100],
-                  opacity: [1, 0],
+                  rotate: 360,
+                  scale: [1, 1.1, 1],
                 }}
                 transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: i * 0.2,
+                  rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+                  scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
                 }}
-              />
-            ))}
-          </div>
-        </motion.div>
+                className="w-32 h-32 mx-auto mb-6 relative"
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full blur-xl opacity-50 animate-glow-pulse"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full flex items-center justify-center">
+                  <Sparkles className="w-16 h-16 text-white animate-sparkle" />
+                </div>
+              </motion.div>
+
+              {/* Particle effects */}
+              {[...Array(8)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-2 h-2 bg-electric-cyan rounded-full"
+                  style={{
+                    top: "50%",
+                    left: "50%",
+                  }}
+                  animate={{
+                    x: [0, Math.cos((i * 45 * Math.PI) / 180) * 100],
+                    y: [0, Math.sin((i * 45 * Math.PI) / 180) * 100],
+                    opacity: [1, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    delay: i * 0.2,
+                  }}
+                />
+              ))}
+            </div>
+          </motion.div>
         </div>
 
         {/* Typing animation text */}
