@@ -27,7 +27,7 @@ const Hero = () => {
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
-            className="mb-20"
+            className="mb-8"
           >
             <div className="relative inline-block">
               <motion.div
