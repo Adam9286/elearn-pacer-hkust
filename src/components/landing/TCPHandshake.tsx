@@ -13,8 +13,8 @@ const TCPHandshake = () => {
   }, []);
 
   return (
-    <div className="absolute inset-0 z-0 pointer-events-none">
-      <svg 
+    <div className="absolute inset-0 z-[1] pointer-events-none">
+      <svg
         width="100%" 
         height="100%" 
         viewBox="0 0 1400 800" 
@@ -186,7 +186,7 @@ const TCPHandshake = () => {
         </g>
 
         {/* Step labels */}
-        {step >= 1 && (
+        {step === 1 && (
           <motion.text
             x="700"
             y="320"
@@ -197,16 +197,58 @@ const TCPHandshake = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            {step === 1 ? "Step 1: SYN →" : step === 2 ? "Step 2: ← SYN-ACK" : step === 3 ? "Step 3: ACK →" : "Handshake Complete"}
+            Step 1: SYN →
+          </motion.text>
+        )}
+        {step === 2 && (
+          <motion.text
+            x="700"
+            y="320"
+            textAnchor="middle"
+            fill="hsl(var(--electric-cyan))"
+            fontSize="16"
+            fontWeight="600"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            Step 2: ← SYN-ACK
+          </motion.text>
+        )}
+        {step === 3 && (
+          <motion.text
+            x="700"
+            y="320"
+            textAnchor="middle"
+            fill="hsl(var(--electric-cyan))"
+            fontSize="16"
+            fontWeight="600"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            Step 3: ACK →
+          </motion.text>
+        )}
+        {step === 0 && (
+          <motion.text
+            x="700"
+            y="320"
+            textAnchor="middle"
+            fill="hsl(var(--hkust-gold))"
+            fontSize="16"
+            fontWeight="600"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            ✓ Handshake Complete
           </motion.text>
         )}
 
         {/* Step 1: SYN */}
-        {(step === 1 || step === 2) && (
+        {step === 1 && (
           <motion.g
             key={`syn-${step}`}
             initial={{ x: 220, opacity: 0 }}
-            animate={{ x: 1180, opacity: step === 1 ? 1 : 0.3 }}
+            animate={{ x: 1180, opacity: 1 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
@@ -246,11 +288,11 @@ const TCPHandshake = () => {
         )}
 
         {/* Step 2: SYN-ACK */}
-        {(step === 2 || step === 3) && (
+        {step === 2 && (
           <motion.g
             key={`syn-ack-${step}`}
             initial={{ x: 1180, opacity: 0 }}
-            animate={{ x: 220, opacity: step === 2 ? 1 : 0.3 }}
+            animate={{ x: 220, opacity: 1 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
@@ -290,11 +332,11 @@ const TCPHandshake = () => {
         )}
 
         {/* Step 3: ACK */}
-        {(step === 3 || step === 0) && (
+        {step === 3 && (
           <motion.g
             key={`ack-${step}`}
             initial={{ x: 220, opacity: 0 }}
-            animate={{ x: 1180, opacity: step === 3 ? 1 : 0.3 }}
+            animate={{ x: 1180, opacity: 1 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
@@ -342,7 +384,7 @@ const TCPHandshake = () => {
           >
             <text
               x="700"
-              y="150"
+              y="650"
               textAnchor="middle"
               fill="hsl(var(--hkust-gold))"
               fontSize="22"
@@ -352,7 +394,7 @@ const TCPHandshake = () => {
             </text>
             <text
               x="700"
-              y="175"
+              y="675"
               textAnchor="middle"
               fill="hsl(var(--electric-cyan))"
               fontSize="14"

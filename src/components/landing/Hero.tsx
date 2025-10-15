@@ -20,8 +20,9 @@ const Hero = () => {
       <TCPHandshake />
       
       {/* Content */}
-      <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
+      <div className="relative z-20 text-center px-4 max-w-5xl mx-auto">
         {/* Floating AI Brain/Robot */}
+        <div className="relative z-30">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
@@ -69,6 +70,7 @@ const Hero = () => {
             ))}
           </div>
         </motion.div>
+        </div>
 
         {/* Typing animation text */}
         <motion.h1
