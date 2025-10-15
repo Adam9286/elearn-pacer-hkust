@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { Database, FileCode, Mail, Package } from "lucide-react";
 
 interface NetworkBusProps {
   size: "small" | "medium" | "large";
@@ -57,6 +58,15 @@ const NetworkBus = ({
     http: "HTTP Request",
   };
 
+  const packetSizes = {
+    small: "128KB",
+    medium: "512KB",
+    large: "1.5MB",
+  };
+
+  const dataIcons = [Database, FileCode, Mail, Package];
+  const DataIcon = dataIcons[Math.floor(Math.random() * dataIcons.length)];
+
   return (
     <motion.g
       initial={{ offsetDistance: "0%" }}
@@ -72,6 +82,18 @@ const NetworkBus = ({
       onHoverStart={() => setShowTooltip(true)}
       onHoverEnd={() => setShowTooltip(false)}
     >
+      {/* Packet size label */}
+      <text
+        x={0}
+        y={-busSize.height / 2 - 15}
+        textAnchor="middle"
+        fill="hsl(var(--hkust-gold))"
+        fontSize={9}
+        fontWeight="600"
+      >
+        {packetSizes[size]}
+      </text>
+
       {/* Bus body */}
       <motion.rect
         x={-busSize.width / 2}
@@ -93,26 +115,72 @@ const NetworkBus = ({
         transition={{ duration: 2, repeat: Infinity }}
       />
 
-      {/* Windows */}
-      {Array.from({ length: busSize.windows }).map((_, i) => (
-        <motion.rect
-          key={i}
-          x={-busSize.width / 2 + 8 + i * (busSize.width / busSize.windows)}
-          y={-busSize.height / 2 + 6}
-          width={busSize.width / busSize.windows - 10}
-          height={busSize.height - 12}
-          rx={2}
-          fill="hsl(var(--electric-cyan) / 0.3)"
-          animate={{
-            fill: [
-              "hsl(var(--electric-cyan) / 0.3)",
-              "hsl(var(--neon-blue) / 0.6)",
-              "hsl(var(--electric-cyan) / 0.3)",
-            ],
-          }}
-          transition={{ duration: 1, delay: i * 0.2, repeat: Infinity }}
-        />
-      ))}
+      {/* Windows with passengers and data */}
+      {Array.from({ length: busSize.windows }).map((_, i) => {
+        const passengersPerWindow = size === "large" ? 3 : size === "medium" ? 2 : 1;
+        
+        return (
+          <g key={i}>
+            {/* Window background */}
+            <motion.rect
+              x={-busSize.width / 2 + 8 + i * (busSize.width / busSize.windows)}
+              y={-busSize.height / 2 + 6}
+              width={busSize.width / busSize.windows - 10}
+              height={busSize.height - 12}
+              rx={2}
+              fill="hsl(var(--electric-cyan) / 0.3)"
+              animate={{
+                fill: [
+                  "hsl(var(--electric-cyan) / 0.3)",
+                  "hsl(var(--neon-blue) / 0.6)",
+                  "hsl(var(--electric-cyan) / 0.3)",
+                ],
+              }}
+              transition={{ duration: 1, delay: i * 0.2, repeat: Infinity }}
+            />
+            
+            {/* Passengers (data bits) */}
+            {Array.from({ length: passengersPerWindow }).map((_, p) => (
+              <motion.circle
+                key={`passenger-${p}`}
+                cx={-busSize.width / 2 + 12 + i * (busSize.width / busSize.windows) + p * 6}
+                cy={-busSize.height / 2 + 12}
+                r={2.5}
+                fill="hsl(var(--electric-cyan))"
+                opacity={0.9}
+                animate={{
+                  y: [0, -2, 0],
+                }}
+                transition={{
+                  duration: 1.5,
+                  delay: p * 0.3,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            ))}
+            
+            {/* Data icon */}
+            <g
+              transform={`translate(${-busSize.width / 2 + 8 + i * (busSize.width / busSize.windows) + (busSize.width / busSize.windows - 10) / 2}, ${0})`}
+            >
+              <motion.g
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.6, 1, 0.6],
+                }}
+                transition={{
+                  duration: 2,
+                  delay: i * 0.4,
+                  repeat: Infinity,
+                }}
+              >
+                <DataIcon size={size === "large" ? 10 : size === "medium" ? 8 : 6} color="hsl(var(--hkust-gold))" />
+              </motion.g>
+            </g>
+          </g>
+        );
+      })}
 
       {/* Headlights */}
       <circle

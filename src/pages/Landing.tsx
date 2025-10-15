@@ -5,7 +5,6 @@ import TechStack from "@/components/landing/TechStack";
 import CTA from "@/components/landing/CTA";
 import SectionDivider from "@/components/landing/SectionDivider";
 import BusFleet from "@/components/landing/BusFleet";
-import TCPHandshake from "@/components/landing/TCPHandshake";
 
 const Landing = () => {
   return (
@@ -14,7 +13,6 @@ const Landing = () => {
       <BusFleet />
       
       <Hero />
-      <TCPHandshake />
       <SectionDivider variant="neural" />
       <PlatformIntro />
       <SectionDivider variant="robot" />

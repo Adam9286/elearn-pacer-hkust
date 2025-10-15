@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 const TCPHandshake = () => {
   const [step, setStep] = useState(0);
@@ -7,16 +7,31 @@ const TCPHandshake = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       setStep((prev) => (prev + 1) % 4);
-    }, 2000);
+    }, 2500);
+
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="absolute top-20 right-10 pointer-events-none">
-      <svg width="300" height="200" viewBox="0 0 300 200">
+    <div className="absolute inset-0 z-0 pointer-events-none">
+      <svg 
+        width="100%" 
+        height="100%" 
+        viewBox="0 0 1400 800" 
+        preserveAspectRatio="xMidYMid slice"
+        className="opacity-30"
+      >
+        {/* Filter for glow effect */}
         <defs>
-          <filter id="handshake-glow">
+          <filter id="packet-glow">
             <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+            <feMerge>
+              <feMergeNode in="coloredBlur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+          <filter id="node-glow">
+            <feGaussianBlur stdDeviation="6" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
@@ -24,182 +39,327 @@ const TCPHandshake = () => {
           </filter>
         </defs>
 
-        {/* Client node */}
+        {/* Animated connection line */}
+        <motion.line
+          x1="220"
+          y1="400"
+          x2="1180"
+          y2="400"
+          stroke="hsl(var(--electric-cyan) / 0.3)"
+          strokeWidth="2"
+          strokeDasharray="10,5"
+          animate={{
+            strokeDashoffset: [0, -30],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
+
+        {/* Particle flow along connection */}
+        {[...Array(5)].map((_, i) => (
+          <motion.circle
+            key={i}
+            cx="220"
+            cy="400"
+            r="3"
+            fill="hsl(var(--neon-blue))"
+            animate={{
+              cx: [220, 1180],
+              opacity: [0, 1, 1, 0],
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              delay: i * 0.6,
+              ease: "linear"
+            }}
+          />
+        ))}
+
+        {/* Client Node */}
         <g>
-          <rect
-            x="20"
-            y="80"
-            width="60"
-            height="40"
+          <motion.rect
+            x="100"
+            y="360"
+            width="120"
+            height="80"
             rx="8"
-            fill="hsl(var(--dark-void) / 0.8)"
-            stroke="hsl(var(--neon-blue))"
-            strokeWidth="2"
+            fill="hsl(var(--neon-blue) / 0.8)"
+            stroke="hsl(var(--electric-cyan))"
+            strokeWidth="3"
+            filter="url(#node-glow)"
+            animate={{
+              boxShadow: [
+                "0 0 20px hsl(var(--neon-blue) / 0.5)",
+                "0 0 40px hsl(var(--electric-cyan) / 0.8)",
+                "0 0 20px hsl(var(--neon-blue) / 0.5)",
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
           />
           <text
-            x="50"
-            y="105"
+            x="160"
+            y="395"
+            textAnchor="middle"
+            fill="white"
+            fontSize="18"
+            fontWeight="700"
+          >
+            Client
+          </text>
+          <text
+            x="160"
+            y="415"
             textAnchor="middle"
             fill="hsl(var(--electric-cyan))"
             fontSize="12"
             fontWeight="600"
           >
-            Client
+            Port 3000
+          </text>
+          <text
+            x="160"
+            y="430"
+            textAnchor="middle"
+            fill="hsl(var(--hkust-gold))"
+            fontSize="11"
+            opacity="0.8"
+          >
+            192.168.1.100
           </text>
         </g>
 
-        {/* Server node */}
+        {/* Server Node */}
         <g>
-          <rect
-            x="220"
-            y="80"
-            width="60"
-            height="40"
+          <motion.rect
+            x="1180"
+            y="360"
+            width="120"
+            height="80"
             rx="8"
-            fill="hsl(var(--dark-void) / 0.8)"
-            stroke="hsl(var(--neon-purple))"
-            strokeWidth="2"
+            fill="hsl(var(--neon-purple) / 0.8)"
+            stroke="hsl(var(--neon-pink))"
+            strokeWidth="3"
+            filter="url(#node-glow)"
+            animate={{
+              boxShadow: [
+                "0 0 20px hsl(var(--neon-purple) / 0.5)",
+                "0 0 40px hsl(var(--neon-pink) / 0.8)",
+                "0 0 20px hsl(var(--neon-purple) / 0.5)",
+              ],
+            }}
+            transition={{ duration: 2, repeat: Infinity, delay: 1 }}
           />
           <text
-            x="250"
-            y="105"
+            x="1240"
+            y="395"
+            textAnchor="middle"
+            fill="white"
+            fontSize="18"
+            fontWeight="700"
+          >
+            Server
+          </text>
+          <text
+            x="1240"
+            y="415"
             textAnchor="middle"
             fill="hsl(var(--neon-pink))"
             fontSize="12"
             fontWeight="600"
           >
-            Server
+            Port 443
+          </text>
+          <text
+            x="1240"
+            y="430"
+            textAnchor="middle"
+            fill="hsl(var(--hkust-gold))"
+            fontSize="11"
+            opacity="0.8"
+          >
+            10.0.0.1
           </text>
         </g>
 
-        {/* SYN packet (step 0) */}
-        {step >= 0 && (
+        {/* Step labels */}
+        {step >= 1 && (
+          <motion.text
+            x="700"
+            y="320"
+            textAnchor="middle"
+            fill="hsl(var(--electric-cyan))"
+            fontSize="16"
+            fontWeight="600"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            {step === 1 ? "Step 1: SYN →" : step === 2 ? "Step 2: ← SYN-ACK" : step === 3 ? "Step 3: ACK →" : "Handshake Complete"}
+          </motion.text>
+        )}
+
+        {/* Step 1: SYN */}
+        {step >= 1 && (
           <motion.g
-            initial={{ x: 80, y: 100 }}
-            animate={{ x: step === 0 ? 220 : 80, y: 100 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
+            initial={{ x: 220 }}
+            animate={{ x: step === 1 ? 700 : 1180 }}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
-              x="-15"
-              y="-8"
-              width="30"
-              height="16"
-              rx="3"
+              x="-30"
+              y="365"
+              width="60"
+              height="35"
+              rx="4"
               fill="hsl(var(--neon-blue))"
-              filter="url(#handshake-glow)"
+              stroke="hsl(var(--electric-cyan))"
+              strokeWidth="2"
+              filter="url(#packet-glow)"
             />
             <text
               x="0"
-              y="4"
+              y="388"
               textAnchor="middle"
               fill="white"
-              fontSize="10"
+              fontSize="16"
               fontWeight="700"
             >
               SYN
             </text>
+            {/* Particle trail */}
+            <motion.circle
+              cx="-40"
+              cy="382"
+              r="4"
+              fill="hsl(var(--electric-cyan))"
+              animate={{
+                opacity: [0.8, 0],
+                scale: [1, 0.3],
+              }}
+              transition={{ duration: 0.6, repeat: Infinity }}
+            />
           </motion.g>
         )}
 
-        {/* SYN-ACK packet (step 1) */}
-        {step >= 1 && (
+        {/* Step 2: SYN-ACK */}
+        {step >= 2 && (
           <motion.g
-            initial={{ x: 220, y: 100 }}
-            animate={{ x: step === 1 ? 80 : 220, y: 100 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
+            initial={{ x: 1180 }}
+            animate={{ x: step === 2 ? 700 : 220 }}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
-              x="-25"
-              y="-8"
-              width="50"
-              height="16"
-              rx="3"
+              x="-40"
+              y="410"
+              width="80"
+              height="35"
+              rx="4"
               fill="hsl(var(--neon-purple))"
-              filter="url(#handshake-glow)"
+              stroke="hsl(var(--neon-pink))"
+              strokeWidth="2"
+              filter="url(#packet-glow)"
             />
             <text
               x="0"
-              y="4"
+              y="433"
               textAnchor="middle"
               fill="white"
-              fontSize="9"
+              fontSize="14"
               fontWeight="700"
             >
               SYN-ACK
             </text>
+            {/* Particle trail */}
+            <motion.circle
+              cx="50"
+              cy="427"
+              r="4"
+              fill="hsl(var(--neon-pink))"
+              animate={{
+                opacity: [0.8, 0],
+                scale: [1, 0.3],
+              }}
+              transition={{ duration: 0.6, repeat: Infinity }}
+            />
           </motion.g>
         )}
 
-        {/* ACK packet (step 2) */}
-        {step >= 2 && (
+        {/* Step 3: ACK */}
+        {step >= 3 && (
           <motion.g
-            initial={{ x: 80, y: 100 }}
-            animate={{ x: step === 2 ? 220 : 80, y: 100 }}
-            transition={{ duration: 1.5, ease: "easeInOut" }}
+            initial={{ x: 220 }}
+            animate={{ x: step === 3 ? 700 : 1180 }}
+            transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
-              x="-15"
-              y="-8"
-              width="30"
-              height="16"
-              rx="3"
+              x="-30"
+              y="455"
+              width="60"
+              height="35"
+              rx="4"
               fill="hsl(var(--electric-cyan))"
-              filter="url(#handshake-glow)"
+              stroke="hsl(var(--neon-blue))"
+              strokeWidth="2"
+              filter="url(#packet-glow)"
             />
             <text
               x="0"
-              y="4"
+              y="478"
               textAnchor="middle"
               fill="white"
-              fontSize="10"
+              fontSize="16"
               fontWeight="700"
             >
               ACK
             </text>
+            {/* Particle trail */}
+            <motion.circle
+              cx="-40"
+              cy="472"
+              r="4"
+              fill="hsl(var(--neon-blue))"
+              animate={{
+                opacity: [0.8, 0],
+                scale: [1, 0.3],
+              }}
+              transition={{ duration: 0.6, repeat: Infinity }}
+            />
           </motion.g>
         )}
 
-        {/* Connection established indicator (step 3) */}
-        {step === 3 && (
+        {/* Connected indicator & bandwidth */}
+        {step === 0 && (
           <motion.g
-            initial={{ opacity: 0, scale: 0.5 }}
+            initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <rect
-              x="100"
-              y="30"
-              width="100"
-              height="30"
-              rx="15"
-              fill="hsl(var(--hkust-blue) / 0.3)"
-              stroke="hsl(var(--hkust-gold))"
-              strokeWidth="2"
-            />
             <text
-              x="150"
-              y="50"
+              x="700"
+              y="520"
               textAnchor="middle"
               fill="hsl(var(--hkust-gold))"
-              fontSize="11"
+              fontSize="22"
               fontWeight="700"
             >
-              Connected!
+              ✓ Connection Established
+            </text>
+            <text
+              x="700"
+              y="545"
+              textAnchor="middle"
+              fill="hsl(var(--electric-cyan))"
+              fontSize="14"
+              fontWeight="600"
+              opacity="0.8"
+            >
+              Bandwidth: 100 Mbps • Latency: 12ms
             </text>
           </motion.g>
         )}
-
-        {/* Label */}
-        <text
-          x="150"
-          y="180"
-          textAnchor="middle"
-          fill="hsl(var(--electric-cyan) / 0.6)"
-          fontSize="11"
-          fontWeight="500"
-        >
-          TCP 3-Way Handshake
-        </text>
       </svg>
     </div>
   );

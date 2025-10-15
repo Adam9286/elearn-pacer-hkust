@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedBackground from "./AnimatedBackground";
+import TCPHandshake from "./TCPHandshake";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const Hero = () => {
   return (
     <section className="relative h-screen flex items-center justify-center overflow-hidden">
       <AnimatedBackground />
+      <TCPHandshake />
       
       {/* Content */}
       <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
