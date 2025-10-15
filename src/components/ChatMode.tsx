@@ -23,7 +23,7 @@ const ChatMode = () => {
   ]);
   const [input, setInput] = useState("");
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -35,16 +35,37 @@ const ChatMode = () => {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    // Simulate AI response (replace with actual n8n integration)
-    setTimeout(() => {
+    try {
+      const response = await fetch('https://smellycat9286.app.n8n.cloud/webhook-test/4dfc1e83-8e12-47d7-9c62-ffe784259705', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: input,
+          context: messages,
+        }),
+      });
+
+      const data = await response.json();
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I'm ready to help! Connect me to your n8n workflow to provide accurate answers based on your ELEC3120 course materials.",
-        source: "Lecture Slides - Week 3",
+        content: data.answer || data.response || "I received your question and I'm processing it.",
+        source: data.source_document || data.source,
       };
+      
       setMessages((prev) => [...prev, aiMessage]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error calling n8n webhook:', error);
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: "Sorry, I encountered an error processing your request. Please try again.",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
   };
 
   return (
