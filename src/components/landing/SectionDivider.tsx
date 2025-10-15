@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Brain, Sparkles, Zap, Bot, CircuitBoard, Cpu, BrainCircuit, Binary, Activity } from "lucide-react";
+import NetworkBus from "./NetworkBus";
 
 interface SectionDividerProps {
   variant?: "neural" | "robot" | "binary" | "wave";
@@ -36,6 +37,31 @@ const NeuralNetwork = () => {
             <stop offset="100%" stopColor="hsl(var(--electric-cyan))" />
           </linearGradient>
         </defs>
+
+        {/* Express buses crossing the divider */}
+        <NetworkBus
+          size="large"
+          type="tcp"
+          startX={0}
+          startY={100}
+          endX={typeof window !== "undefined" ? window.innerWidth : 1920}
+          endY={120}
+          duration={6}
+          showLabel={true}
+          pathType="straight"
+        />
+        <NetworkBus
+          size="medium"
+          type="http"
+          startX={typeof window !== "undefined" ? window.innerWidth : 1920}
+          startY={80}
+          endX={0}
+          endY={100}
+          duration={5}
+          delay={2}
+          showLabel={true}
+          pathType="straight"
+        />
       </svg>
 
       {/* Nodes */}
@@ -53,17 +79,6 @@ const NeuralNetwork = () => {
             ],
           }}
           transition={{ duration: 2, delay: i * 0.3, repeat: Infinity }}
-        />
-      ))}
-
-      {/* Data packets */}
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={`packet-${i}`}
-          className="absolute w-3 h-3 bg-electric-cyan rounded"
-          style={{ left: "0%", top: "50%", transform: "translateY(-50%)" }}
-          animate={{ left: "100%" }}
-          transition={{ duration: 4, delay: i * 1.3, repeat: Infinity, ease: "linear" }}
         />
       ))}
     </div>
