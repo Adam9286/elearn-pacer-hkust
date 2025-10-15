@@ -136,4 +136,81 @@ All colors MUST be HSL.
   .transition-smooth {
     transition: var(--transition-smooth);
   }
+  
+  /* Micro-interactions */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsla(210, 100%, 35%, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 30px hsla(210, 100%, 35%, 0.6);
+    }
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+  
+  @keyframes slide-up {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+  
+  @keyframes sparkle {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.1);
+    }
+  }
+  
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--primary) / 0.1) 50%,
+      hsl(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+  
+  .animate-slide-up {
+    animation: slide-up 0.4s ease-out;
+  }
+  
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .animate-sparkle {
+    animation: sparkle 1.5s ease-in-out infinite;
+  }
 }

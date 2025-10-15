@@ -25,6 +25,7 @@ const ChatMode = () => {
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [newMessageId, setNewMessageId] = useState<string | null>(null);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -71,6 +72,8 @@ const ChatMode = () => {
           content: data.output || "I received your question and I'm processing it.",
           source: data.source_document || data.source,
         };
+        setNewMessageId(aiMessage.id);
+        setTimeout(() => setNewMessageId(null), 400);
         return [...withoutLoading, aiMessage];
       });
     } catch (error) {
@@ -84,6 +87,8 @@ const ChatMode = () => {
           role: "assistant",
           content: "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.",
         };
+        setNewMessageId(errorMessage.id);
+        setTimeout(() => setNewMessageId(null), 400);
         return [...withoutLoading, errorMessage];
       });
     } finally {
@@ -95,9 +100,9 @@ const ChatMode = () => {
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Chat Interface */}
       <Card className="lg:col-span-2 glass-card shadow-lg">
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-primary" />
+        <CardHeader className="border-b gradient-hero">
+          <CardTitle className="flex items-center gap-2 text-white">
+            <MessageSquare className={`w-5 h-5 ${isLoading ? "animate-pulse" : ""}`} />
             Ask Questions
           </CardTitle>
         </CardHeader>
@@ -107,18 +112,29 @@ const ChatMode = () => {
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+                  className={`flex ${message.role === "user" ? "justify-end" : "justify-start"} ${
+                    message.id === newMessageId ? "animate-slide-up" : ""
+                  }`}
                 >
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 transition-smooth ${
                       message.role === "user"
                         ? "gradient-primary text-white shadow-glow"
-                        : "bg-secondary text-foreground"
+                        : "glass-card text-foreground"
                     }`}
                   >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                    {message.content === "I received your question and I'm processing it…" ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        <p className="text-sm leading-relaxed animate-shimmer">
+                          Thinking...
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                    )}
                     {message.source && (
-                      <Badge variant="outline" className="mt-2 text-xs">
+                      <Badge variant="outline" className="mt-2 text-xs animate-sparkle">
                         <BookOpen className="w-3 h-3 mr-1" />
                         {message.source}
                       </Badge>
@@ -140,7 +156,7 @@ const ChatMode = () => {
               />
               <Button 
                 onClick={handleSend} 
-                className="gradient-primary shadow-glow" 
+                className="gradient-primary shadow-glow hover:animate-pulse-glow transition-smooth" 
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -156,9 +172,9 @@ const ChatMode = () => {
 
       {/* Hints & Resources */}
       <Card className="glass-card shadow-lg">
-        <CardHeader className="border-b">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Lightbulb className="w-5 h-5 text-accent" />
+        <CardHeader className="border-b gradient-hero">
+          <CardTitle className="flex items-center gap-2 text-lg text-white">
+            <Lightbulb className="w-5 h-5 text-accent animate-float" />
             Smart Hints
           </CardTitle>
         </CardHeader>
