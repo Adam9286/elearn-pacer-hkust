@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Send, Lightbulb, BookOpen, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,8 @@ interface Message {
 }
 
 const ChatMode = () => {
+  const sessionId = useMemo(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, []);
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -42,6 +44,7 @@ const ChatMode = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          sessionId,
           query: input,
           context: messages,
         }),
