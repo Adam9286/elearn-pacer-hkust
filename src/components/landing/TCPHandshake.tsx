@@ -202,10 +202,11 @@ const TCPHandshake = () => {
         )}
 
         {/* Step 1: SYN */}
-        {step >= 1 && (
+        {(step === 1 || step === 2) && (
           <motion.g
-            initial={{ x: 220 }}
-            animate={{ x: step === 1 ? 700 : 1180 }}
+            key={`syn-${step}`}
+            initial={{ x: 220, opacity: 0 }}
+            animate={{ x: 1180, opacity: step === 1 ? 1 : 0.3 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
@@ -245,10 +246,11 @@ const TCPHandshake = () => {
         )}
 
         {/* Step 2: SYN-ACK */}
-        {step >= 2 && (
+        {(step === 2 || step === 3) && (
           <motion.g
-            initial={{ x: 1180 }}
-            animate={{ x: step === 2 ? 700 : 220 }}
+            key={`syn-ack-${step}`}
+            initial={{ x: 1180, opacity: 0 }}
+            animate={{ x: 220, opacity: step === 2 ? 1 : 0.3 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
@@ -288,10 +290,11 @@ const TCPHandshake = () => {
         )}
 
         {/* Step 3: ACK */}
-        {step >= 3 && (
+        {(step === 3 || step === 0) && (
           <motion.g
-            initial={{ x: 220 }}
-            animate={{ x: step === 3 ? 700 : 1180 }}
+            key={`ack-${step}`}
+            initial={{ x: 220, opacity: 0 }}
+            animate={{ x: 1180, opacity: step === 3 ? 1 : 0.3 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
@@ -339,7 +342,7 @@ const TCPHandshake = () => {
           >
             <text
               x="700"
-              y="520"
+              y="150"
               textAnchor="middle"
               fill="hsl(var(--hkust-gold))"
               fontSize="22"
@@ -349,7 +352,7 @@ const TCPHandshake = () => {
             </text>
             <text
               x="700"
-              y="545"
+              y="175"
               textAnchor="middle"
               fill="hsl(var(--electric-cyan))"
               fontSize="14"
