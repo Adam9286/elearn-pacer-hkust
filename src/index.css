@@ -13,6 +13,13 @@ All colors MUST be HSL.
     --hkust-gold: 45 100% 50%;
     --navy: 220 40% 15%;
     
+    /* Cyberpunk/Tech Colors for Landing Page */
+    --neon-blue: 180 100% 50%;
+    --neon-purple: 280 100% 60%;
+    --cyber-pink: 330 100% 60%;
+    --dark-void: 220 30% 5%;
+    --electric-cyan: 190 100% 45%;
+    
     /* Semantic Tokens */
     --background: 0 0% 97%;
     --foreground: 220 40% 15%;
@@ -212,5 +219,98 @@ All colors MUST be HSL.
   
   .animate-sparkle {
     animation: sparkle 1.5s ease-in-out infinite;
+  }
+  
+  /* Landing page animations */
+  @keyframes rotate-gradient {
+    0% { 
+      background-position: 0% 50%; 
+      transform: rotate(0deg);
+    }
+    100% { 
+      background-position: 100% 50%; 
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes particle-float {
+    0%, 100% { 
+      transform: translate(0, 0); 
+    }
+    50% { 
+      transform: translate(10px, -10px); 
+    }
+  }
+  
+  @keyframes glow-pulse {
+    0%, 100% { 
+      filter: drop-shadow(0 0 10px currentColor); 
+    }
+    50% { 
+      filter: drop-shadow(0 0 30px currentColor); 
+    }
+  }
+  
+  @keyframes grid-move {
+    0% {
+      transform: translateY(0);
+    }
+    100% {
+      transform: translateY(50px);
+    }
+  }
+  
+  .animate-rotate-gradient {
+    background-size: 200% 200%;
+    animation: rotate-gradient 4s linear infinite;
+  }
+  
+  .animate-particle-float {
+    animation: particle-float 3s ease-in-out infinite;
+  }
+  
+  .animate-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+  
+  /* Cyberpunk color utilities */
+  .bg-dark-void {
+    background-color: hsl(var(--dark-void));
+  }
+  
+  .text-neon-blue {
+    color: hsl(var(--neon-blue));
+  }
+  
+  .text-neon-purple {
+    color: hsl(var(--neon-purple));
+  }
+  
+  .text-electric-cyan {
+    color: hsl(var(--electric-cyan));
+  }
+  
+  .text-cyber-pink {
+    color: hsl(var(--cyber-pink));
+  }
+  
+  .border-neon-blue {
+    border-color: hsl(var(--neon-blue));
+  }
+  
+  .border-electric-cyan {
+    border-color: hsl(var(--electric-cyan));
+  }
+  
+  .bg-neon-blue {
+    background-color: hsl(var(--neon-blue));
+  }
+  
+  .bg-neon-purple {
+    background-color: hsl(var(--neon-purple));
+  }
+  
+  .bg-electric-cyan {
+    background-color: hsl(var(--electric-cyan));
   }
 }
