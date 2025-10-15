@@ -22,7 +22,7 @@ const Hero = () => {
       {/* Content */}
       <div className="relative z-20 text-center px-4 max-w-5xl mx-auto">
         {/* Floating AI Brain/Robot */}
-        <div className="relative z-30">
+        <div className="relative z-50">
         <motion.div
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
