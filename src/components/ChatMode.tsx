@@ -55,7 +55,7 @@ const ChatMode = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          chatInput: userInput,
+          query: userInput,
           sessionId,
         }),
       });
