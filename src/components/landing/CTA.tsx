@@ -108,7 +108,7 @@ const CTA = () => {
               { value: "3 Modes", label: "Learning Paths" },
               { value: "Real-time", label: "Feedback" }
             ].map((stat, index) => (
-              <div key={index} className="glass-card p-4 rounded-lg border border-white/20">
+              <div key={index} className="glass-card-landing p-4 rounded-lg border border-white/20">
                 <div className="text-2xl font-bold bg-gradient-to-r from-white to-electric-cyan bg-clip-text text-transparent mb-1">
                   {stat.value}
                 </div>

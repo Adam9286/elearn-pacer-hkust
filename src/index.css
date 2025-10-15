@@ -159,6 +159,14 @@ All colors MUST be HSL.
     border: 1px solid var(--glass-border);
   }
   
+  .glass-card-landing {
+    background: rgba(30, 41, 59, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+  
   .text-shadow-glow {
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
   }

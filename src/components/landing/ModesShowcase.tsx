@@ -126,7 +126,7 @@ const ModesShowcase = () => {
               whileHover={{ y: -10, transition: { duration: 0.3 } }}
               className="group relative"
             >
-              <div className="glass-card p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth h-full">
+              <div className="glass-card-landing p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth h-full">
                 {/* Gradient glow on hover */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 rounded-2xl transition-smooth blur-xl`}></div>
                 

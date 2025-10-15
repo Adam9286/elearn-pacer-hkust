@@ -29,7 +29,7 @@ const PlatformIntro = () => {
             transition={{ duration: 0.8 }}
             className="relative"
           >
-            <div className="glass-card p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth shadow-glow">
+            <div className="glass-card-landing p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth shadow-glow">
               {/* Mock chat interface */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3 mb-6">
@@ -114,7 +114,7 @@ const PlatformIntro = () => {
               initial={{ opacity: 0 }}
               animate={inView ? { opacity: 1 } : {}}
               transition={{ delay: 1 }}
-              className="mt-8 p-6 glass-card rounded-xl border border-white/20 bg-gradient-to-r from-accent/10 to-neon-blue/10"
+              className="mt-8 p-6 glass-card-landing rounded-xl border border-white/20 bg-gradient-to-r from-accent/10 to-neon-blue/10"
             >
               <p className="text-white text-base">
                 <span className="text-accent font-bold">Built for:</span>{" "}
