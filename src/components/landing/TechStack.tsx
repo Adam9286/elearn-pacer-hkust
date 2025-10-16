@@ -16,59 +16,44 @@ const TechStack = () => {
         "Supabase pgvector for embeddings",
         "Semantic similarity search",
         "Source citation engine",
-        "Context-aware retrieval"
+        "Context-aware retrieval",
       ],
-      color: "neon-blue"
+      color: "neon-blue",
     },
     {
       icon: Workflow,
       title: "Backend Orchestration",
-      items: [
-        "n8n workflow automation",
-        "Webhook integration",
-        "Session management",
-        "API orchestration"
-      ],
-      color: "neon-purple"
+      items: ["n8n workflow automation", "Webhook integration", "Session management", "API orchestration"],
+      color: "neon-purple",
     },
     {
       icon: Palette,
       title: "Frontend Excellence",
-      items: [
-        "React + TypeScript",
-        "Tailwind CSS + Glassmorphism",
-        "Framer Motion animations",
-        "Responsive design"
-      ],
-      color: "electric-cyan"
+      items: ["React + TypeScript", "Tailwind CSS + Glassmorphism", "Framer Motion animations", "Responsive design"],
+      color: "electric-cyan",
     },
     {
       icon: Shield,
       title: "Security & Privacy",
-      items: [
-        "Scope protection",
-        "Rate limiting",
-        "Secure API endpoints",
-        "Data encryption"
-      ],
-      color: "cyber-pink"
-    }
+      items: ["Scope protection", "Rate limiting", "Secure API endpoints", "Data encryption"],
+      color: "cyber-pink",
+    },
   ];
 
   const architectureSteps = [
     { label: "User Query", icon: Code2 },
     { label: "n8n Webhook", icon: Workflow },
     { label: "RAG Pipeline", icon: Brain },
-    { label: "Vector DB", icon: Database },
+    { label: "Supabase", icon: Database },
     { label: "LLM", icon: Cpu },
-    { label: "Response", icon: Network }
+    { label: "Response", icon: Network },
   ];
 
   return (
     <section ref={ref} className="min-h-screen py-20 px-4 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-dark-void via-navy/20 to-dark-void"></div>
-      
+
       <div className="container mx-auto relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -94,7 +79,7 @@ const TechStack = () => {
               <Brain className="w-8 h-8 text-neon-blue" />
               Technical Architecture
             </h3>
-            
+
             <div className="flex flex-wrap items-center justify-center gap-4">
               {architectureSteps.map((step, index) => (
                 <div key={index} className="flex items-center">
@@ -109,7 +94,7 @@ const TechStack = () => {
                     </div>
                     <span className="text-white/85 text-sm text-center font-medium">{step.label}</span>
                   </motion.div>
-                  
+
                   {index < architectureSteps.length - 1 && (
                     <motion.div
                       initial={{ scaleX: 0 }}
@@ -136,12 +121,14 @@ const TechStack = () => {
               transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
               className="glass-card-landing p-6 rounded-xl border border-white/20 hover:border-white/40 transition-smooth group"
             >
-              <div className={`w-12 h-12 rounded-lg bg-${category.color}/20 border border-${category.color}/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth`}>
+              <div
+                className={`w-12 h-12 rounded-lg bg-${category.color}/20 border border-${category.color}/30 flex items-center justify-center mb-4 group-hover:scale-110 transition-smooth`}
+              >
                 <category.icon className={`w-6 h-6 text-${category.color}`} />
               </div>
-              
+
               <h3 className="text-xl font-bold text-white mb-4">{category.title}</h3>
-              
+
               <ul className="space-y-2">
                 {category.items.map((item, i) => (
                   <li key={i} className="text-white/90 text-sm flex items-start gap-2">
@@ -169,7 +156,7 @@ const TechStack = () => {
             </div>
             <span className="text-white/60 text-sm font-mono">rag_pipeline.py</span>
           </div>
-          
+
           <pre className="text-electric-cyan font-mono text-sm overflow-x-auto">
             <code>{`# Semantic similarity search
 vector_results = supabase
