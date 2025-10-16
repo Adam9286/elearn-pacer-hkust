@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   id: string;
@@ -14,6 +16,7 @@ interface Message {
 }
 
 const ChatMode = () => {
+  const { toast } = useToast();
   const sessionId = useMemo(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, []);
   
   const [messages, setMessages] = useState<Message[]>([
@@ -31,7 +34,32 @@ const ChatMode = () => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    setAttachments((prev) => [...prev, ...files]);
+    
+    // Validate files
+    const maxSize = 20 * 1024 * 1024; // 20MB
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'text/plain'];
+    
+    const validFiles = files.filter(file => {
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds 20MB limit`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} must be PDF, PNG, JPG, or TXT`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+    
+    setAttachments((prev) => [...prev, ...validFiles]);
   };
 
   const removeAttachment = (index: number) => {
@@ -48,8 +76,10 @@ const ChatMode = () => {
     };
 
     const userInput = input;
+    const currentAttachments = [...attachments];
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+    setAttachments([]);
     setIsLoading(true);
 
     // Show loading message
@@ -61,6 +91,37 @@ const ChatMode = () => {
     setMessages((prev) => [...prev, loadingMessage]);
 
     try {
+      // Upload attachments to Supabase Storage
+      const uploadedUrls: string[] = [];
+      
+      for (const file of currentAttachments) {
+        const fileName = `${Date.now()}_${file.name}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chat-attachments')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error('Upload error:', uploadError);
+          toast({
+            title: "Upload failed",
+            description: `Failed to upload ${file.name}`,
+            variant: "destructive",
+          });
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('chat-attachments')
+          .getPublicUrl(uploadData.path);
+
+        uploadedUrls.push(urlData.publicUrl);
+      }
+
+      // Send message with attachment URLs to n8n webhook
       const response = await fetch('https://smellycat9286.app.n8n.cloud/webhook/4dfc1e83-8e12-47d7-9c62-ffe784259705', {
         method: 'POST',
         headers: {
@@ -69,6 +130,7 @@ const ChatMode = () => {
         body: JSON.stringify({
           query: userInput,
           sessionId,
+          attachments: uploadedUrls,
         }),
       });
 
@@ -178,6 +240,7 @@ const ChatMode = () => {
                 ref={fileInputRef}
                 onChange={handleFileSelect}
                 multiple
+                accept=".pdf,.png,.jpg,.jpeg,.txt"
                 className="hidden"
               />
               <Button
