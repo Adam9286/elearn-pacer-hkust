@@ -13,14 +13,15 @@ const TCPHandshake = () => {
   }, []);
 
   return (
-    <div className="absolute inset-0 z-[1] pointer-events-none">
-      <svg
-        width="100%" 
-        height="100%" 
-        viewBox="0 0 1400 800" 
-        preserveAspectRatio="xMidYMid slice"
-        className="opacity-30"
-      >
+    <div className="absolute inset-0 z-[1] pointer-events-none flex items-center justify-center">
+      <div className="w-full max-w-[1400px] h-full">
+        <svg
+          width="100%" 
+          height="100%" 
+          viewBox="0 0 1400 800" 
+          preserveAspectRatio="xMidYMid meet"
+          className="opacity-30"
+        >
         {/* Filter for glow effect */}
         <defs>
           <filter id="packet-glow">
@@ -406,6 +407,7 @@ const TCPHandshake = () => {
           </motion.g>
         )}
       </svg>
+      </div>
     </div>
   );
 };

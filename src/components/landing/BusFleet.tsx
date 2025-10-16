@@ -6,25 +6,31 @@ const BusFleet = () => {
   const [viewportWidth, setViewportWidth] = useState(
     typeof window !== "undefined" ? window.innerWidth : 1920
   );
+  const [viewportHeight, setViewportHeight] = useState(
+    typeof window !== "undefined" ? window.innerHeight : 1080
+  );
 
   useEffect(() => {
-    const handleResize = () => setViewportWidth(window.innerWidth);
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+      setViewportHeight(window.innerHeight);
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Background ambient buses
   const ambientBuses = [
-    { size: "small" as const, type: "tcp" as const, startX: 0, startY: 200, endX: viewportWidth, endY: 250, duration: 12 },
-    { size: "medium" as const, type: "http" as const, startX: viewportWidth, startY: 400, endX: 0, endY: 450, duration: 15 },
-    { size: "small" as const, type: "udp" as const, startX: 0, startY: 600, endX: viewportWidth, endY: 580, duration: 8 },
-    { size: "large" as const, type: "tcp" as const, startX: viewportWidth, startY: 800, endX: 0, endY: 850, duration: 18 },
-    { size: "small" as const, type: "http" as const, startX: 0, startY: 1000, endX: viewportWidth, endY: 1020, duration: 10 },
-    { size: "medium" as const, type: "tcp" as const, startX: viewportWidth, startY: 1200, endX: 0, endY: 1180, duration: 14 },
+    { size: "small" as const, type: "tcp" as const, startX: 0, startY: viewportHeight * 0.2, endX: viewportWidth, endY: viewportHeight * 0.25, duration: 12 },
+    { size: "medium" as const, type: "http" as const, startX: viewportWidth, startY: viewportHeight * 0.4, endX: 0, endY: viewportHeight * 0.45, duration: 15 },
+    { size: "small" as const, type: "udp" as const, startX: 0, startY: viewportHeight * 0.6, endX: viewportWidth, endY: viewportHeight * 0.58, duration: 8 },
+    { size: "large" as const, type: "tcp" as const, startX: viewportWidth, startY: viewportHeight * 0.8, endX: 0, endY: viewportHeight * 0.85, duration: 18 },
+    { size: "small" as const, type: "http" as const, startX: 0, startY: viewportHeight * 1.0, endX: viewportWidth, endY: viewportHeight * 1.02, duration: 10 },
+    { size: "medium" as const, type: "tcp" as const, startX: viewportWidth, startY: viewportHeight * 1.2, endX: 0, endY: viewportHeight * 1.18, duration: 14 },
   ];
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-10 opacity-40">
+    <div className="absolute inset-0 pointer-events-none z-[1] opacity-40">
       <svg width="100%" height="100%" className="absolute inset-0">
         <defs>
           <filter id="bus-glow">
