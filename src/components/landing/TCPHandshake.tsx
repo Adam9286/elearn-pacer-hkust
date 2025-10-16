@@ -320,12 +320,12 @@ const TCPHandshake = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
             >
-              <text x="700" y="150" textAnchor="middle" fill="hsl(var(--hkust-gold))" fontSize="22" fontWeight="700">
+              <text x="700" y="50" textAnchor="middle" fill="hsl(var(--hkust-gold))" fontSize="22" fontWeight="700">
                 ✓ Connection Established
               </text>
               <text
                 x="700"
-                y="175"
+                y="75"
                 textAnchor="middle"
                 fill="hsl(var(--electric-cyan))"
                 fontSize="14"
