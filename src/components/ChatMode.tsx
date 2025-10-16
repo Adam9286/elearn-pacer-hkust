@@ -13,6 +13,11 @@ interface Message {
   role: "user" | "assistant";
   content: string;
   source?: string;
+  attachments?: Array<{
+    name: string;
+    url: string;
+    type: string;
+  }>;
 }
 
 const ChatMode = () => {
@@ -67,16 +72,22 @@ const ChatMode = () => {
   };
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && attachments.length === 0) || isLoading) return;
 
+    const currentAttachments = [...attachments];
+    
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input,
+      content: input || "📎 Sent attachment(s)",
+      attachments: currentAttachments.map(file => ({
+        name: file.name,
+        url: URL.createObjectURL(file),
+        type: file.type
+      }))
     };
 
     const userInput = input;
-    const currentAttachments = [...attachments];
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setAttachments([]);
@@ -205,6 +216,25 @@ const ChatMode = () => {
                       </div>
                     ) : (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                    )}
+                    {message.attachments && message.attachments.length > 0 && (
+                      <div className="mt-2 space-y-1.5">
+                        {message.attachments.map((attachment, idx) => (
+                          <div 
+                            key={idx} 
+                            className="flex items-center gap-2 text-xs bg-background/30 rounded-lg px-3 py-2 border border-white/10"
+                          >
+                            <Paperclip className="h-3.5 w-3.5 flex-shrink-0" />
+                            <span className="truncate flex-1">{attachment.name}</span>
+                            {attachment.type.includes('pdf') && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">PDF</Badge>
+                            )}
+                            {attachment.type.includes('image') && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Image</Badge>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
                     {message.source && (
                       <Badge variant="outline" className="mt-2 text-xs animate-sparkle">
