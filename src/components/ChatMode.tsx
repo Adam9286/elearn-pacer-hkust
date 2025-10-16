@@ -243,7 +243,23 @@ const ChatMode = () => {
             Ask Questions
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent 
+          className={`p-0 relative transition-all ${
+            isDraggingOver ? 'ring-2 ring-primary ring-inset' : ''
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {isDraggingOver && (
+            <div className="absolute inset-0 bg-primary/10 backdrop-blur-sm z-10 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <Paperclip className="w-12 h-12 mx-auto mb-2 text-primary animate-bounce" />
+                <p className="text-lg font-semibold text-primary">Drop files here</p>
+                <p className="text-sm text-muted-foreground">PDF, PNG, JPG, or TXT (max 20MB)</p>
+              </div>
+            </div>
+          )}
           <ScrollArea className="h-[500px] p-6">
             <div className="space-y-4">
               {messages.map((message) => (
@@ -300,14 +316,7 @@ const ChatMode = () => {
               ))}
             </div>
           </ScrollArea>
-          <div 
-            className={`p-4 border-t bg-background/50 transition-all ${
-              isDraggingOver ? 'border-primary border-2 bg-primary/5' : ''
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
+          <div className="p-4 border-t bg-background/50">
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {attachments.map((file, index) => (
