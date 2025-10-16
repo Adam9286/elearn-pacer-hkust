@@ -50,7 +50,7 @@ const ChatMode = () => {
     setMessages((prev) => [...prev, loadingMessage]);
 
     try {
-      const response = await fetch('https://smellycat9286.app.n8n.cloud/webhook-test/4dfc1e83-8e12-47d7-9c62-ffe784259705', {
+      const response = await fetch('https://smellycat9286.app.n8n.cloud/webhook/4dfc1e83-8e12-47d7-9c62-ffe784259705', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
