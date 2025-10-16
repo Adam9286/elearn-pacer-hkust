@@ -36,6 +36,7 @@ const ChatMode = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [newMessageId, setNewMessageId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,10 +67,59 @@ const ChatMode = () => {
     });
 
     setAttachments((prev) => [...prev, ...validFiles]);
+    
+    // Reset file input to allow re-uploading the same file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   const removeAttachment = (index: number) => {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+
+    const files = Array.from(e.dataTransfer.files);
+    const maxSize = 20 * 1024 * 1024;
+    const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "text/plain"];
+
+    const validFiles = files.filter((file) => {
+      if (file.size > maxSize) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds 20MB limit`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: `${file.name} must be PDF, PNG, JPG, or TXT`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    setAttachments((prev) => [...prev, ...validFiles]);
   };
 
   const handleSend = async () => {
@@ -250,7 +300,14 @@ const ChatMode = () => {
               ))}
             </div>
           </ScrollArea>
-          <div className="p-4 border-t bg-background/50">
+          <div 
+            className={`p-4 border-t bg-background/50 transition-all ${
+              isDraggingOver ? 'border-primary border-2 bg-primary/5' : ''
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-3">
                 {attachments.map((file, index) => (
