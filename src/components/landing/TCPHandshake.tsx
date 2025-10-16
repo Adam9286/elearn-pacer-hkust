@@ -325,7 +325,7 @@ const TCPHandshake = () => {
               </text>
               <text
                 x="700"
-                y="900"
+                y="4000"
                 textAnchor="middle"
                 fill="hsl(var(--electric-cyan))"
                 fontSize="14"
