@@ -1,8 +1,8 @@
-import { useState, useMemo } from "react";
-import { Send, Lightbulb, BookOpen, MessageSquare, Loader2 } from "lucide-react";
+import { useState, useMemo, useRef } from "react";
+import { Send, Lightbulb, BookOpen, MessageSquare, Loader2, Paperclip, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,6 +26,17 @@ const ChatMode = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [newMessageId, setNewMessageId] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setAttachments((prev) => [...prev, ...files]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -145,19 +156,58 @@ const ChatMode = () => {
             </div>
           </ScrollArea>
           <div className="p-4 border-t bg-background/50">
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {attachments.map((file, index) => (
+                  <Badge key={index} variant="secondary" className="flex items-center gap-1 px-2 py-1">
+                    <Paperclip className="w-3 h-3" />
+                    <span className="text-xs">{file.name}</span>
+                    <button
+                      onClick={() => removeAttachment(index)}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
             <div className="flex gap-2">
-              <Input
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                multiple
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                className="shrink-0"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSend()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    !isLoading && handleSend();
+                  }
+                }}
                 placeholder="Ask about TCP flow control, routing algorithms, or any ELEC3120 topic..."
-                className="flex-1"
+                className="flex-1 min-h-[60px] max-h-[200px] resize-none"
                 disabled={isLoading}
               />
               <Button 
                 onClick={handleSend} 
-                className="gradient-primary shadow-glow hover:animate-pulse-glow transition-smooth" 
+                className="gradient-primary shadow-glow hover:animate-pulse-glow transition-smooth shrink-0" 
                 disabled={isLoading}
+                size="icon"
               >
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
