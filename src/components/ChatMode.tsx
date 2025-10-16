@@ -23,12 +23,13 @@ interface Message {
 const ChatMode = () => {
   const { toast } = useToast();
   const sessionId = useMemo(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, []);
-  
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       role: "assistant",
-      content: "Hello! I'm LearningPacer, your AI teaching assistant for ELEC3120. I can answer questions about Computer Networks based on your course materials. What would you like to learn today?",
+      content:
+        "Hello! I'm LearningPacer, your AI teaching assistant for ELEC3120. I can answer questions about Computer Networks based on your course materials. What would you like to learn today?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -39,12 +40,12 @@ const ChatMode = () => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    
+
     // Validate files
     const maxSize = 20 * 1024 * 1024; // 20MB
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'text/plain'];
-    
-    const validFiles = files.filter(file => {
+    const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/jpg", "text/plain"];
+
+    const validFiles = files.filter((file) => {
       if (file.size > maxSize) {
         toast({
           title: "File too large",
@@ -63,7 +64,7 @@ const ChatMode = () => {
       }
       return true;
     });
-    
+
     setAttachments((prev) => [...prev, ...validFiles]);
   };
 
@@ -75,16 +76,16 @@ const ChatMode = () => {
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
 
     const currentAttachments = [...attachments];
-    
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
       content: input || "📎 Sent attachment(s)",
-      attachments: currentAttachments.map(file => ({
+      attachments: currentAttachments.map((file) => ({
         name: file.name,
         url: URL.createObjectURL(file),
-        type: file.type
-      }))
+        type: file.type,
+      })),
     };
 
     const userInput = input;
@@ -104,18 +105,18 @@ const ChatMode = () => {
     try {
       // Upload attachments to Supabase Storage
       const uploadedUrls: string[] = [];
-      
+
       for (const file of currentAttachments) {
         const fileName = `${Date.now()}_${file.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('chat-attachments')
+          .from("chat-attachments")
           .upload(fileName, file, {
-            cacheControl: '3600',
+            cacheControl: "3600",
             upsert: false,
           });
 
         if (uploadError) {
-          console.error('Upload error:', uploadError);
+          console.error("Upload error:", uploadError);
           toast({
             title: "Upload failed",
             description: `Failed to upload ${file.name}`,
@@ -125,31 +126,32 @@ const ChatMode = () => {
         }
 
         // Get public URL
-        const { data: urlData } = supabase.storage
-          .from('chat-attachments')
-          .getPublicUrl(uploadData.path);
+        const { data: urlData } = supabase.storage.from("chat-attachments").getPublicUrl(uploadData.path);
 
         uploadedUrls.push(urlData.publicUrl);
       }
 
       // Send message with attachment URLs to n8n webhook
-      const response = await fetch('https://smellycat9286.app.n8n.cloud/webhook/4dfc1e83-8e12-47d7-9c62-ffe784259705', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        "https://smellycat9286.app.n8n.cloud/webhook-test/4dfc1e83-8e12-47d7-9c62-ffe784259705",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: userInput,
+            sessionId,
+            attachments: uploadedUrls,
+          }),
         },
-        body: JSON.stringify({
-          query: userInput,
-          sessionId,
-          attachments: uploadedUrls,
-        }),
-      });
+      );
 
       const data = await response.json();
-      
+
       // Remove loading message and add actual response
       setMessages((prev) => {
-        const withoutLoading = prev.filter(msg => msg.id !== loadingMessage.id);
+        const withoutLoading = prev.filter((msg) => msg.id !== loadingMessage.id);
         const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
@@ -161,15 +163,16 @@ const ChatMode = () => {
         return [...withoutLoading, aiMessage];
       });
     } catch (error) {
-      console.error('Error calling n8n webhook:', error);
-      
+      console.error("Error calling n8n webhook:", error);
+
       // Remove loading message and add error message
       setMessages((prev) => {
-        const withoutLoading = prev.filter(msg => msg.id !== loadingMessage.id);
+        const withoutLoading = prev.filter((msg) => msg.id !== loadingMessage.id);
         const errorMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.",
+          content:
+            "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.",
         };
         setNewMessageId(errorMessage.id);
         setTimeout(() => setNewMessageId(null), 400);
@@ -202,17 +205,13 @@ const ChatMode = () => {
                 >
                   <div
                     className={`max-w-[80%] rounded-2xl px-4 py-3 transition-smooth ${
-                      message.role === "user"
-                        ? "gradient-primary text-white shadow-glow"
-                        : "glass-card text-foreground"
+                      message.role === "user" ? "gradient-primary text-white shadow-glow" : "glass-card text-foreground"
                     }`}
                   >
                     {message.content === "I received your question and I'm processing it…" ? (
                       <div className="flex items-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        <p className="text-sm leading-relaxed animate-shimmer">
-                          Thinking...
-                        </p>
+                        <p className="text-sm leading-relaxed animate-shimmer">Thinking...</p>
                       </div>
                     ) : (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
@@ -220,17 +219,21 @@ const ChatMode = () => {
                     {message.attachments && message.attachments.length > 0 && (
                       <div className="mt-2 space-y-1.5">
                         {message.attachments.map((attachment, idx) => (
-                          <div 
-                            key={idx} 
+                          <div
+                            key={idx}
                             className="flex items-center gap-2 text-xs bg-background/30 rounded-lg px-3 py-2 border border-white/10"
                           >
                             <Paperclip className="h-3.5 w-3.5 flex-shrink-0" />
                             <span className="truncate flex-1">{attachment.name}</span>
-                            {attachment.type.includes('pdf') && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">PDF</Badge>
+                            {attachment.type.includes("pdf") && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                PDF
+                              </Badge>
                             )}
-                            {attachment.type.includes('image') && (
-                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">Image</Badge>
+                            {attachment.type.includes("image") && (
+                              <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                                Image
+                              </Badge>
                             )}
                           </div>
                         ))}
@@ -254,10 +257,7 @@ const ChatMode = () => {
                   <Badge key={index} variant="secondary" className="flex items-center gap-1 px-2 py-1">
                     <Paperclip className="w-3 h-3" />
                     <span className="text-xs">{file.name}</span>
-                    <button
-                      onClick={() => removeAttachment(index)}
-                      className="ml-1 hover:text-destructive"
-                    >
+                    <button onClick={() => removeAttachment(index)} className="ml-1 hover:text-destructive">
                       <X className="w-3 h-3" />
                     </button>
                   </Badge>
@@ -296,17 +296,13 @@ const ChatMode = () => {
                 className="flex-1 min-h-[192px] max-h-[400px] resize-none"
                 disabled={isLoading}
               />
-              <Button 
-                onClick={handleSend} 
-                className="gradient-primary shadow-glow hover:animate-pulse-glow transition-smooth shrink-0" 
+              <Button
+                onClick={handleSend}
+                className="gradient-primary shadow-glow hover:animate-pulse-glow transition-smooth shrink-0"
                 disabled={isLoading}
                 size="icon"
               >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
             </div>
           </div>
@@ -325,21 +321,15 @@ const ChatMode = () => {
           <div className="space-y-3">
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 transition-smooth hover:bg-primary/10">
               <h4 className="font-semibold text-sm mb-1">Tiered Help System</h4>
-              <p className="text-xs text-muted-foreground">
-                Get hints from symptoms to complete solutions
-              </p>
+              <p className="text-xs text-muted-foreground">Get hints from symptoms to complete solutions</p>
             </div>
             <div className="p-4 rounded-lg bg-accent/5 border border-accent/20 transition-smooth hover:bg-accent/10">
               <h4 className="font-semibold text-sm mb-1">Source Citations</h4>
-              <p className="text-xs text-muted-foreground">
-                Every answer references course materials
-              </p>
+              <p className="text-xs text-muted-foreground">Every answer references course materials</p>
             </div>
             <div className="p-4 rounded-lg bg-secondary border transition-smooth hover:bg-secondary/80">
               <h4 className="font-semibold text-sm mb-1">Scope Protection</h4>
-              <p className="text-xs text-muted-foreground">
-                Only ELEC3120 topics - no hallucinations
-              </p>
+              <p className="text-xs text-muted-foreground">Only ELEC3120 topics - no hallucinations</p>
             </div>
           </div>
         </CardContent>
