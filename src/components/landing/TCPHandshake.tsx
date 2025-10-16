@@ -42,9 +42,9 @@ const TCPHandshake = () => {
 
         {/* Animated connection line */}
         <motion.line
-          x1="220"
+          x1="250"
           y1="400"
-          x2="1180"
+          x2="1150"
           y2="400"
           stroke="hsl(var(--electric-cyan) / 0.3)"
           strokeWidth="2"
@@ -63,12 +63,12 @@ const TCPHandshake = () => {
         {[...Array(5)].map((_, i) => (
           <motion.circle
             key={i}
-            cx="220"
+            cx="250"
             cy="400"
             r="3"
             fill="hsl(var(--neon-blue))"
             animate={{
-              cx: [220, 1180],
+              cx: [250, 1150],
               opacity: [0, 1, 1, 0],
             }}
             transition={{
@@ -83,10 +83,10 @@ const TCPHandshake = () => {
         {/* Client Node */}
         <g>
           <motion.rect
-            x="100"
-            y="360"
-            width="120"
-            height="80"
+            x="70"
+            y="340"
+            width="180"
+            height="120"
             rx="8"
             fill="hsl(var(--neon-blue) / 0.8)"
             stroke="hsl(var(--electric-cyan))"
@@ -113,7 +113,7 @@ const TCPHandshake = () => {
           </text>
           <text
             x="160"
-            y="415"
+            y="420"
             textAnchor="middle"
             fill="hsl(var(--electric-cyan))"
             fontSize="12"
@@ -123,7 +123,7 @@ const TCPHandshake = () => {
           </text>
           <text
             x="160"
-            y="430"
+            y="440"
             textAnchor="middle"
             fill="hsl(var(--hkust-gold))"
             fontSize="11"
@@ -136,10 +136,10 @@ const TCPHandshake = () => {
         {/* Server Node */}
         <g>
           <motion.rect
-            x="1180"
-            y="360"
-            width="120"
-            height="80"
+            x="1150"
+            y="340"
+            width="180"
+            height="120"
             rx="8"
             fill="hsl(var(--neon-purple) / 0.8)"
             stroke="hsl(var(--neon-pink))"
@@ -166,7 +166,7 @@ const TCPHandshake = () => {
           </text>
           <text
             x="1240"
-            y="415"
+            y="420"
             textAnchor="middle"
             fill="hsl(var(--neon-pink))"
             fontSize="12"
@@ -176,7 +176,7 @@ const TCPHandshake = () => {
           </text>
           <text
             x="1240"
-            y="430"
+            y="440"
             textAnchor="middle"
             fill="hsl(var(--hkust-gold))"
             fontSize="11"
@@ -190,7 +190,7 @@ const TCPHandshake = () => {
         {step === 1 && (
           <motion.text
             x="700"
-            y="320"
+            y="280"
             textAnchor="middle"
             fill="hsl(var(--electric-cyan))"
             fontSize="16"
@@ -204,7 +204,7 @@ const TCPHandshake = () => {
         {step === 2 && (
           <motion.text
             x="700"
-            y="320"
+            y="280"
             textAnchor="middle"
             fill="hsl(var(--electric-cyan))"
             fontSize="16"
@@ -218,7 +218,7 @@ const TCPHandshake = () => {
         {step === 3 && (
           <motion.text
             x="700"
-            y="320"
+            y="280"
             textAnchor="middle"
             fill="hsl(var(--electric-cyan))"
             fontSize="16"
@@ -232,7 +232,7 @@ const TCPHandshake = () => {
         {step === 0 && (
           <motion.text
             x="700"
-            y="320"
+            y="280"
             textAnchor="middle"
             fill="hsl(var(--hkust-gold))"
             fontSize="16"
@@ -248,8 +248,8 @@ const TCPHandshake = () => {
         {step === 1 && (
           <motion.g
             key={`syn-${step}`}
-            initial={{ x: 220, opacity: 0 }}
-            animate={{ x: 1180, opacity: 1 }}
+            initial={{ x: 250, opacity: 0 }}
+            animate={{ x: 1150, opacity: 1 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
@@ -292,8 +292,8 @@ const TCPHandshake = () => {
         {step === 2 && (
           <motion.g
             key={`syn-ack-${step}`}
-            initial={{ x: 1180, opacity: 0 }}
-            animate={{ x: 220, opacity: 1 }}
+            initial={{ x: 1150, opacity: 0 }}
+            animate={{ x: 250, opacity: 1 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
@@ -336,8 +336,8 @@ const TCPHandshake = () => {
         {step === 3 && (
           <motion.g
             key={`ack-${step}`}
-            initial={{ x: 220, opacity: 0 }}
-            animate={{ x: 1180, opacity: 1 }}
+            initial={{ x: 250, opacity: 0 }}
+            animate={{ x: 1150, opacity: 1 }}
             transition={{ duration: 1.2, ease: "easeInOut" }}
           >
             <rect
