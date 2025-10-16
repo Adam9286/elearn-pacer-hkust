@@ -200,7 +200,7 @@ const ChatMode = () => {
                   }
                 }}
                 placeholder="Ask about TCP flow control, routing algorithms, or any ELEC3120 topic..."
-                className="flex-1 min-h-[60px] max-h-[200px] resize-none"
+                className="flex-1 min-h-[192px] max-h-[400px] resize-none"
                 disabled={isLoading}
               />
               <Button 
