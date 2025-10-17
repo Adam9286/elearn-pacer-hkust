@@ -67,10 +67,10 @@ const ChatMode = () => {
     });
 
     setAttachments((prev) => [...prev, ...validFiles]);
-    
+
     // Reset file input to allow re-uploading the same file
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -183,7 +183,7 @@ const ChatMode = () => {
 
       // Send message with attachment URLs to n8n webhook
       const response = await fetch(
-        "https://smellycat9286.app.n8n.cloud/webhook-test/4dfc1e83-8e12-47d7-9c62-ffe784259705",
+        "https://smellycat9286.app.n8n.cloud/webhook-test/638fa33f-5871-43b3-a34e-d318a2147001",
         {
           method: "POST",
           headers: {
@@ -243,10 +243,8 @@ const ChatMode = () => {
             Ask Questions
           </CardTitle>
         </CardHeader>
-        <CardContent 
-          className={`p-0 relative transition-all ${
-            isDraggingOver ? 'ring-2 ring-primary ring-inset' : ''
-          }`}
+        <CardContent
+          className={`p-0 relative transition-all ${isDraggingOver ? "ring-2 ring-primary ring-inset" : ""}`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
