@@ -195,6 +195,11 @@ const ChatMode = () => {
       });
 
       const data = await response.json();
+      
+      // Handle both wrapped ({ body: { output, source_document } }) and unwrapped responses
+      const payload = data.body ?? data;
+      const output = payload.output ?? "I received your question and I'm processing it.";
+      const source = payload.source_document ?? payload.source;
 
       // Remove loading message and add actual response
       setMessages((prev) => {
@@ -202,8 +207,8 @@ const ChatMode = () => {
         const aiMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: data.output || "I received your question and I'm processing it.",
-          source: data.source_document || data.source,
+          content: output,
+          source: source,
         };
         setNewMessageId(aiMessage.id);
         setTimeout(() => setNewMessageId(null), 400);
