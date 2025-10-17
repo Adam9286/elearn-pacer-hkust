@@ -183,7 +183,7 @@ const ChatMode = () => {
 
       // Send message with attachment URLs to n8n webhook
       const response = await fetch(
-        "https://smellycat9286.app.n8n.cloud/webhook-test/638fa33f-5871-43b3-a34e-d318a2147001",
+        "https://smellycat9286.app.n8n.cloud/webhook-test/e0c09895-fd48-4ed6-a1e7-41d813349f32",
         {
           method: "POST",
           headers: {
