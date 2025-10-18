@@ -1,4 +1,5 @@
-import { Lock, CheckCircle, Circle, TrendingUp } from "lucide-react";
+import { Lock, CheckCircle, Circle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -16,39 +17,80 @@ interface Unit {
 const units: Unit[] = [
   {
     id: 1,
-    title: "Network Fundamentals",
-    description: "OSI Model, TCP/IP, Network Protocols",
-    progress: 100,
+    title: "Computer Networks and the Internet",
+    description: "Introduction, Web Basics, Video Streaming",
+    progress: 0,
     locked: false,
-    topics: ["OSI Model", "TCP/IP Stack", "Network Addressing"],
+    topics: ["Network Fundamentals", "Web & HTTP", "Video Streaming", "Chapter Review"],
   },
   {
     id: 2,
-    title: "Transport Layer",
-    description: "TCP, UDP, Flow Control, Congestion Control",
-    progress: 65,
-    locked: false,
-    topics: ["TCP Flow Control", "Congestion Avoidance", "UDP Protocol"],
+    title: "Application Layer",
+    description: "Network Applications, Web, HTTP",
+    progress: 0,
+    locked: true,
+    topics: ["Application Principles", "Web & HTTP", "Chapter Review"],
   },
   {
     id: 3,
-    title: "Network Layer",
-    description: "Routing Algorithms, IP, NAT",
+    title: "Transport Layer",
+    description: "TCP, UDP, Flow Control, Congestion Control",
     progress: 0,
     locked: true,
-    topics: ["Routing Protocols", "IP Addressing", "NAT & DHCP"],
+    topics: ["Transport Model", "TCP Basics", "Congestion Control", "Queue Management", "Chapter Review"],
   },
   {
     id: 4,
-    title: "Link Layer & LANs",
+    title: "Network Layer - Data Plane",
+    description: "IP Fundamentals, Routing",
+    progress: 0,
+    locked: true,
+    topics: ["IP Fundamentals", "Chapter Review"],
+  },
+  {
+    id: 5,
+    title: "Network Layer - Control Plane",
+    description: "BGP, Internet Structure",
+    progress: 0,
+    locked: true,
+    topics: ["BGP Introduction", "BGP Advanced", "Internet Structure", "Chapter Review"],
+  },
+  {
+    id: 6,
+    title: "Link Layer and LANs",
     description: "Ethernet, MAC, Switching",
     progress: 0,
     locked: true,
-    topics: ["Ethernet", "MAC Protocols", "VLANs"],
+    topics: ["Local Area Networks", "LAN Routing", "Link Layer Challenge", "Chapter Review"],
+  },
+  {
+    id: 7,
+    title: "Wireless and Mobile Networks",
+    description: "Wireless Communication, Mobile Networks",
+    progress: 0,
+    locked: true,
+    topics: ["Wireless Networks", "Chapter Review"],
+  },
+  {
+    id: 8,
+    title: "Security and Advanced Topics",
+    description: "CDN, Datacenter, Security, Real-Time Video",
+    progress: 0,
+    locked: true,
+    topics: ["CDN", "Datacenter", "Security Fundamentals", "Advanced Security", "Real-Time Video"],
   },
 ];
 
 const CourseMode = () => {
+  const navigate = useNavigate();
+
+  const handleUnitClick = (unit: Unit) => {
+    if (!unit.locked) {
+      // Navigate to first lesson of the chapter
+      navigate(`/platform/lesson/${unit.id}-1`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Course Progress Overview */}
@@ -57,16 +99,16 @@ const CourseMode = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl">Your Learning Path</CardTitle>
-              <CardDescription>Complete each unit with 80% mastery to unlock the next</CardDescription>
+              <CardDescription>Complete each chapter with 80% mastery to unlock the next</CardDescription>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-primary">41%</div>
+              <div className="text-3xl font-bold text-primary">0%</div>
               <p className="text-sm text-muted-foreground">Overall Progress</p>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <Progress value={41} className="h-3" />
+          <Progress value={0} className="h-3" />
         </CardContent>
       </Card>
 
@@ -97,8 +139,8 @@ const CourseMode = () => {
                   <CardDescription>{unit.description}</CardDescription>
                 </div>
                 {!unit.locked && (
-                  <Button variant="outline" className="ml-4">
-                    {unit.progress === 100 ? "Review" : "Continue"}
+                  <Button variant="outline" className="ml-4" onClick={() => handleUnitClick(unit)}>
+                    {unit.progress === 100 ? "Review" : unit.progress === 0 ? "Start" : "Continue"}
                   </Button>
                 )}
               </div>
