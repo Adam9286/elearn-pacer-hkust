@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Circle, Clock, ChevronRight } from "lucide-react";
+import { ArrowLeft, CheckCircle, Circle, Clock, ChevronRight, FileText } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -18,7 +18,7 @@ const chapters = [
     title: "Computer Networks and the Internet",
     textbookPages: "1-80",
     lessons: [
-      { id: "1-1", number: "1.1", title: "Introduction", lectureFile: "01-Introduction", textbookSections: "1.1-1.3", estimatedMinutes: 45 },
+      { id: "1-1", number: "1.1", title: "Introduction", lectureFile: "01-Introduction", pdfUrl: "https://drive.google.com/file/d/1w34TPqz8BftrSc8TEB03RJ5sKOqqnvjq/view", textbookSections: "1.1-1.3", estimatedMinutes: 45 },
       { id: "1-2", number: "1.2", title: "Web Basics", lectureFile: "02-Web", textbookSections: "1.4-1.5", estimatedMinutes: 40 },
       { id: "1-3", number: "1.3", title: "Video Streaming", lectureFile: "04-Video", textbookSections: "1.6", estimatedMinutes: 35 },
       { id: "1-review", number: "1.R", title: "Chapter 1 Review", contentType: "review", textbookSections: "Problems p.64-66", estimatedMinutes: 60 },
@@ -280,22 +280,30 @@ const Lesson = () => {
                   </TabsContent>
 
                   <TabsContent value="lecture" className="space-y-4">
-                    {currentLesson.lectureFile ? (
+                    {currentLesson.pdfUrl ? (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
                           <div>
                             <p className="font-medium">{currentLesson.lectureFile}</p>
                             <p className="text-sm text-muted-foreground">Lecture notes PDF</p>
                           </div>
-                          <Badge>PDF</Badge>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => window.open(currentLesson.pdfUrl, '_blank')}
+                            className="gap-2"
+                          >
+                            <FileText className="h-4 w-4" />
+                            View PDF
+                          </Button>
                         </div>
-                        <div className="border rounded-lg p-8 text-center bg-muted/20">
-                          <p className="text-muted-foreground">
-                            Lecture notes viewer will be integrated here
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            PDF rendering coming soon
-                          </p>
+                        <div className="border rounded-lg overflow-hidden bg-muted/20" style={{ height: '800px' }}>
+                          <iframe
+                            src={currentLesson.pdfUrl}
+                            className="w-full h-full"
+                            title={`${currentLesson.lectureFile} PDF`}
+                            allow="autoplay"
+                          />
                         </div>
                       </div>
                     ) : (
