@@ -448,9 +448,9 @@ const Lesson = () => {
                   <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="lecture">Lecture Notes</TabsTrigger>
+                    <TabsTrigger value="review">Review</TabsTrigger>
                     <TabsTrigger value="chat">AI Tutor</TabsTrigger>
                     <TabsTrigger value="practice">Practice</TabsTrigger>
-                    <TabsTrigger value="review">Review</TabsTrigger>
                   </TabsList>
                 </CardHeader>
 
