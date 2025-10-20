@@ -23,7 +23,7 @@ const chapters = [
         number: "1.1",
         title: "Introduction",
         lectureFile: "01-Introduction",
-        pdfUrl: "https://drive.google.com/file/d/1w34TPqz8BftrSc8TEB03RJ5sKOqqnvjq/view?usp=sharing",
+        pdfUrl: "https://drive.google.com/file/d/1w34TPqz8BftrSc8TEB03RJ5sKOqqnvjq/view",
         textbookSections: "1.1-1.3",
         estimatedMinutes: 45,
       },
