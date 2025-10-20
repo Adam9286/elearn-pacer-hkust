@@ -18,7 +18,7 @@ const chapters = [
     title: "Computer Networks and the Internet",
     textbookPages: "1-80",
     lessons: [
-      { id: "1-1", number: "1.1", title: "Introduction", lectureFile: "01-Introduction", pdfUrl: "https://drive.google.com/file/d/1w34TPqz8BftrSc8TEB03RJ5sKOqqnvjq/view", textbookSections: "1.1-1.3", estimatedMinutes: 45 },
+      { id: "1-1", number: "1.1", title: "Introduction", lectureFile: "01-Introduction", pdfUrl: "https://drive.google.com/uc?export=download&id=1w34TPqz8BftrSc8TEB03RJ5sKOqqnvjq", textbookSections: "1.1-1.3", estimatedMinutes: 45 },
       { id: "1-2", number: "1.2", title: "Web Basics", lectureFile: "02-Web", textbookSections: "1.4-1.5", estimatedMinutes: 40 },
       { id: "1-3", number: "1.3", title: "Video Streaming", lectureFile: "04-Video", textbookSections: "1.6", estimatedMinutes: 35 },
       { id: "1-review", number: "1.R", title: "Chapter 1 Review", contentType: "review", textbookSections: "Problems p.64-66", estimatedMinutes: 60 },
