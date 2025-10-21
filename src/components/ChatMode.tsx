@@ -240,6 +240,31 @@ const ChatMode = () => {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      {/* Hints & Resources */}
+      <Card className="glass-card shadow-lg">
+        <CardHeader className="border-b gradient-hero">
+          <CardTitle className="flex items-center gap-2 text-lg text-white">
+            <Lightbulb className="w-5 h-5 text-accent animate-float" />
+            Smart Hints
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 space-y-3">
+          <div className="space-y-3">
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 transition-smooth hover:bg-primary/10">
+              <h4 className="font-semibold text-sm mb-0.5">Tiered Help System</h4>
+              <p className="text-xs text-muted-foreground">Get hints from symptoms to complete solutions</p>
+            </div>
+            <div className="p-3 rounded-lg bg-accent/5 border border-accent/20 transition-smooth hover:bg-accent/10">
+              <h4 className="font-semibold text-sm mb-0.5">Source Citations</h4>
+              <p className="text-xs text-muted-foreground">Every answer references course materials</p>
+            </div>
+            <div className="p-3 rounded-lg bg-secondary border transition-smooth hover:bg-secondary/80">
+              <h4 className="font-semibold text-sm mb-0.5">Scope Protection</h4>
+              <p className="text-xs text-muted-foreground">Only ELEC3120 topics - no hallucinations</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       {/* Chat Interface */}
       <Card className="lg:col-span-2 glass-card shadow-lg">
         <CardHeader className="border-b gradient-hero">
@@ -373,32 +398,6 @@ const ChatMode = () => {
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Hints & Resources */}
-      <Card className="glass-card shadow-lg">
-        <CardHeader className="border-b gradient-hero">
-          <CardTitle className="flex items-center gap-2 text-lg text-white">
-            <Lightbulb className="w-5 h-5 text-accent animate-float" />
-            Smart Hints
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 space-y-3">
-          <div className="space-y-3">
-            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 transition-smooth hover:bg-primary/10">
-              <h4 className="font-semibold text-sm mb-0.5">Tiered Help System</h4>
-              <p className="text-xs text-muted-foreground">Get hints from symptoms to complete solutions</p>
-            </div>
-            <div className="p-3 rounded-lg bg-accent/5 border border-accent/20 transition-smooth hover:bg-accent/10">
-              <h4 className="font-semibold text-sm mb-0.5">Source Citations</h4>
-              <p className="text-xs text-muted-foreground">Every answer references course materials</p>
-            </div>
-            <div className="p-3 rounded-lg bg-secondary border transition-smooth hover:bg-secondary/80">
-              <h4 className="font-semibold text-sm mb-0.5">Scope Protection</h4>
-              <p className="text-xs text-muted-foreground">Only ELEC3120 topics - no hallucinations</p>
             </div>
           </div>
         </CardContent>
