@@ -239,7 +239,7 @@ const ChatMode = () => {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
       {/* Chat Interface */}
       <Card className="lg:col-span-2 glass-card shadow-lg">
         <CardHeader className="border-b gradient-hero">
@@ -263,7 +263,7 @@ const ChatMode = () => {
               </div>
             </div>
           )}
-          <ScrollArea className="h-[500px] p-6">
+          <ScrollArea className="h-[700px] p-4">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div
@@ -362,7 +362,7 @@ const ChatMode = () => {
                   }
                 }}
                 placeholder="Ask about TCP flow control, routing algorithms, or any ELEC3120 topic..."
-                className="flex-1 min-h-[192px] max-h-[400px] resize-none"
+                className="flex-1 min-h-[80px] max-h-[400px] resize-none"
                 disabled={isLoading}
               />
               <Button
@@ -386,18 +386,18 @@ const ChatMode = () => {
             Smart Hints
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-6 space-y-4">
+        <CardContent className="p-4 space-y-3">
           <div className="space-y-3">
-            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 transition-smooth hover:bg-primary/10">
-              <h4 className="font-semibold text-sm mb-1">Tiered Help System</h4>
+            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 transition-smooth hover:bg-primary/10">
+              <h4 className="font-semibold text-sm mb-0.5">Tiered Help System</h4>
               <p className="text-xs text-muted-foreground">Get hints from symptoms to complete solutions</p>
             </div>
-            <div className="p-4 rounded-lg bg-accent/5 border border-accent/20 transition-smooth hover:bg-accent/10">
-              <h4 className="font-semibold text-sm mb-1">Source Citations</h4>
+            <div className="p-3 rounded-lg bg-accent/5 border border-accent/20 transition-smooth hover:bg-accent/10">
+              <h4 className="font-semibold text-sm mb-0.5">Source Citations</h4>
               <p className="text-xs text-muted-foreground">Every answer references course materials</p>
             </div>
-            <div className="p-4 rounded-lg bg-secondary border transition-smooth hover:bg-secondary/80">
-              <h4 className="font-semibold text-sm mb-1">Scope Protection</h4>
+            <div className="p-3 rounded-lg bg-secondary border transition-smooth hover:bg-secondary/80">
+              <h4 className="font-semibold text-sm mb-0.5">Scope Protection</h4>
               <p className="text-xs text-muted-foreground">Only ELEC3120 topics - no hallucinations</p>
             </div>
           </div>
