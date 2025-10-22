@@ -19,64 +19,81 @@ serve(async (req) => {
     
     console.log('Request params:', { numQuestions, difficulty, includeTypes });
 
-    // Call the n8n webhook
+    // Call the n8n webhook with timeout
     const webhookUrl = 'https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator';
     
-    const webhookResponse = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        numQuestions,
-        difficulty,
-        includeTypes,
-      }),
-    });
+    // Create AbortController for timeout (120 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
+    
+    try {
+      console.log('Calling n8n webhook...');
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          numQuestions,
+          difficulty,
+          includeTypes,
+        }),
+        signal: controller.signal,
+      });
 
-    if (!webhookResponse.ok) {
-      console.error('Webhook error:', webhookResponse.status, webhookResponse.statusText);
-      throw new Error(`Webhook returned status ${webhookResponse.status}`);
-    }
+      clearTimeout(timeoutId);
 
-    const data = await webhookResponse.json();
-    console.log('Webhook response received, questions count:', data.questions?.length);
+      console.log('Response status:', webhookResponse.status);
+      console.log('Response content-type:', webhookResponse.headers.get('content-type'));
 
-    // Validate and format the response
-    if (!data.questions || !Array.isArray(data.questions)) {
-      throw new Error('Invalid response format from webhook');
-    }
-
-    // Ensure all questions have required fields
-    const formattedQuestions = data.questions.map((q: any, index: number) => ({
-      id: q.id || index + 1,
-      type: q.type || 'mcq',
-      question: q.question || '',
-      topic: q.topic || 'General',
-      difficulty: q.difficulty || 'medium',
-      options: q.options || [],
-      correctAnswer: q.correctAnswer,
-      correctAnswerText: q.correctAnswerText || '',
-      acceptableAnswers: q.acceptableAnswers || [],
-      points: q.points || 1,
-    }));
-
-    return new Response(
-      JSON.stringify({ 
-        questions: formattedQuestions,
-        totalQuestions: formattedQuestions.length,
-      }), 
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      if (!webhookResponse.ok) {
+        console.error('Webhook error:', webhookResponse.status, webhookResponse.statusText);
+        throw new Error(`Webhook returned status ${webhookResponse.status}`);
       }
-    );
+
+      const contentType = webhookResponse.headers.get('content-type') || '';
+      
+      // Check if response is a PDF
+      if (contentType.includes('application/pdf') || contentType.includes('application/octet-stream')) {
+        console.log('Received PDF response, forwarding to client...');
+        
+        // Get PDF blob
+        const pdfBlob = await webhookResponse.blob();
+        console.log('PDF size:', pdfBlob.size, 'bytes');
+        
+        // Return PDF with proper headers
+        return new Response(pdfBlob, {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="mock-exam-${Date.now()}.pdf"`,
+          },
+        });
+      }
+      
+      // If not PDF, throw error
+      const text = await webhookResponse.text();
+      console.error('Unexpected response format. Content-Type:', contentType);
+      console.error('Response preview:', text.substring(0, 200));
+      throw new Error('Expected PDF response from webhook, but received: ' + contentType);
+      
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      
+      if (fetchError.name === 'AbortError') {
+        console.error('Request timeout after 120 seconds');
+        throw new Error('PDF generation timed out. Please try again.');
+      }
+      throw fetchError;
+    }
+    
   } catch (error) {
     console.error('Error in generate-exam function:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(
       JSON.stringify({ 
         error: errorMessage,
-        details: 'Failed to generate exam questions. Please try again.',
+        details: 'Failed to generate exam PDF. Please try again.',
       }),
       {
         status: 500,

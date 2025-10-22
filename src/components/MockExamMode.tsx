@@ -81,36 +81,70 @@ const MockExamMode = () => {
     setError("");
     
     try {
-      const { data, error } = await supabase.functions.invoke('generate-exam', {
-        body: {
-          numQuestions: 15,
-          difficulty: "mixed",
-          includeTypes: ["mcq", "short_answer", "calculation"]
+      // Get Supabase URL and key from environment
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error("Supabase configuration missing");
+      }
+
+      // Call edge function directly to get PDF blob
+      const response = await fetch(
+        `${supabaseUrl}/functions/v1/generate-exam`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            numQuestions: 15,
+            difficulty: "mixed",
+            includeTypes: ["mcq", "short_answer", "calculation"]
+          })
         }
-      });
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || `Failed to generate exam (${response.status})`);
+      }
+
+      const contentType = response.headers.get('content-type');
       
-      if (error) throw error;
-      
-      if (!data?.questions || data.questions.length === 0) {
-        throw new Error("No questions received from the server");
+      // Check if response is PDF
+      if (contentType?.includes('application/pdf')) {
+        // Get PDF blob
+        const blob = await response.blob();
+        
+        // Create download link and trigger download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `mock-exam-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        toast({
+          title: "Exam Downloaded!",
+          description: "Your mock exam PDF has been downloaded. Check your downloads folder.",
+        });
+      } else {
+        throw new Error("Expected PDF response but received: " + contentType);
       }
       
-      setQuestions(data.questions);
-      const total = data.questions.reduce((sum: number, q: Question) => sum + q.points, 0);
-      setTotalPoints(total);
-      setExamStarted(true);
-      
-      toast({
-        title: "Exam Ready!",
-        description: `Generated ${data.questions.length} questions tailored for you.`,
-      });
     } catch (error: any) {
       console.error("Failed to generate exam:", error);
       setError(error.message || "Failed to generate exam. Please try again.");
       
       toast({
-        title: "Error",
-        description: "Failed to generate exam questions. Please try again.",
+        title: "Generation Failed",
+        description: error.message || "Could not generate exam PDF. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -336,10 +370,10 @@ const MockExamMode = () => {
               <h3 className="font-semibold">Exam Features:</h3>
               <ul className="space-y-2">
                 {[
+                  "Downloadable PDF format",
+                  "Print-friendly layout",
                   "MCQ, Short Answer, and Calculation questions",
                   "Generated from your trained course material",
-                  "Immediate feedback and detailed review",
-                  "Performance breakdown by question type",
                 ].map((feature, idx) => (
                   <li key={idx} className="flex items-center gap-2 text-sm">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -357,20 +391,25 @@ const MockExamMode = () => {
               {isLoadingQuestions ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Generating Your Exam...
+                  Generating Your Exam PDF...
                 </>
               ) : (
                 <>
                   <Play className="w-5 h-5 mr-2" />
-                  Start Mock Exam
+                  Generate & Download Exam PDF
                 </>
               )}
             </Button>
             
             {isLoadingQuestions && (
-              <p className="text-center text-sm text-muted-foreground">
-                This may take 10-15 seconds while we generate personalized questions
-              </p>
+              <div className="space-y-2 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Creating questions from your course material...
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  This may take up to 2 minutes
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>
