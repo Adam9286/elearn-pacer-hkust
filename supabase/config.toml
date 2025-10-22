@@ -1,1 +1,4 @@
 project_id = "umbcdnaoeaottdbbpzui"
+
+[functions.generate-exam]
+verify_jwt = false
