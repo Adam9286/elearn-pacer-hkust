@@ -62,31 +62,24 @@ serve(async (req) => {
         throw new Error(`Webhook returned status ${webhookResponse.status}`);
       }
 
-      const contentType = webhookResponse.headers.get("content-type") || "";
+      // Parse JSON response containing Google Drive link
+      const result = await webhookResponse.json();
+      console.log("n8n response:", result);
 
-      // Check if response is a PDF
-      if (contentType.includes("application/pdf") || contentType.includes("application/octet-stream")) {
-        console.log("Received PDF response, forwarding to client...");
-
-        // Get PDF blob
-        const pdfBlob = await webhookResponse.blob();
-        console.log("PDF size:", pdfBlob.size, "bytes");
-
-        // Return PDF with proper headers
-        return new Response(pdfBlob, {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="mock-exam-${Date.now()}.pdf"`,
-          },
-        });
+      if (!result.link) {
+        throw new Error("No Google Drive link in response");
       }
 
-      // If not PDF, throw error
-      const text = await webhookResponse.text();
-      console.error("Unexpected response format. Content-Type:", contentType);
-      console.error("Response preview:", text.substring(0, 200));
-      throw new Error("Expected PDF response from webhook, but received: " + contentType);
+      // Return the Google Drive link as JSON
+      return new Response(
+        JSON.stringify({ 
+          link: result.link,
+          success: true 
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     } catch (fetchError: any) {
       clearTimeout(timeoutId);
 

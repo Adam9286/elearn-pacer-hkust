@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Brain, Clock, Target, Play, RotateCcw, Loader2, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
+import { Brain, Clock, Target, Play, RotateCcw, Loader2, AlertCircle, FileText, CheckCircle2, Download } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,7 @@ const MockExamMode = () => {
   const [scoredPoints, setScoredPoints] = useState(0);
   const [error, setError] = useState<string>("");
   const [progress, setProgress] = useState(0);
+  const [examLink, setExamLink] = useState<string | null>(null);
 
   // Exam customization state
   const [topic, setTopic] = useState("Computer Networks - General");
@@ -129,33 +130,20 @@ const MockExamMode = () => {
         throw new Error(errorData?.error || `Failed to generate exam (${response.status})`);
       }
 
-      const contentType = response.headers.get("content-type");
+      // Parse JSON response containing Google Drive link
+      const result = await response.json();
 
-      // Check if response is PDF
-      if (contentType?.includes("application/pdf")) {
-        // Get PDF blob
-        const blob = await response.blob();
-
-        // Create download link and trigger download
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `mock-exam-${new Date().toISOString().split("T")[0]}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-
-        // Cleanup
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-
-        setProgress(100);
-        toast({
-          title: "Exam Downloaded!",
-          description: "Your mock exam PDF has been downloaded. Check your downloads folder.",
-        });
-      } else {
-        throw new Error("Expected PDF response but received: " + contentType);
+      if (!result.link) {
+        throw new Error("Failed to get exam link from server");
       }
+
+      setProgress(100);
+      setExamLink(result.link);
+      
+      toast({
+        title: "Exam Generated!",
+        description: "Your mock exam is ready to view or download.",
+      });
     } catch (error: any) {
       console.error("Failed to generate exam:", error);
       const errorMessage = error.message || "Failed to generate exam. Please try again.";
@@ -217,6 +205,21 @@ const MockExamMode = () => {
     setScoredPoints(0);
     setQuestions([]);
     setError("");
+    setExamLink(null);
+  };
+
+  const handleViewExam = () => {
+    if (examLink) {
+      window.open(examLink, "_blank");
+    }
+  };
+
+  const handleDownloadExam = () => {
+    if (examLink) {
+      // Convert view link to download link
+      const downloadLink = examLink.replace("/view", "/export?format=pdf");
+      window.open(downloadLink, "_blank");
+    }
   };
 
   const getPerformanceByType = () => {
@@ -344,6 +347,46 @@ const MockExamMode = () => {
   if (!examStarted) {
     return (
       <div className="space-y-6">
+        {/* Success Card - Exam Generated */}
+        {examLink && (
+          <Card className="glass-card shadow-lg border-2 border-primary/50">
+            <CardHeader>
+              <div className="w-16 h-16 rounded-full bg-primary/10 mx-auto mb-4 flex items-center justify-center">
+                <CheckCircle2 className="w-8 h-8 text-primary" />
+              </div>
+              <CardTitle className="text-2xl text-center">Exam Generated Successfully!</CardTitle>
+              <CardDescription className="text-center">Your personalized mock exam is ready</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-secondary/50">
+                <div>
+                  <p className="font-medium">ELEC3120 Mock Exam - {topic}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {numMCQ} MCQs, {numOpenEnded} Open-ended • {difficulty} difficulty
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={handleViewExam}>
+                    <FileText className="h-4 w-4 mr-2" />
+                    View Exam
+                  </Button>
+                  <Button variant="default" size="sm" onClick={handleDownloadExam}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Download
+                  </Button>
+                </div>
+              </div>
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={() => setExamLink(null)}
+              >
+                Generate Another Exam
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="glass-card shadow-lg border-2">
           <CardHeader>
             <CardTitle className="text-2xl flex items-center gap-2">
