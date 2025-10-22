@@ -45,20 +45,20 @@ const MockExamMode = () => {
   const [scoredPoints, setScoredPoints] = useState(0);
   const [error, setError] = useState<string>("");
   const [progress, setProgress] = useState(0);
-  
+
   // Exam customization state
   const [topic, setTopic] = useState("Computer Networks - General");
   const [numMCQ, setNumMCQ] = useState("10");
   const [numOpenEnded, setNumOpenEnded] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
-  
+
   const { toast } = useToast();
-  
+
   // Progress indicator during loading
   useEffect(() => {
     if (isLoadingQuestions) {
       const interval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 5, 95));
+        setProgress((prev) => Math.min(prev + 5, 95));
       }, 2000);
       return () => clearInterval(interval);
     } else {
@@ -70,30 +70,28 @@ const MockExamMode = () => {
     if (question.type === "mcq") {
       return userAnswer === question.correctAnswer?.toString();
     }
-    
+
     if (question.type === "short_answer") {
       const normalized = userAnswer.trim().toLowerCase();
       const correctNormalized = question.correctAnswerText?.toLowerCase() || "";
-      
+
       // Check exact match or acceptable answers
       if (normalized === correctNormalized) return true;
-      
-      return question.acceptableAnswers?.some(ans => 
-        ans.toLowerCase().trim() === normalized
-      ) || false;
+
+      return question.acceptableAnswers?.some((ans) => ans.toLowerCase().trim() === normalized) || false;
     }
-    
+
     if (question.type === "calculation") {
       // Extract numbers from the answer
-      const userNum = parseFloat(userAnswer.replace(/[^0-9.-]/g, ''));
-      const correctNum = parseFloat(question.correctAnswerText || '');
-      
+      const userNum = parseFloat(userAnswer.replace(/[^0-9.-]/g, ""));
+      const correctNum = parseFloat(question.correctAnswerText || "");
+
       if (isNaN(userNum) || isNaN(correctNum)) return false;
-      
+
       // Allow small tolerance for rounding
       return Math.abs(userNum - correctNum) < 0.01;
     }
-    
+
     return false;
   };
 
@@ -101,58 +99,55 @@ const MockExamMode = () => {
     setIsLoadingQuestions(true);
     setError("");
     setProgress(0);
-    
+
     try {
       // Get Supabase URL and key from environment
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
       if (!supabaseUrl || !supabaseAnonKey) {
         throw new Error("Supabase configuration missing");
       }
 
       // Call edge function directly to get PDF blob with user-selected parameters
-      const response = await fetch(
-        `${supabaseUrl}/functions/v1/generate-exam`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            topic: topic || "Computer Networks - General",
-            numMultipleChoice: parseInt(numMCQ),
-            numOpenEnded: parseInt(numOpenEnded),
-            difficulty: difficulty
-          })
-        }
-      );
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-exam`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topic: topic || "Computer Networks - General",
+          numMultipleChoice: parseInt(numMCQ),
+          numOpenEnded: parseInt(numOpenEnded),
+          difficulty: difficulty,
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         throw new Error(errorData?.error || `Failed to generate exam (${response.status})`);
       }
 
-      const contentType = response.headers.get('content-type');
-      
+      const contentType = response.headers.get("content-type");
+
       // Check if response is PDF
-      if (contentType?.includes('application/pdf')) {
+      if (contentType?.includes("application/pdf")) {
         // Get PDF blob
         const blob = await response.blob();
-        
+
         // Create download link and trigger download
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const a = document.createElement("a");
         a.href = url;
-        a.download = `mock-exam-${new Date().toISOString().split('T')[0]}.pdf`;
+        a.download = `mock-exam-${new Date().toISOString().split("T")[0]}.pdf`;
         document.body.appendChild(a);
         a.click();
-        
+
         // Cleanup
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         setProgress(100);
         toast({
           title: "Exam Downloaded!",
@@ -161,12 +156,11 @@ const MockExamMode = () => {
       } else {
         throw new Error("Expected PDF response but received: " + contentType);
       }
-      
     } catch (error: any) {
       console.error("Failed to generate exam:", error);
       const errorMessage = error.message || "Failed to generate exam. Please try again.";
       setError(errorMessage);
-      
+
       toast({
         title: "Generation Failed",
         description: errorMessage,
@@ -193,16 +187,16 @@ const MockExamMode = () => {
     const userAnswer = userAnswers.get(currentQuestion) || "";
     const isCorrect = validateAnswer(question, userAnswer);
     const pointsEarned = isCorrect ? question.points : 0;
-    
+
     const newResult: UserAnswer = {
       questionId: question.id,
       answer: userAnswer,
       isCorrect,
       pointsEarned,
     };
-    
+
     setResults([...results, newResult]);
-    
+
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
@@ -227,7 +221,7 @@ const MockExamMode = () => {
 
   const getPerformanceByType = () => {
     const byType: Record<string, { correct: number; total: number }> = {};
-    
+
     results.forEach((result, idx) => {
       const question = questions[idx];
       if (!byType[question.type]) {
@@ -238,14 +232,14 @@ const MockExamMode = () => {
         byType[question.type].correct += 1;
       }
     });
-    
+
     return byType;
   };
 
   if (showResults) {
     const performanceByType = getPerformanceByType();
     const percentage = Math.round((scoredPoints / totalPoints) * 100);
-    
+
     return (
       <div className="space-y-6">
         <Card className="glass-card shadow-lg border-2">
@@ -258,26 +252,20 @@ const MockExamMode = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center">
-              <div className="text-6xl font-bold text-primary mb-2">
-                {percentage}%
-              </div>
+              <div className="text-6xl font-bold text-primary mb-2">{percentage}%</div>
               <p className="text-muted-foreground">
                 {scoredPoints} out of {totalPoints} points
               </p>
             </div>
             <Progress value={percentage} className="h-3" />
-            
+
             <div className="grid grid-cols-2 gap-4 pt-4">
               <div className="text-center p-4 rounded-lg bg-secondary">
-                <div className="text-2xl font-bold text-primary">
-                  {results.filter(r => r.isCorrect).length}
-                </div>
+                <div className="text-2xl font-bold text-primary">{results.filter((r) => r.isCorrect).length}</div>
                 <p className="text-sm text-muted-foreground">Correct</p>
               </div>
               <div className="text-center p-4 rounded-lg bg-secondary">
-                <div className="text-2xl font-bold text-destructive">
-                  {results.filter(r => !r.isCorrect).length}
-                </div>
+                <div className="text-2xl font-bold text-destructive">{results.filter((r) => !r.isCorrect).length}</div>
                 <p className="text-sm text-muted-foreground">Incorrect</p>
               </div>
             </div>
@@ -287,7 +275,7 @@ const MockExamMode = () => {
               <h3 className="font-semibold text-sm text-muted-foreground">Performance by Type</h3>
               {Object.entries(performanceByType).map(([type, stats]) => (
                 <div key={type} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
-                  <span className="capitalize text-sm font-medium">{type.replace('_', ' ')}</span>
+                  <span className="capitalize text-sm font-medium">{type.replace("_", " ")}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">
                       {stats.correct}/{stats.total}
@@ -362,26 +350,24 @@ const MockExamMode = () => {
               <Brain className="w-6 h-6 text-primary" />
               AI-Generated Mock Exam
             </CardTitle>
-            <CardDescription>
-              Personalized practice tests generated from your course material
-            </CardDescription>
+            <CardDescription>Personalized practice tests generated from your course material</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Exam Customization */}
             <div className="space-y-4 p-4 border rounded-lg bg-secondary/20">
               <h3 className="font-semibold text-lg">Customize Your Exam</h3>
-              
+
               <div>
                 <Label htmlFor="topic">Topic Focus</Label>
-                <Input 
+                <Input
                   id="topic"
-                  placeholder="e.g., TCP/IP, Network Security, Routing" 
+                  placeholder="e.g., TCP/IP, Network Security, Routing"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   disabled={isLoadingQuestions}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="mcq">Multiple Choice Questions</Label>
@@ -396,7 +382,7 @@ const MockExamMode = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="open">Open-Ended Questions</Label>
                   <Select value={numOpenEnded} onValueChange={setNumOpenEnded} disabled={isLoadingQuestions}>
@@ -411,28 +397,34 @@ const MockExamMode = () => {
                   </Select>
                 </div>
               </div>
-              
+
               <div>
                 <Label>Difficulty Level</Label>
                 <RadioGroup value={difficulty} onValueChange={setDifficulty} disabled={isLoadingQuestions}>
                   <div className="flex gap-4 mt-2">
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="easy" id="easy" />
-                      <Label htmlFor="easy" className="font-normal cursor-pointer">Easy</Label>
+                      <Label htmlFor="easy" className="font-normal cursor-pointer">
+                        Easy
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="medium" id="medium" />
-                      <Label htmlFor="medium" className="font-normal cursor-pointer">Medium</Label>
+                      <Label htmlFor="medium" className="font-normal cursor-pointer">
+                        Medium
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="hard" id="hard" />
-                      <Label htmlFor="hard" className="font-normal cursor-pointer">Hard</Label>
+                      <Label htmlFor="hard" className="font-normal cursor-pointer">
+                        Hard
+                      </Label>
                     </div>
                   </div>
                 </RadioGroup>
               </div>
             </div>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               <div className="flex items-start space-x-3">
                 <CheckCircle2 className="w-5 h-5 text-primary mt-1" />
@@ -443,17 +435,15 @@ const MockExamMode = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <FileText className="w-5 h-5 text-primary mt-1" />
                 <div>
                   <h3 className="font-semibold mb-1">Downloadable PDF</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Get your exam as a printable PDF document
-                  </p>
+                  <p className="text-sm text-muted-foreground">Get your exam as a printable PDF document</p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <Brain className="w-5 h-5 text-primary mt-1" />
                 <div>
@@ -463,14 +453,12 @@ const MockExamMode = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-3">
                 <Clock className="w-5 h-5 text-primary mt-1" />
                 <div>
                   <h3 className="font-semibold mb-1">Ready in Minutes</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Your exam will be generated and ready to download
-                  </p>
+                  <p className="text-sm text-muted-foreground">Your exam will be generated and ready to download</p>
                 </div>
               </div>
             </div>
@@ -480,12 +468,7 @@ const MockExamMode = () => {
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{error}</span>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleStartExam}
-                    className="ml-4"
-                  >
+                  <Button variant="outline" size="sm" onClick={handleStartExam} className="ml-4">
                     Retry
                   </Button>
                 </AlertDescription>
@@ -506,16 +489,11 @@ const MockExamMode = () => {
                     {progress >= 60 && progress < 90 && "Formatting PDF document..."}
                     {progress >= 90 && "Almost ready..."}
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    This may take up to 2 minutes
-                  </p>
+                  <p className="text-sm text-muted-foreground">This may take up to 2 minutes</p>
                 </div>
               </div>
             ) : (
-              <Button
-                onClick={handleStartExam}
-                className="w-full gradient-primary shadow-glow text-lg py-6"
-              >
+              <Button onClick={handleStartExam} className="w-full gradient-primary shadow-glow text-lg py-6">
                 <FileText className="w-5 h-5 mr-2" />
                 Generate & Download Exam PDF
               </Button>
@@ -539,10 +517,15 @@ const MockExamMode = () => {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Badge variant="outline">{question.topic}</Badge>
-                <Badge variant={
-                  question.difficulty === "easy" ? "default" : 
-                  question.difficulty === "hard" ? "destructive" : "secondary"
-                }>
+                <Badge
+                  variant={
+                    question.difficulty === "easy"
+                      ? "default"
+                      : question.difficulty === "hard"
+                        ? "destructive"
+                        : "secondary"
+                  }
+                >
                   {question.difficulty}
                 </Badge>
               </div>
@@ -566,7 +549,9 @@ const MockExamMode = () => {
         <CardHeader>
           <div className="flex items-start justify-between">
             <CardTitle className="text-xl leading-relaxed flex-1">{question.question}</CardTitle>
-            <Badge variant="outline" className="ml-4">{question.points} pts</Badge>
+            <Badge variant="outline" className="ml-4">
+              {question.points} pts
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -605,9 +590,7 @@ const MockExamMode = () => {
                 placeholder="Type your answer here..."
                 className="min-h-32"
               />
-              <p className="text-xs text-muted-foreground">
-                {currentAnswer.length}/500 characters
-              </p>
+              <p className="text-xs text-muted-foreground">{currentAnswer.length}/500 characters</p>
             </div>
           )}
 
@@ -622,9 +605,7 @@ const MockExamMode = () => {
                 onChange={(e) => handleAnswerChange(e.target.value)}
                 placeholder="Enter your calculation (include units if applicable)"
               />
-              <p className="text-xs text-muted-foreground">
-                Include units in your answer if required
-              </p>
+              <p className="text-xs text-muted-foreground">Include units in your answer if required</p>
             </div>
           )}
 
