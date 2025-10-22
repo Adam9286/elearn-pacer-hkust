@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Brain, Clock, Target, Play, RotateCcw, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Brain, Clock, Target, Play, RotateCcw, Loader2, AlertCircle, FileText, CheckCircle2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,7 +44,27 @@ const MockExamMode = () => {
   const [totalPoints, setTotalPoints] = useState(0);
   const [scoredPoints, setScoredPoints] = useState(0);
   const [error, setError] = useState<string>("");
+  const [progress, setProgress] = useState(0);
+  
+  // Exam customization state
+  const [topic, setTopic] = useState("Computer Networks - General");
+  const [numMCQ, setNumMCQ] = useState("10");
+  const [numOpenEnded, setNumOpenEnded] = useState("5");
+  const [difficulty, setDifficulty] = useState("medium");
+  
   const { toast } = useToast();
+  
+  // Progress indicator during loading
+  useEffect(() => {
+    if (isLoadingQuestions) {
+      const interval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 5, 95));
+      }, 2000);
+      return () => clearInterval(interval);
+    } else {
+      setProgress(0);
+    }
+  }, [isLoadingQuestions]);
 
   const validateAnswer = (question: Question, userAnswer: string): boolean => {
     if (question.type === "mcq") {
@@ -79,6 +100,7 @@ const MockExamMode = () => {
   const fetchExamQuestions = async () => {
     setIsLoadingQuestions(true);
     setError("");
+    setProgress(0);
     
     try {
       // Get Supabase URL and key from environment
@@ -89,7 +111,7 @@ const MockExamMode = () => {
         throw new Error("Supabase configuration missing");
       }
 
-      // Call edge function directly to get PDF blob
+      // Call edge function directly to get PDF blob with user-selected parameters
       const response = await fetch(
         `${supabaseUrl}/functions/v1/generate-exam`,
         {
@@ -99,9 +121,10 @@ const MockExamMode = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            numQuestions: 15,
-            difficulty: "mixed",
-            includeTypes: ["mcq", "short_answer", "calculation"]
+            topic: topic || "Computer Networks - General",
+            numMultipleChoice: parseInt(numMCQ),
+            numOpenEnded: parseInt(numOpenEnded),
+            difficulty: difficulty
           })
         }
       );
@@ -130,6 +153,7 @@ const MockExamMode = () => {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
         
+        setProgress(100);
         toast({
           title: "Exam Downloaded!",
           description: "Your mock exam PDF has been downloaded. Check your downloads folder.",
@@ -140,15 +164,17 @@ const MockExamMode = () => {
       
     } catch (error: any) {
       console.error("Failed to generate exam:", error);
-      setError(error.message || "Failed to generate exam. Please try again.");
+      const errorMessage = error.message || "Failed to generate exam. Please try again.";
+      setError(errorMessage);
       
       toast({
         title: "Generation Failed",
-        description: error.message || "Could not generate exam PDF. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setIsLoadingQuestions(false);
+      setProgress(0);
     }
   };
 
@@ -341,75 +367,158 @@ const MockExamMode = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Exam Customization */}
+            <div className="space-y-4 p-4 border rounded-lg bg-secondary/20">
+              <h3 className="font-semibold text-lg">Customize Your Exam</h3>
+              
+              <div>
+                <Label htmlFor="topic">Topic Focus</Label>
+                <Input 
+                  id="topic"
+                  placeholder="e.g., TCP/IP, Network Security, Routing" 
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  disabled={isLoadingQuestions}
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="mcq">Multiple Choice Questions</Label>
+                  <Select value={numMCQ} onValueChange={setNumMCQ} disabled={isLoadingQuestions}>
+                    <SelectTrigger id="mcq">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 Questions</SelectItem>
+                      <SelectItem value="10">10 Questions</SelectItem>
+                      <SelectItem value="15">15 Questions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="open">Open-Ended Questions</Label>
+                  <Select value={numOpenEnded} onValueChange={setNumOpenEnded} disabled={isLoadingQuestions}>
+                    <SelectTrigger id="open">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 Questions</SelectItem>
+                      <SelectItem value="5">5 Questions</SelectItem>
+                      <SelectItem value="7">7 Questions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div>
+                <Label>Difficulty Level</Label>
+                <RadioGroup value={difficulty} onValueChange={setDifficulty} disabled={isLoadingQuestions}>
+                  <div className="flex gap-4 mt-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="easy" id="easy" />
+                      <Label htmlFor="easy" className="font-normal cursor-pointer">Easy</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="medium" id="medium" />
+                      <Label htmlFor="medium" className="font-normal cursor-pointer">Medium</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="hard" id="hard" />
+                      <Label htmlFor="hard" className="font-normal cursor-pointer">Hard</Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="flex items-start space-x-3">
+                <CheckCircle2 className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Personalized Questions</h3>
+                  <p className="text-sm text-muted-foreground">
+                    AI generates questions from your uploaded course materials
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <FileText className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Downloadable PDF</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Get your exam as a printable PDF document
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <Brain className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Multiple Question Types</h3>
+                  <p className="text-sm text-muted-foreground">
+                    MCQs and open-ended questions for comprehensive testing
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-start space-x-3">
+                <Clock className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Ready in Minutes</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Your exam will be generated and ready to download
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription className="flex items-center justify-between">
+                  <span>{error}</span>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleStartExam}
+                    className="ml-4"
+                  >
+                    Retry
+                  </Button>
+                </AlertDescription>
               </Alert>
             )}
-            
-            <div className="grid md:grid-cols-3 gap-4">
-              <div className="p-6 rounded-xl bg-primary/5 border border-primary/20 text-center">
-                <Clock className="w-8 h-8 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold">20 min</div>
-                <p className="text-sm text-muted-foreground">Estimated Time</p>
-              </div>
-              <div className="p-6 rounded-xl bg-accent/5 border border-accent/20 text-center">
-                <Target className="w-8 h-8 text-accent mx-auto mb-2" />
-                <div className="text-2xl font-bold">15</div>
-                <p className="text-sm text-muted-foreground">Questions</p>
-              </div>
-              <div className="p-6 rounded-xl bg-secondary border text-center">
-                <Brain className="w-8 h-8 text-primary mx-auto mb-2" />
-                <div className="text-2xl font-bold">Mixed</div>
-                <p className="text-sm text-muted-foreground">Question Types</p>
-              </div>
-            </div>
 
-            <div className="space-y-3">
-              <h3 className="font-semibold">Exam Features:</h3>
-              <ul className="space-y-2">
-                {[
-                  "Downloadable PDF format",
-                  "Print-friendly layout",
-                  "MCQ, Short Answer, and Calculation questions",
-                  "Generated from your trained course material",
-                ].map((feature, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-sm">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <Button
-              onClick={handleStartExam}
-              disabled={isLoadingQuestions}
-              className="w-full gradient-primary shadow-glow text-lg py-6"
-            >
-              {isLoadingQuestions ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Generating Your Exam PDF...
-                </>
-              ) : (
-                <>
-                  <Play className="w-5 h-5 mr-2" />
-                  Generate & Download Exam PDF
-                </>
-              )}
-            </Button>
-            
-            {isLoadingQuestions && (
-              <div className="space-y-2 text-center">
-                <p className="text-sm text-muted-foreground">
-                  Creating questions from your course material...
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  This may take up to 2 minutes
-                </p>
+            {isLoadingQuestions ? (
+              <div className="py-8 text-center space-y-4">
+                <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm justify-center">
+                    <span className="font-medium">Generating your personalized exam...</span>
+                  </div>
+                  <Progress value={progress} className="h-2 max-w-md mx-auto" />
+                  <p className="text-xs text-muted-foreground">
+                    {progress < 30 && "Analyzing your course material..."}
+                    {progress >= 30 && progress < 60 && "Creating exam questions..."}
+                    {progress >= 60 && progress < 90 && "Formatting PDF document..."}
+                    {progress >= 90 && "Almost ready..."}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    This may take up to 2 minutes
+                  </p>
+                </div>
               </div>
+            ) : (
+              <Button
+                onClick={handleStartExam}
+                className="w-full gradient-primary shadow-glow text-lg py-6"
+              >
+                <FileText className="w-5 h-5 mr-2" />
+                Generate & Download Exam PDF
+              </Button>
             )}
           </CardContent>
         </Card>

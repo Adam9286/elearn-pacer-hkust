@@ -15,9 +15,16 @@ serve(async (req) => {
   try {
     console.log('Generate exam function called');
     
-    const { numQuestions = 15, difficulty = "mixed", includeTypes = ["mcq", "short_answer", "calculation"] } = await req.json();
+    const { 
+      topic = "Computer Networks - General", 
+      numMultipleChoice = 10, 
+      numOpenEnded = 5, 
+      difficulty = "medium" 
+    } = await req.json();
     
-    console.log('Request params:', { numQuestions, difficulty, includeTypes });
+    const sessionId = `exam-${Date.now()}`;
+    
+    console.log('Request params:', { topic, numMultipleChoice, numOpenEnded, difficulty, sessionId });
 
     // Call the n8n webhook with timeout
     const webhookUrl = 'https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator';
@@ -28,23 +35,27 @@ serve(async (req) => {
     
     try {
       console.log('Calling n8n webhook...');
+      const startTime = Date.now();
+      
       const webhookResponse = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          numQuestions,
+          topic,
+          numMultipleChoice,
+          numOpenEnded,
           difficulty,
-          includeTypes,
+          sessionId
         }),
         signal: controller.signal,
       });
+      
+      const endTime = Date.now();
+      console.log(`n8n response time: ${endTime - startTime}ms`);
 
       clearTimeout(timeoutId);
-
-      console.log('Response status:', webhookResponse.status);
-      console.log('Response content-type:', webhookResponse.headers.get('content-type'));
 
       if (!webhookResponse.ok) {
         console.error('Webhook error:', webhookResponse.status, webhookResponse.statusText);
