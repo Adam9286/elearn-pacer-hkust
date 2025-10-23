@@ -1,5 +1,16 @@
 import { useState, useEffect } from "react";
-import { Brain, Clock, Target, Play, RotateCcw, Loader2, AlertCircle, FileText, CheckCircle2, Download } from "lucide-react";
+import {
+  Brain,
+  Clock,
+  Target,
+  Play,
+  RotateCcw,
+  Loader2,
+  AlertCircle,
+  FileText,
+  CheckCircle2,
+  Download,
+} from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -139,7 +150,7 @@ const MockExamMode = () => {
 
       setProgress(100);
       setExamLink(result.link);
-      
+
       toast({
         title: "Exam Generated!",
         description: "Your mock exam is ready to view or download.",
@@ -216,9 +227,11 @@ const MockExamMode = () => {
 
   const handleDownloadExam = () => {
     if (examLink) {
-      // Convert view link to download link
-      const downloadLink = examLink.replace("/view", "/export?format=pdf");
-      window.open(downloadLink, "_blank");
+      const fileId = examLink.match(/\/d\/([^/]+)/)?.[1];
+      if (fileId) {
+        const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        window.open(downloadUrl, "_blank");
+      }
     }
   };
 
@@ -376,11 +389,7 @@ const MockExamMode = () => {
                   </Button>
                 </div>
               </div>
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={() => setExamLink(null)}
-              >
+              <Button variant="outline" className="w-full" onClick={() => setExamLink(null)}>
                 Generate Another Exam
               </Button>
             </CardContent>
