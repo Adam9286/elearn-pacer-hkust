@@ -221,7 +221,7 @@ const MockExamMode = () => {
 
   const handleViewExam = () => {
     if (examLink) {
-      window.open(examLink, "_blank");
+      window.open(examLink, "_blank", "noopener,noreferrer");
     }
   };
 
@@ -230,7 +230,7 @@ const MockExamMode = () => {
       const fileId = examLink.match(/\/d\/([^/]+)/)?.[1];
       if (fileId) {
         const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-        window.open(downloadUrl, "_blank");
+        window.open(downloadUrl, "_blank", "noopener,noreferrer");
       }
     }
   };
