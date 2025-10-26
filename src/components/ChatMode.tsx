@@ -122,6 +122,53 @@ const ChatMode = () => {
     setAttachments((prev) => [...prev, ...validFiles]);
   };
 
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData.items);
+
+    // Extract only image files
+    const imageFiles = items
+      .filter((item) => item.type.startsWith("image/"))
+      .map((item) => item.getAsFile())
+      .filter((file): file is File => file !== null);
+
+    if (imageFiles.length === 0) return; // No images, let default paste happen
+
+    // Prevent default to avoid pasting "[object File]" into textarea
+    e.preventDefault();
+
+    // Validate files
+    const maxSize = 20 * 1024 * 1024;
+    const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+
+    const validFiles = imageFiles.filter((file) => {
+      if (file.size > maxSize) {
+        toast({
+          title: "Image too large",
+          description: `Pasted image exceeds 20MB limit`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Unsupported image format",
+          description: `Only PNG and JPG images are supported`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length > 0) {
+      setAttachments((prev) => [...prev, ...validFiles]);
+      toast({
+        title: "Image pasted",
+        description: `${validFiles.length} image(s) added to your message`,
+      });
+    }
+  };
+
   const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
 
@@ -389,6 +436,7 @@ const ChatMode = () => {
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                onPaste={handlePaste}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
