@@ -89,8 +89,75 @@ const ModesShowcase = () => {
 
   return (
     <section ref={ref} className="min-h-screen py-20 px-4 relative overflow-hidden">
-      {/* Background */}
+      {/* Spotlight Theatre Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-dark-void via-navy/10 to-dark-void"></div>
+      
+      {/* Animated Spotlight Beams */}
+      {[...Array(3)].map((_, i) => (
+        <motion.div
+          key={`spotlight-${i}`}
+          className="absolute top-0 w-64 h-full opacity-20"
+          style={{
+            left: `${i * 33}%`,
+            background: `linear-gradient(180deg, 
+              hsl(var(--${i === 0 ? 'neon-blue' : i === 1 ? 'neon-purple' : 'electric-cyan'}) / 0.3) 0%, 
+              transparent 50%)`,
+            transformOrigin: "top center",
+          }}
+          animate={{
+            scaleX: [1, 1.5, 1],
+            opacity: [0.1, 0.3, 0.1],
+            rotate: [-5, 5, -5]
+          }}
+          transition={{
+            duration: 6,
+            delay: i * 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      ))}
+
+      {/* Floating Geometric Shapes */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(12)].map((_, i) => {
+          const shapes = ['circle', 'triangle', 'hexagon'];
+          const shape = shapes[i % 3];
+          return (
+            <motion.div
+              key={`shape-${i}`}
+              className="absolute blur-sm"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+              }}
+              animate={{
+                y: [0, -100, 0],
+                x: [0, Math.random() * 50 - 25, 0],
+                opacity: [0, 0.3, 0],
+                rotate: [0, 360]
+              }}
+              transition={{
+                duration: 10 + i * 2,
+                repeat: Infinity,
+                ease: "linear"
+              }}
+            >
+              {shape === 'circle' && (
+                <div className="w-8 h-8 rounded-full border-2 border-neon-blue/40" />
+              )}
+              {shape === 'triangle' && (
+                <div className="w-8 h-8 border-2 border-neon-purple/40" 
+                     style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
+              )}
+              {shape === 'hexagon' && (
+                <div className="w-8 h-8 border-2 border-electric-cyan/40"
+                     style={{ clipPath: "polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)" }} />
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
       
       <div className="container mx-auto relative z-10">
         <motion.div
@@ -129,6 +196,34 @@ const ModesShowcase = () => {
               <div className="glass-card-landing p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth h-full">
                 {/* Gradient glow on hover */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 rounded-2xl transition-smooth blur-xl`}></div>
+                
+                {/* Colored Shadow Effect */}
+                <div className={`absolute -inset-1 bg-gradient-to-br ${mode.gradient} opacity-0 group-hover:opacity-20 rounded-2xl blur-2xl -z-10 transition-smooth`}></div>
+                
+                {/* Orbiting Particles */}
+                <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                  {[...Array(3)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className={`absolute w-2 h-2 rounded-full bg-gradient-to-br ${mode.gradient}`}
+                      style={{
+                        left: "50%",
+                        top: "50%",
+                      }}
+                      animate={{
+                        x: [0, 100 * Math.cos((i * 120 * Math.PI) / 180), 0],
+                        y: [0, 100 * Math.sin((i * 120 * Math.PI) / 180), 0],
+                        opacity: [0, 0.6, 0],
+                      }}
+                      transition={{
+                        duration: 4,
+                        delay: i * 0.5,
+                        repeat: Infinity,
+                        ease: "linear"
+                      }}
+                    />
+                  ))}
+                </div>
                 
                 <div className="relative z-10">
                   {/* Icon */}

@@ -17,8 +17,86 @@ const PlatformIntro = () => {
 
   return (
     <section ref={ref} className="min-h-screen py-20 px-4 relative overflow-hidden">
-      {/* Background elements */}
+      {/* Network Topology Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-dark-void via-navy/20 to-dark-void"></div>
+      
+      {/* Animated Network Topology */}
+      <svg className="absolute inset-0 w-full h-full opacity-30" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="hsl(var(--neon-blue))" stopOpacity="0.6" />
+          </linearGradient>
+        </defs>
+        {/* Network connections */}
+        {[...Array(8)].map((_, i) => (
+          <motion.line
+            key={i}
+            x1={`${(i % 4) * 25 + 10}%`}
+            y1={`${Math.floor(i / 4) * 50 + 20}%`}
+            x2={`${((i + 1) % 4) * 25 + 10}%`}
+            y2={`${Math.floor((i + 1) / 4) * 50 + 20}%`}
+            stroke="url(#lineGradient)"
+            strokeWidth="2"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ pathLength: 1, opacity: 1 }}
+            transition={{ duration: 2, delay: i * 0.2, repeat: Infinity, repeatType: "reverse" }}
+          />
+        ))}
+        {/* Network nodes */}
+        {[...Array(12)].map((_, i) => (
+          <motion.circle
+            key={`node-${i}`}
+            cx={`${(i % 4) * 25 + 10}%`}
+            cy={`${Math.floor(i / 4) * 33 + 15}%`}
+            r="4"
+            fill="hsl(var(--electric-cyan))"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
+            transition={{ duration: 3, delay: i * 0.3, repeat: Infinity }}
+          />
+        ))}
+      </svg>
+
+      {/* Hexagonal Grid */}
+      <div className="absolute inset-0 opacity-20">
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-32 h-32 border border-neon-blue/30"
+            style={{
+              left: `${(i % 3) * 33}%`,
+              top: `${Math.floor(i / 3) * 50}%`,
+              clipPath: "polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)",
+            }}
+            animate={{ 
+              opacity: [0.2, 0.6, 0.2],
+              borderColor: ["hsl(var(--neon-blue) / 0.3)", "hsl(var(--electric-cyan) / 0.6)", "hsl(var(--neon-blue) / 0.3)"]
+            }}
+            transition={{ duration: 4, delay: i * 0.5, repeat: Infinity }}
+          />
+        ))}
+      </div>
+
+      {/* Vertical Data Streams */}
+      <div className="absolute left-0 top-0 bottom-0 w-full overflow-hidden opacity-10">
+        {[...Array(5)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute h-full w-px bg-gradient-to-b from-transparent via-electric-cyan to-transparent"
+            style={{ left: `${i * 20 + 10}%` }}
+            animate={{ y: ["-100%", "100%"] }}
+            transition={{ duration: 8, delay: i * 0.5, repeat: Infinity, ease: "linear" }}
+          />
+        ))}
+      </div>
+
+      {/* Scanline Effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-b from-transparent via-electric-cyan/10 to-transparent h-20"
+        animate={{ y: ["-20%", "120%"] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+      />
       
       <div className="container mx-auto relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">

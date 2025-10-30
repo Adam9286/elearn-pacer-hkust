@@ -17,21 +17,115 @@ const CTA = () => {
 
   return (
     <section ref={ref} className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background effects */}
+      {/* Launch Sequence Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-dark-void via-navy/30 to-dark-void"></div>
       
-      {/* Animated circles */}
+      {/* Concentric Pulsing Rings */}
+      {[...Array(5)].map((_, i) => (
+        <motion.div
+          key={`ring-${i}`}
+          className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 rounded-full border border-electric-cyan/30"
+          style={{
+            width: `${200 + i * 150}px`,
+            height: `${200 + i * 150}px`,
+          }}
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.5, 0.1, 0.5],
+          }}
+          transition={{
+            duration: 4,
+            delay: i * 0.4,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+      ))}
+
+      {/* Rocket Trail Particles from Edges */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(20)].map((_, i) => {
+          const angle = (i * 18) * (Math.PI / 180);
+          return (
+            <motion.div
+              key={`particle-${i}`}
+              className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-electric-cyan to-neon-blue"
+              style={{
+                left: "50%",
+                top: "50%",
+              }}
+              animate={{
+                x: [
+                  Math.cos(angle) * 600,
+                  Math.cos(angle) * 100,
+                  Math.cos(angle) * 600
+                ],
+                y: [
+                  Math.sin(angle) * 600,
+                  Math.sin(angle) * 100,
+                  Math.sin(angle) * 600
+                ],
+                opacity: [0, 1, 0],
+                scale: [0, 1, 0]
+              }}
+              transition={{
+                duration: 3,
+                delay: i * 0.1,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          );
+        })}
+      </div>
+
+      {/* Electric Arcs */}
+      <svg className="absolute inset-0 w-full h-full opacity-30" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="arcGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0.8" />
+            <stop offset="50%" stopColor="hsl(var(--neon-purple))" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="hsl(var(--neon-blue))" stopOpacity="0.8" />
+          </linearGradient>
+        </defs>
+        {[...Array(4)].map((_, i) => (
+          <motion.path
+            key={`arc-${i}`}
+            d={`M ${20 + i * 20}% 50% Q 50% ${30 + i * 10}%, ${80 - i * 20}% 50%`}
+            stroke="url(#arcGradient)"
+            strokeWidth="2"
+            fill="none"
+            initial={{ pathLength: 0, opacity: 0 }}
+            animate={{ 
+              pathLength: [0, 1, 0],
+              opacity: [0, 0.6, 0]
+            }}
+            transition={{
+              duration: 2,
+              delay: i * 0.5,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
+        ))}
+      </svg>
+
+      {/* Energy Field Distortion */}
       <motion.div
+        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
+        style={{
+          background: "radial-gradient(circle, hsl(var(--neon-blue) / 0.3) 0%, transparent 70%)",
+          filter: "blur(40px)"
+        }}
         animate={{
           scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
+          rotate: [0, 180, 360]
         }}
         transition={{
-          duration: 8,
+          duration: 10,
           repeat: Infinity,
-          ease: "easeInOut",
+          ease: "linear"
         }}
-        className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-neon-blue/20 rounded-full blur-3xl"
       />
       
       <div className="container mx-auto relative z-10 text-center">
@@ -86,9 +180,36 @@ const CTA = () => {
             onClick={handleLaunch}
             className="group relative inline-flex items-center gap-3 px-12 py-6 text-xl font-bold text-white rounded-full overflow-hidden transition-smooth"
           >
+            {/* Particle Explosion on Hover */}
+            <div className="absolute inset-0 pointer-events-none">
+              {[...Array(12)].map((_, i) => {
+                const angle = (i * 30) * (Math.PI / 180);
+                return (
+                  <motion.div
+                    key={i}
+                    className="absolute top-1/2 left-1/2 w-1 h-1 rounded-full bg-electric-cyan"
+                    initial={{ x: 0, y: 0, opacity: 0 }}
+                    whileHover={{
+                      x: Math.cos(angle) * 60,
+                      y: Math.sin(angle) * 60,
+                      opacity: [0, 1, 0],
+                    }}
+                    transition={{ duration: 0.8 }}
+                  />
+                );
+              })}
+            </div>
+
             {/* Animated gradient border */}
             <div className="absolute inset-0 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan animate-rotate-gradient"></div>
             <div className="absolute inset-[3px] bg-dark-void rounded-full group-hover:bg-dark-void/80 transition-smooth"></div>
+            
+            {/* Chromatic Aberration Effect */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-neon-blue to-electric-cyan opacity-0 group-hover:opacity-30 rounded-full blur-md"
+              whileHover={{ scale: 1.1 }}
+              transition={{ duration: 0.3 }}
+            />
             
             <span className="relative flex items-center gap-3">
               Launch LearningPacer
