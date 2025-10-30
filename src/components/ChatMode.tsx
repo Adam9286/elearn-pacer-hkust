@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Send, Lightbulb, BookOpen, MessageSquare, Loader2, Paperclip, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { AIThinkingIndicator } from "./AIThinkingIndicator";
 
 interface Message {
   id: string;
@@ -38,6 +39,9 @@ const ChatMode = () => {
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStage, setLoadingStage] = useState("");
+  const [estimatedTime, setEstimatedTime] = useState(0);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -191,6 +195,11 @@ const ChatMode = () => {
     setAttachments([]);
     setIsLoading(true);
 
+    // Initialize progress tracking
+    setLoadingProgress(0);
+    setLoadingStage("Uploading files");
+    setEstimatedTime(15);
+
     // Show loading message
     const loadingMessage: Message = {
       id: `loading_${Date.now()}`,
@@ -228,6 +237,17 @@ const ChatMode = () => {
         uploadedUrls.push(urlData.publicUrl);
       }
 
+      // Progress: Files uploaded (20%)
+      setLoadingProgress(20);
+      setLoadingStage("Understanding question");
+      setEstimatedTime(12);
+
+      // Simulate understanding stage
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      setLoadingProgress(40);
+      setLoadingStage("Searching course materials");
+      setEstimatedTime(10);
+
       // Send message with attachment URLs to n8n webhook
       const response = await fetch("https://smellycat9286.app.n8n.cloud/webhook/638fa33f-5871-43b3-a34e-d318a2147001", {
         method: "POST",
@@ -241,7 +261,19 @@ const ChatMode = () => {
         }),
       });
 
+      // Progress: API called (70%)
+      setLoadingProgress(70);
+      setLoadingStage("Generating response");
+      setEstimatedTime(5);
+
       const data = await response.json();
+
+      // Progress: Response received (90%)
+      setLoadingProgress(90);
+      setLoadingStage("Finalizing answer");
+      setEstimatedTime(2);
+
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Handle both wrapped ({ body: { output, source_document } }) and unwrapped responses
       const payload = data.body ?? data;
@@ -356,10 +388,11 @@ const ChatMode = () => {
                     }`}
                   >
                     {message.content === "I received your question and I'm processing it…" ? (
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
-                        <p className="text-sm leading-relaxed animate-shimmer">Thinking...</p>
-                      </div>
+                      <AIThinkingIndicator 
+                        progress={loadingProgress} 
+                        stage={loadingStage} 
+                        estimatedTime={estimatedTime}
+                      />
                     ) : (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                     )}
