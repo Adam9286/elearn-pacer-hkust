@@ -20,11 +20,13 @@ serve(async (req) => {
       numMultipleChoice = 10,
       numOpenEnded = 5,
       difficulty = "medium",
+      includeTopics = [],
+      excludeTopics = [],
     } = await req.json();
 
     const sessionId = `exam-${Date.now()}`;
 
-    console.log("Request params:", { topic, numMultipleChoice, numOpenEnded, difficulty, sessionId });
+    console.log("Request params:", { topic, numMultipleChoice, numOpenEnded, difficulty, includeTopics, excludeTopics, sessionId });
 
     // Call the n8n webhook with timeout
     const webhookUrl = "https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator";
@@ -47,6 +49,8 @@ serve(async (req) => {
           numMultipleChoice,
           numOpenEnded,
           difficulty,
+          includeTopics,
+          excludeTopics,
           sessionId,
         }),
         signal: controller.signal,

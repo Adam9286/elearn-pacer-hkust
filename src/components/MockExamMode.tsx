@@ -10,6 +10,9 @@ import {
   FileText,
   CheckCircle2,
   Download,
+  X,
+  Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,8 +24,36 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+
+const LECTURE_TOPICS = [
+  "01-Introduction",
+  "02-Web",
+  "03-Socket_Programming",
+  "04-HTTP",
+  "05-Transport_Model",
+  "06-TCP_Basics",
+  "07-TCP_Congestion_Control",
+  "08-QUIC",
+  "09-Network_Layer",
+  "10-IP",
+  "11-Routing",
+  "12-Link_Layer",
+  "13-Wireless_LAN",
+  "14-Network_Security",
+  "15-Cryptography",
+  "16-Authentication",
+  "17-TLS_SSL",
+  "18-VPN",
+  "19-Firewall",
+  "20-DNS",
+  "21-CDN",
+  "22-SDN",
+];
 
 interface Question {
   id: number;
@@ -63,6 +94,8 @@ const MockExamMode = () => {
   const [numMCQ, setNumMCQ] = useState("10");
   const [numOpenEnded, setNumOpenEnded] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
+  const [includeTopics, setIncludeTopics] = useState<string[]>([]);
+  const [excludeTopics, setExcludeTopics] = useState<string[]>([]);
 
   const { toast } = useToast();
 
@@ -133,6 +166,8 @@ const MockExamMode = () => {
           numMultipleChoice: parseInt(numMCQ),
           numOpenEnded: parseInt(numOpenEnded),
           difficulty: difficulty,
+          includeTopics: includeTopics,
+          excludeTopics: excludeTopics,
         }),
       });
 
@@ -217,21 +252,46 @@ const MockExamMode = () => {
     setQuestions([]);
     setError("");
     setExamLink(null);
+    setIncludeTopics([]);
+    setExcludeTopics([]);
   };
 
   const handleViewExam = () => {
-    if (examLink) {
-      window.open(examLink, "_blank", "noopener,noreferrer");
+    const link = examLink?.trim();
+    if (link && link.startsWith("http")) {
+      window.open(link, "_blank", "noopener,noreferrer");
+    } else {
+      console.error("Invalid or missing exam link:", link);
+      toast({
+        title: "Cannot Open Exam",
+        description: "The exam link is invalid or unavailable.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleDownloadExam = () => {
-    if (examLink) {
-      const fileId = examLink.match(/\/d\/([^/]+)/)?.[1];
+    const link = examLink?.trim();
+    if (link && link.startsWith("http")) {
+      const fileId = link.match(/\/d\/([^/]+)/)?.[1];
       if (fileId) {
         const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
         window.open(downloadUrl, "_blank", "noopener,noreferrer");
+      } else {
+        console.error("Could not extract file ID from link:", link);
+        toast({
+          title: "Cannot Download",
+          description: "Could not extract download link from the exam URL.",
+          variant: "destructive",
+        });
       }
+    } else {
+      console.error("Invalid or missing exam link:", link);
+      toast({
+        title: "Cannot Download Exam",
+        description: "The exam link is invalid or unavailable.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -371,23 +431,40 @@ const MockExamMode = () => {
               <CardDescription className="text-center">Your personalized mock exam is ready</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-secondary/50">
-                <div>
-                  <p className="font-medium">ELEC3120 Mock Exam - {topic}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {numMCQ} MCQs, {numOpenEnded} Open-ended • {difficulty} difficulty
-                  </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-secondary/50">
+                  <div>
+                    <p className="font-medium">ELEC3120 Mock Exam - {topic}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {numMCQ} MCQs, {numOpenEnded} Open-ended • {difficulty} difficulty
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={handleViewExam}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      View Exam
+                    </Button>
+                    <Button variant="default" size="sm" onClick={handleDownloadExam}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={handleViewExam}>
-                    <FileText className="h-4 w-4 mr-2" />
-                    View Exam
-                  </Button>
-                  <Button variant="default" size="sm" onClick={handleDownloadExam}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
+                
+                {(includeTopics.length > 0 || excludeTopics.length > 0) && (
+                  <div className="p-3 border rounded-lg bg-secondary/30 text-sm">
+                    {includeTopics.length > 0 && (
+                      <p className="mb-1">
+                        <span className="font-medium text-primary">Included:</span> {includeTopics.join(", ")}
+                      </p>
+                    )}
+                    {excludeTopics.length > 0 && (
+                      <p>
+                        <span className="font-medium text-destructive">Excluded:</span> {excludeTopics.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
               <Button variant="outline" className="w-full" onClick={() => setExamLink(null)}>
                 Generate Another Exam
@@ -418,6 +495,114 @@ const MockExamMode = () => {
                   onChange={(e) => setTopic(e.target.value)}
                   disabled={isLoadingQuestions}
                 />
+              </div>
+
+              {/* Lecture Selection Section */}
+              <div className="space-y-3 pt-2 border-t">
+                <h4 className="font-semibold text-sm">Lecture Selection</h4>
+                <div>
+                  <Label>Lecture Topics (PDFs)</Label>
+                  <div className="space-y-2 mt-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          disabled={isLoadingQuestions}
+                          className="w-full justify-between"
+                        >
+                          Select lectures to include/exclude
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search lectures..." />
+                          <CommandList>
+                            <CommandEmpty>No lecture found.</CommandEmpty>
+                            <CommandGroup>
+                              {LECTURE_TOPICS.map((lecture) => {
+                                const isIncluded = includeTopics.includes(lecture);
+                                const isExcluded = excludeTopics.includes(lecture);
+                                
+                                return (
+                                  <CommandItem
+                                    key={lecture}
+                                    onSelect={() => {
+                                      if (isIncluded) {
+                                        setIncludeTopics(includeTopics.filter((t) => t !== lecture));
+                                        setExcludeTopics([...excludeTopics, lecture]);
+                                      } else if (isExcluded) {
+                                        setExcludeTopics(excludeTopics.filter((t) => t !== lecture));
+                                      } else {
+                                        setIncludeTopics([...includeTopics, lecture]);
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between w-full">
+                                      <span>{lecture}</span>
+                                      {isIncluded && (
+                                        <Badge variant="secondary" className="ml-2">
+                                          <Check className="h-3 w-3" />
+                                        </Badge>
+                                      )}
+                                      {isExcluded && (
+                                        <Badge variant="destructive" className="ml-2">
+                                          <X className="h-3 w-3" />
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Display selected topics as badges */}
+                    {includeTopics.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Included:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {includeTopics.map((topic) => (
+                            <Badge key={topic} variant="secondary" className="text-xs">
+                              {topic}
+                              <button
+                                onClick={() => setIncludeTopics(includeTopics.filter((t) => t !== topic))}
+                                className="ml-1 hover:text-destructive"
+                                disabled={isLoadingQuestions}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {excludeTopics.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Excluded:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {excludeTopics.map((topic) => (
+                            <Badge key={topic} variant="destructive" className="text-xs">
+                              {topic}
+                              <button
+                                onClick={() => setExcludeTopics(excludeTopics.filter((t) => t !== topic))}
+                                className="ml-1 hover:text-foreground"
+                                disabled={isLoadingQuestions}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
