@@ -33,26 +33,25 @@ import { cn } from "@/lib/utils";
 const LECTURE_TOPICS = [
   "01-Introduction",
   "02-Web",
-  "03-Socket_Programming",
-  "04-HTTP",
+  "04-Video",
   "05-Transport_Model",
   "06-TCP_Basics",
-  "07-TCP_Congestion_Control",
-  "08-QUIC",
-  "09-Network_Layer",
+  "07-Congestion_Control",
+  "08-AdvancedCC",
+  "09-Queue",
   "10-IP",
-  "11-Routing",
-  "12-Link_Layer",
-  "13-Wireless_LAN",
-  "14-Network_Security",
-  "15-Cryptography",
-  "16-Authentication",
-  "17-TLS_SSL",
-  "18-VPN",
-  "19-Firewall",
-  "20-DNS",
-  "21-CDN",
-  "22-SDN",
+  "11-BGP",
+  "12-BGP2",
+  "13-Internet",
+  "14-Local_Area_Network",
+  "15-LAN_Routing",
+  "16-Link_Layer_Challenge",
+  "17-Wireless_Network_updated",
+  "18-CDN",
+  "19-Datacenter",
+  "20-Security",
+  "21-Security2",
+  "22-Real_Time_Video",
 ];
 
 interface Question {
@@ -88,6 +87,7 @@ const MockExamMode = () => {
   const [error, setError] = useState<string>("");
   const [progress, setProgress] = useState(0);
   const [examLink, setExamLink] = useState<string | null>(null);
+  const [downloadLink, setDownloadLink] = useState<string | null>(null);
 
   // Exam customization state
   const [topic, setTopic] = useState("Computer Networks - General");
@@ -178,13 +178,43 @@ const MockExamMode = () => {
 
       // Parse JSON response containing Google Drive link
       const result = await response.json();
+      console.log("[GenerateExam] response JSON:", result);
 
-      if (!result.link) {
-        throw new Error("Failed to get exam link from server");
+      // Robust validation and fallback logic
+      let link = result?.link?.trim();
+      let download = result?.downloadLink?.trim();
+      const fileId = result?.fileId?.trim();
+
+      // Validate link
+      if (!link || !link.startsWith("http")) {
+        // Try to build from fileId
+        if (fileId && fileId.length > 5) {
+          link = `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+        }
+      }
+
+      // Validate download link
+      if (!download || !download.startsWith("http")) {
+        // Try to build from fileId
+        if (fileId && fileId.length > 5) {
+          download = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        }
+      }
+
+      // Final validation
+      if (!link || !link.startsWith("http")) {
+        console.error("[GenerateExam] Invalid or missing link:", result);
+        toast({
+          title: "Link Unavailable",
+          description: "The exam file link could not be retrieved. Please try again or regenerate the exam.",
+          variant: "destructive",
+        });
+        return;
       }
 
       setProgress(100);
-      setExamLink(result.link);
+      setExamLink(link);
+      setDownloadLink(download || null);
 
       toast({
         title: "Exam Generated!",
@@ -252,6 +282,7 @@ const MockExamMode = () => {
     setQuestions([]);
     setError("");
     setExamLink(null);
+    setDownloadLink(null);
     setIncludeTopics([]);
     setExcludeTopics([]);
   };
@@ -271,25 +302,29 @@ const MockExamMode = () => {
   };
 
   const handleDownloadExam = () => {
-    const link = examLink?.trim();
-    if (link && link.startsWith("http")) {
-      const fileId = link.match(/\/d\/([^/]+)/)?.[1];
-      if (fileId) {
-        const downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
-        window.open(downloadUrl, "_blank", "noopener,noreferrer");
-      } else {
-        console.error("Could not extract file ID from link:", link);
-        toast({
-          title: "Cannot Download",
-          description: "Could not extract download link from the exam URL.",
-          variant: "destructive",
-        });
+    // Prefer downloadLink if available
+    let link = downloadLink?.trim();
+    
+    if (!link || !link.startsWith("http")) {
+      // Fallback: try to derive from examLink
+      const viewLink = examLink?.trim();
+      if (viewLink && viewLink.startsWith("http")) {
+        const fileIdMatch = viewLink.match(/\/d\/([^\/]+)/);
+        const fileId = fileIdMatch ? fileIdMatch[1] : null;
+        
+        if (fileId) {
+          link = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        }
       }
+    }
+
+    if (link && link.startsWith("http")) {
+      window.open(link, "_blank", "noopener,noreferrer");
     } else {
-      console.error("Invalid or missing exam link:", link);
+      console.error("Invalid or missing download link:", { downloadLink, examLink });
       toast({
-        title: "Cannot Download Exam",
-        description: "The exam link is invalid or unavailable.",
+        title: "Download Error",
+        description: "Unable to generate download link. Please try viewing the exam instead.",
         variant: "destructive",
       });
     }

@@ -70,14 +70,37 @@ serve(async (req) => {
       const result = await webhookResponse.json();
       console.log("n8n response:", result);
 
-      if (!result.link) {
-        throw new Error("No Google Drive link in response");
+      // Extract and validate fields with fallbacks
+      let fileId = result.fileId || result.id;
+      let link = result.link || result.webViewLink;
+      let downloadLink = result.downloadLink || result.webContentLink;
+
+      // Extract fileId from link if not provided
+      if (!fileId && link) {
+        const fileIdMatch = link.match(/\/d\/([^\/]+)/);
+        if (fileIdMatch) fileId = fileIdMatch[1];
+      }
+
+      // Build links from fileId if missing
+      if (fileId && (!link || link.startsWith("={{"))) {
+        link = `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+      }
+      if (fileId && (!downloadLink || downloadLink.startsWith("={{"))) {
+        downloadLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
+      }
+
+      // Final validation - throw error if link is still invalid
+      if (!link || link.startsWith("={{")) {
+        console.error("Invalid link returned from n8n:", result);
+        throw new Error('n8n returned invalid or unevaluated template string. Check "Make File Public" node configuration.');
       }
 
       // Return the Google Drive link as JSON
       return new Response(
         JSON.stringify({ 
-          link: result.link,
+          link,
+          downloadLink: downloadLink || null,
+          fileId: fileId || null,
           success: true 
         }),
         {
