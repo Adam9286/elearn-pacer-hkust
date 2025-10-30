@@ -244,23 +244,26 @@ const ChatMode = () => {
       setEstimatedTime(12);
 
       // Simulate understanding stage
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
       setLoadingProgress(40);
       setLoadingStage("Searching course materials");
       setEstimatedTime(10);
 
       // Send message with attachment URLs to n8n webhook
-      const response = await fetch("https://smellycat9286.app.n8n.cloud/webhook/638fa33f-5871-43b3-a34e-d318a2147001", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        "https://smellycat9286.app.n8n.cloud/webhook-test/638fa33f-5871-43b3-a34e-d318a2147001",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: userInput,
+            sessionId,
+            attachments: uploadedUrls,
+          }),
         },
-        body: JSON.stringify({
-          query: userInput,
-          sessionId,
-          attachments: uploadedUrls,
-        }),
-      });
+      );
 
       // Progress: API called (70%)
       setLoadingProgress(70);
@@ -274,7 +277,7 @@ const ChatMode = () => {
       setLoadingStage("Finalizing answer");
       setEstimatedTime(2);
 
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
       // Handle both wrapped ({ body: { output, source_document } }) and unwrapped responses
       const payload = data.body ?? data;
@@ -389,9 +392,9 @@ const ChatMode = () => {
                     }`}
                   >
                     {message.content === "I received your question and I'm processing it…" ? (
-                      <AIThinkingIndicator 
-                        progress={loadingProgress} 
-                        stage={loadingStage} 
+                      <AIThinkingIndicator
+                        progress={loadingProgress}
+                        stage={loadingStage}
                         estimatedTime={estimatedTime}
                       />
                     ) : (
