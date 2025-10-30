@@ -14,11 +14,15 @@ All colors MUST be HSL.
     --navy: 220 40% 15%;
     
     /* Cyberpunk/Tech Colors for Landing Page */
-    --neon-blue: 180 100% 50%;
-    --neon-purple: 280 100% 60%;
-    --cyber-pink: 330 100% 60%;
-    --dark-void: 220 30% 5%;
-    --electric-cyan: 190 100% 45%;
+    --neon-blue: 220 100% 60%;
+    --neon-purple: 270 100% 65%;
+    --neon-pink: 320 100% 60%;
+    --cyber-pink: 330 100% 68%;
+    --dark-void: 220 25% 6%;
+    --electric-cyan: 186 100% 50%;
+    --neon-green: 130 100% 50%;
+    --neon-orange: 30 100% 55%;
+    --cyber-yellow: 60 100% 50%;
     
     /* Semantic Tokens */
     --background: 0 0% 97%;
@@ -52,9 +56,11 @@ All colors MUST be HSL.
     --radius: 0.75rem;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(210 100% 35%), hsl(210 100% 45%));
-    --gradient-accent: linear-gradient(135deg, hsl(45 100% 50%), hsl(45 100% 60%));
-    --gradient-hero: linear-gradient(135deg, hsl(210 100% 35%) 0%, hsl(220 40% 15%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(var(--neon-blue)), hsl(var(--neon-purple)));
+    --gradient-accent: linear-gradient(135deg, hsl(var(--electric-cyan)), hsl(var(--neon-blue)));
+    --gradient-hero: linear-gradient(135deg, hsl(var(--neon-blue)), hsl(var(--neon-purple)), hsl(var(--neon-pink)));
+    --gradient-rainbow: linear-gradient(90deg, hsl(var(--neon-blue)), hsl(var(--neon-purple)), hsl(var(--cyber-pink)), hsl(var(--neon-orange)));
+    --gradient-network: radial-gradient(circle, hsl(var(--electric-cyan) / 0.3), hsl(var(--neon-blue) / 0.2), transparent);
     
     /* Glass Effects */
     --glass-bg: hsla(0, 0%, 100%, 0.7);
@@ -359,6 +365,31 @@ All colors MUST be HSL.
   
   .bg-electric-cyan {
     background-color: hsl(var(--electric-cyan));
+  }
+
+  .text-neon-green {
+    color: hsl(var(--neon-green));
+  }
+
+  .text-neon-orange {
+    color: hsl(var(--neon-orange));
+  }
+
+  /* Glow utilities */
+  .glow-cyan {
+    box-shadow: 0 0 20px hsl(var(--electric-cyan) / 0.5), 0 0 40px hsl(var(--electric-cyan) / 0.3);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 20px hsl(var(--neon-purple) / 0.5), 0 0 40px hsl(var(--neon-purple) / 0.3);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 20px hsl(var(--neon-blue) / 0.5), 0 0 40px hsl(var(--neon-blue) / 0.3);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 20px hsl(var(--hkust-gold) / 0.5), 0 0 40px hsl(var(--hkust-gold) / 0.3);
   }
 
   @keyframes pulse-glow {

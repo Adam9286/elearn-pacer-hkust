@@ -34,17 +34,44 @@ const Hero = () => {
                 animate={{
                   rotate: 360,
                   scale: [1, 1.1, 1],
+                  rotateY: [0, 360],
                 }}
                 transition={{
                   rotate: { duration: 20, repeat: Infinity, ease: "linear" },
                   scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+                  rotateY: { duration: 10, repeat: Infinity, ease: "linear" },
                 }}
                 className="w-32 h-32 mx-auto mb-6 relative"
+                style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full blur-xl opacity-50 animate-glow-pulse"></div>
-                <div className="absolute inset-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full flex items-center justify-center">
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full blur-2xl opacity-60"
+                  animate={{
+                    scale: [1, 1.3, 1],
+                    opacity: [0.6, 0.9, 0.6],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                />
+                <motion.div 
+                  className="absolute inset-0 bg-gradient-to-br from-neon-blue via-neon-purple to-electric-cyan rounded-full flex items-center justify-center shadow-2xl"
+                  animate={{
+                    boxShadow: [
+                      '0 0 40px hsl(var(--neon-blue) / 0.5)',
+                      '0 0 80px hsl(var(--electric-cyan) / 0.8)',
+                      '0 0 40px hsl(var(--neon-blue) / 0.5)',
+                    ],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                  }}
+                >
                   <Sparkles className="w-16 h-16 text-white animate-sparkle" />
-                </div>
+                </motion.div>
               </motion.div>
 
               {/* Particle effects */}
@@ -72,16 +99,31 @@ const Hero = () => {
           </motion.div>
         </div>
 
-        {/* Typing animation text */}
+        {/* Animated gradient text */}
         <motion.h1
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5, duration: 1 }}
-          className="text-5xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-clip-text text-transparent"
+          className="text-5xl md:text-7xl font-bold mb-6 relative"
         >
-          Next-Generation AI
-          <br />
-          Teaching Assistant
+          <motion.span
+            className="bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-clip-text text-transparent"
+            style={{
+              backgroundSize: '200% 200%',
+            }}
+            animate={{
+              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+            }}
+            transition={{
+              duration: 8,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+          >
+            Next-Generation AI
+            <br />
+            Teaching Assistant
+          </motion.span>
         </motion.h1>
 
         <motion.p

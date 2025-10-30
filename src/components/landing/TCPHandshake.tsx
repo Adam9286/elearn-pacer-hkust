@@ -13,41 +13,47 @@ const TCPHandshake = () => {
   }, []);
 
   return (
-    <div className="absolute inset-0 z-[1] pointer-events-none flex items-center justify-center">
-      <div className="w-full max-w-[1400px] h-full">
+    <div className="absolute inset-0 z-[1] pointer-events-none flex items-center justify-center" style={{ perspective: '1000px' }}>
+      <div className="w-full max-w-[1400px] h-full" style={{ transformStyle: 'preserve-3d' }}>
         <svg
           width="100%"
           height="100%"
           viewBox="0 0 1400 800"
           preserveAspectRatio="xMidYMid meet"
-          className="opacity-30"
+          className="opacity-60"
+          style={{ filter: 'drop-shadow(0 0 20px hsl(var(--electric-cyan) / 0.5))' }}
         >
           {/* Filter for glow effect */}
           <defs>
             <filter id="packet-glow">
-              <feGaussianBlur stdDeviation="4" result="coloredBlur" />
+              <feGaussianBlur stdDeviation="8" result="coloredBlur" />
               <feMerge>
                 <feMergeNode in="coloredBlur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
             <filter id="node-glow">
-              <feGaussianBlur stdDeviation="6" result="coloredBlur" />
+              <feGaussianBlur stdDeviation="12" result="coloredBlur" />
               <feMerge>
                 <feMergeNode in="coloredBlur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
+            <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0.5" />
+              <stop offset="50%" stopColor="hsl(var(--neon-purple))" stopOpacity="0.8" />
+              <stop offset="100%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0.5" />
+            </linearGradient>
           </defs>
 
-          {/* Animated connection line */}
+          {/* Animated connection line with gradient */}
           <motion.line
             x1="250"
             y1="400"
             x2="1150"
             y2="400"
-            stroke="hsl(var(--electric-cyan) / 0.3)"
-            strokeWidth="2"
+            stroke="url(#connectionGradient)"
+            strokeWidth="3"
             strokeDasharray="10,5"
             animate={{
               strokeDashoffset: [0, -30],
@@ -58,15 +64,33 @@ const TCPHandshake = () => {
               ease: "linear",
             }}
           />
+          
+          {/* Circuit board traces */}
+          <motion.path
+            d="M250,400 L300,380 L400,380 L450,400 L550,400 L600,380 L700,380 L750,400 L850,400 L900,380 L1000,380 L1050,400 L1150,400"
+            fill="none"
+            stroke="hsl(var(--neon-blue) / 0.3)"
+            strokeWidth="1"
+            strokeDasharray="5,5"
+            animate={{
+              strokeDashoffset: [0, -20],
+              opacity: [0.3, 0.6, 0.3],
+            }}
+            transition={{
+              strokeDashoffset: { duration: 3, repeat: Infinity, ease: "linear" },
+              opacity: { duration: 2, repeat: Infinity, ease: "easeInOut" },
+            }}
+          />
 
-          {/* Particle flow along connection */}
-          {[...Array(5)].map((_, i) => (
+          {/* Enhanced particle flow along connection */}
+          {[...Array(10)].map((_, i) => (
             <motion.circle
               key={i}
               cx="250"
               cy="400"
-              r="3"
-              fill="hsl(var(--neon-blue))"
+              r={i % 2 === 0 ? "4" : "3"}
+              fill={i % 3 === 0 ? "hsl(var(--neon-blue))" : i % 3 === 1 ? "hsl(var(--electric-cyan))" : "hsl(var(--neon-purple))"}
+              filter="url(#packet-glow)"
               animate={{
                 cx: [250, 1150],
                 opacity: [0, 1, 1, 0],
@@ -74,29 +98,70 @@ const TCPHandshake = () => {
               transition={{
                 duration: 3,
                 repeat: Infinity,
-                delay: i * 0.6,
+                delay: i * 0.3,
                 ease: "linear",
               }}
             />
           ))}
+          
+          {/* Ripple effects on active transmission */}
+          {(step === 1 || step === 2 || step === 3) && (
+            <>
+              <motion.circle
+                cx={step === 2 ? "1150" : "250"}
+                cy="400"
+                r="10"
+                fill="none"
+                stroke={step === 2 ? "hsl(var(--neon-purple))" : "hsl(var(--electric-cyan))"}
+                strokeWidth="2"
+                animate={{
+                  r: [10, 50],
+                  opacity: [0.8, 0],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeOut",
+                }}
+              />
+              <motion.circle
+                cx={step === 2 ? "1150" : "250"}
+                cy="400"
+                r="10"
+                fill="none"
+                stroke={step === 2 ? "hsl(var(--neon-purple))" : "hsl(var(--electric-cyan))"}
+                strokeWidth="2"
+                animate={{
+                  r: [10, 50],
+                  opacity: [0.8, 0],
+                }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  delay: 0.75,
+                  ease: "easeOut",
+                }}
+              />
+            </>
+          )}
 
-          {/* Client Node */}
-          <g>
+          {/* Client Node with 3D effect */}
+          <g style={{ transform: 'rotateY(5deg)', transformOrigin: 'center' }}>
             <motion.rect
               x="70"
               y="340"
               width="180"
               height="120"
               rx="8"
-              fill="hsl(var(--neon-blue) / 0.8)"
+              fill="hsl(var(--neon-blue) / 0.9)"
               stroke="hsl(var(--electric-cyan))"
-              strokeWidth="3"
+              strokeWidth="4"
               filter="url(#node-glow)"
               animate={{
-                boxShadow: [
-                  "0 0 20px hsl(var(--neon-blue) / 0.5)",
-                  "0 0 40px hsl(var(--electric-cyan) / 0.8)",
-                  "0 0 20px hsl(var(--neon-blue) / 0.5)",
+                fill: [
+                  "hsl(var(--neon-blue) / 0.9)",
+                  "hsl(var(--neon-blue) / 1)",
+                  "hsl(var(--neon-blue) / 0.9)",
                 ],
               }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -112,23 +177,23 @@ const TCPHandshake = () => {
             </text>
           </g>
 
-          {/* Server Node */}
-          <g>
+          {/* Server Node with 3D effect */}
+          <g style={{ transform: 'rotateY(-5deg)', transformOrigin: 'center' }}>
             <motion.rect
               x="1150"
               y="340"
               width="180"
               height="120"
               rx="8"
-              fill="hsl(var(--neon-purple) / 0.8)"
+              fill="hsl(var(--neon-purple) / 0.9)"
               stroke="hsl(var(--neon-pink))"
-              strokeWidth="3"
+              strokeWidth="4"
               filter="url(#node-glow)"
               animate={{
-                boxShadow: [
-                  "0 0 20px hsl(var(--neon-purple) / 0.5)",
-                  "0 0 40px hsl(var(--neon-pink) / 0.8)",
-                  "0 0 20px hsl(var(--neon-purple) / 0.5)",
+                fill: [
+                  "hsl(var(--neon-purple) / 0.9)",
+                  "hsl(var(--neon-purple) / 1)",
+                  "hsl(var(--neon-purple) / 0.9)",
                 ],
               }}
               transition={{ duration: 2, repeat: Infinity, delay: 1 }}
