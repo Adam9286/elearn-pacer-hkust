@@ -437,3 +437,35 @@ All colors MUST be HSL.
     50% { transform: scaleY(1.5); opacity: 1; }
   }
 }
+
+/* Math equation styling */
+.katex {
+  font-size: 1.1em;
+}
+
+.katex-display {
+  margin: 1rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Theme-aware colors for math */
+.light .katex {
+  color: hsl(var(--foreground));
+}
+
+.dark .katex {
+  color: hsl(var(--foreground));
+}
+
+/* Math in user messages (gradient background) */
+.gradient-primary .katex {
+  color: white !important;
+}
+
+/* Scrollable equations on mobile */
+@media (max-width: 640px) {
+  .katex-display {
+    font-size: 0.9em;
+  }
+}

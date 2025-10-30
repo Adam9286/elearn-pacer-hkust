@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AIThinkingIndicator } from "./AIThinkingIndicator";
+import { RenderMath } from "./RenderMath";
 
 interface Message {
   id: string;
@@ -394,7 +395,9 @@ const ChatMode = () => {
                         estimatedTime={estimatedTime}
                       />
                     ) : (
-                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap">
+                        <RenderMath text={message.content} />
+                      </div>
                     )}
                     {message.attachments && message.attachments.length > 0 && (
                       <div className="mt-2 space-y-1.5">
