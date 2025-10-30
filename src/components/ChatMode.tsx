@@ -289,7 +289,7 @@ const ChatMode = () => {
     <div className="space-y-6">
       {/* Smart Hints */}
       <Card className="glass-card shadow-lg">
-        <CardHeader className="border-b gradient-hero">
+        <CardHeader className="border-b bg-gradient-to-r from-primary/80 to-accent/70">
           <CardTitle className="flex items-center gap-2 text-lg text-white">
             <Lightbulb className="w-5 h-5 text-accent animate-float" />
             Smart Hints
@@ -323,7 +323,7 @@ const ChatMode = () => {
       </Card>
       {/* Chat Interface */}
       <Card className="glass-card shadow-lg">
-        <CardHeader className="border-b gradient-hero">
+        <CardHeader className="border-b bg-gradient-to-r from-primary/80 to-accent/70">
           <CardTitle className="flex items-center gap-2 text-white">
             <MessageSquare className={`w-5 h-5 ${isLoading ? "animate-pulse" : ""}`} />
             Ask Questions
