@@ -112,38 +112,38 @@ All colors MUST be HSL.
   }
 
   .light {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 210 40% 98%;
+    --foreground: 222.2 47.4% 11.2%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 210 40% 96%;
+    --card-foreground: 222.2 47.4% 11.2%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 210 40% 96%;
+    --popover-foreground: 222.2 47.4% 11.2%;
 
     --primary: 221.2 83.2% 53.3%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
+    --secondary: 210 40% 94%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
-    --muted: 210 40% 96.1%;
+    --muted: 210 40% 92%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
+    --accent: 45 95% 55%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
+    --border: 214.3 31.8% 88%;
+    --input: 214.3 31.8% 88%;
     --ring: 221.2 83.2% 53.3%;
     
-    --glass-bg: hsla(0, 0%, 100%, 0.7);
-    --glass-border: hsla(221.2, 83.2%, 53.3%, 0.1);
+    --glass-bg: hsla(210, 40%, 98%, 0.8);
+    --glass-border: hsla(221.2, 83.2%, 53.3%, 0.15);
     
-    --shadow-glow: 0 0 20px hsla(221.2, 83.2%, 53.3%, 0.3);
+    --shadow-glow: 0 0 20px hsla(221.2, 83.2%, 53.3%, 0.25);
   }
 }
 
@@ -154,6 +154,16 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  .light body {
+    background: linear-gradient(to bottom, hsl(210 40% 98%), hsl(210 40% 96%));
+  }
+  
+  .light .glass-card {
+    background: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(33, 150, 243, 0.1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   }
 }
 
