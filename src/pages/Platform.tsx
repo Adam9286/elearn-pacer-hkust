@@ -19,13 +19,13 @@ const Index = () => {
     <ThemeProvider defaultTheme="dark">
       <div className="min-h-screen bg-background">
       {/* Header with improved contrast */}
-      <header className="bg-gradient-to-r from-navy/95 to-dark-void/95 backdrop-blur-md text-white shadow-lg sticky top-0 z-50 border-b border-white/10">
+      <header className="bg-gradient-to-r from-navy/95 to-dark-void/95 dark:bg-gradient-to-r dark:from-navy/95 dark:to-dark-void/95 light:bg-white/95 light:border-b light:border-gray-200 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-white/10">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link 
                 to="/" 
-                className="flex items-center gap-2 text-sm text-white/90 hover:text-white transition-colors hover:bg-white/10 px-3 py-2 rounded-lg"
+                className="flex items-center gap-2 text-sm dark:text-white/90 text-gray-800 dark:hover:text-white hover:text-gray-900 transition-colors dark:hover:bg-white/10 hover:bg-gray-100 px-3 py-2 rounded-lg"
               >
                 <Home className="w-4 h-4" />
                 <span className="font-medium">Home</span>
@@ -35,8 +35,8 @@ const Index = () => {
                   <BookOpen className="w-6 h-6 text-navy" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">LearningPacer</h1>
-                  <p className="text-sm text-white/80">ELEC3120: Computer Networks</p>
+                  <h1 className="text-2xl font-bold dark:text-white text-gray-900">LearningPacer</h1>
+                  <p className="text-sm dark:text-white/80 text-gray-700">ELEC3120: Computer Networks</p>
                 </div>
               </div>
             </div>
