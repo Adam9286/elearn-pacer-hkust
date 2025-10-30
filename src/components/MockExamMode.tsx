@@ -146,19 +146,11 @@ const MockExamMode = () => {
     setProgress(0);
 
     try {
-      // Get Supabase URL and key from environment
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error("Supabase configuration missing");
-      }
-
-      // Call edge function directly to get PDF blob with user-selected parameters
-      const response = await fetch(`${supabaseUrl}/functions/v1/generate-exam`, {
+      // Call edge function directly with hardcoded endpoint
+      const response = await fetch("https://oqgotlmztpvchkipslnc.supabase.co/functions/v1/generate-exam", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${supabaseAnonKey}`,
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
