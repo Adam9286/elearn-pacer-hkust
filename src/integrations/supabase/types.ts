@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      quiz_attempts: {
+        Row: {
+          answers: Json | null
+          chapter_id: number
+          created_at: string | null
+          id: string
+          score: number
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          chapter_id: number
+          created_at?: string | null
+          id?: string
+          score: number
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          chapter_id?: number
+          created_at?: string | null
+          id?: string
+          score?: number
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_progress: {
+        Row: {
+          chapter_id: number
+          created_at: string | null
+          id: string
+          lessons_completed: string[] | null
+          quiz_passed: boolean | null
+          quiz_score: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          chapter_id: number
+          created_at?: string | null
+          id?: string
+          lessons_completed?: string[] | null
+          quiz_passed?: boolean | null
+          quiz_score?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          chapter_id?: number
+          created_at?: string | null
+          id?: string
+          lessons_completed?: string[] | null
+          quiz_passed?: boolean | null
+          quiz_score?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

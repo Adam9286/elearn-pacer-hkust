@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Circle, Clock, ChevronRight, FileText } from "lucide-react";
+import { ArrowLeft, CheckCircle, Circle, Clock, ChevronRight, FileText, LogIn } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -10,6 +10,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
+import ChapterQuiz from "@/components/ChapterQuiz";
+import { useUserProgress } from "@/hooks/useUserProgress";
+import { toast } from "sonner";
 
 // Mock data structure matching the course content
 const chapters = [
@@ -48,7 +51,7 @@ const chapters = [
       {
         id: "1-review",
         number: "1.R",
-        title: "Chapter 1 Review",
+        title: "Chapter 1 Review & Quiz",
         contentType: "review",
         textbookSections: "Problems p.64-66",
         estimatedMinutes: 60,
@@ -71,7 +74,7 @@ const chapters = [
       {
         id: "2-review",
         number: "2.R",
-        title: "Chapter 2 Review",
+        title: "Chapter 2 Review & Quiz",
         contentType: "review",
         textbookSections: "Problems p.166-175",
         estimatedMinutes: 60,
@@ -126,7 +129,7 @@ const chapters = [
       {
         id: "3-review",
         number: "3.R",
-        title: "Chapter 3 Review",
+        title: "Chapter 3 Review & Quiz",
         contentType: "review",
         textbookSections: "Problems p.284-300",
         estimatedMinutes: 75,
@@ -149,7 +152,7 @@ const chapters = [
       {
         id: "4-review",
         number: "4.R",
-        title: "Chapter 4 Review",
+        title: "Chapter 4 Review & Quiz",
         contentType: "review",
         textbookSections: "Problems p.364-374",
         estimatedMinutes: 60,
@@ -188,7 +191,7 @@ const chapters = [
       {
         id: "5-review",
         number: "5.R",
-        title: "Chapter 5 Review",
+        title: "Chapter 5 Review & Quiz",
         contentType: "review",
         textbookSections: "Problems p.432-445",
         estimatedMinutes: 65,
@@ -227,7 +230,7 @@ const chapters = [
       {
         id: "6-review",
         number: "6.R",
-        title: "Chapter 6 Review",
+        title: "Chapter 6 Review & Quiz",
         contentType: "review",
         textbookSections: "Problems p.519-527",
         estimatedMinutes: 60,
@@ -250,7 +253,7 @@ const chapters = [
       {
         id: "7-review",
         number: "7.R",
-        title: "Chapter 7 Review",
+        title: "Chapter 7 Review & Quiz",
         contentType: "review",
         textbookSections: "Problems p.596-602",
         estimatedMinutes: 50,
@@ -310,10 +313,11 @@ const Lesson = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const [lessonProgress, setLessonProgress] = useState(0);
+  const { user, updateQuizScore, markLessonComplete, getChapterProgress, isChapterUnlocked } = useUserProgress();
 
   // Find current lesson and chapter
-  let currentChapter = null;
-  let currentLesson = null;
+  let currentChapter: typeof chapters[0] | null = null;
+  let currentLesson: typeof chapters[0]["lessons"][0] | null = null;
   let lessonIndex = -1;
 
   for (const chapter of chapters) {
@@ -325,6 +329,16 @@ const Lesson = () => {
       break;
     }
   }
+
+  // Check if chapter is locked
+  const chapterLocked = currentChapter ? !isChapterUnlocked(currentChapter.id) : false;
+
+  useEffect(() => {
+    if (chapterLocked && currentChapter) {
+      toast.error(`Chapter ${currentChapter.id} is locked. Complete the previous chapter quiz first.`);
+      navigate("/platform");
+    }
+  }, [chapterLocked, currentChapter, navigate]);
 
   if (!currentLesson || !currentChapter) {
     return (
@@ -345,7 +359,10 @@ const Lesson = () => {
   const previousLesson = lessonIndex > 0 ? currentChapter.lessons[lessonIndex - 1] : null;
   const nextLesson = lessonIndex < currentChapter.lessons.length - 1 ? currentChapter.lessons[lessonIndex + 1] : null;
 
-  const handleMarkComplete = () => {
+  const handleMarkComplete = async () => {
+    if (user && currentChapter && currentLesson) {
+      await markLessonComplete(currentChapter.id, currentLesson.id);
+    }
     setLessonProgress(100);
     if (nextLesson) {
       navigate(`/platform/lesson/${nextLesson.id}`);
@@ -353,6 +370,21 @@ const Lesson = () => {
       navigate("/platform");
     }
   };
+
+  const handleQuizComplete = async (passed: boolean, score: number) => {
+    if (user && currentChapter) {
+      const result = await updateQuizScore(currentChapter.id, score, 5);
+      if (result && typeof result === 'object' && 'passed' in result) {
+        if (result.passed) {
+          toast.success(`Chapter ${currentChapter.id} completed! Next chapter unlocked!`);
+        } else {
+          toast.info(`You scored ${result.percentage}%. Need 80% to unlock the next chapter.`);
+        }
+      }
+    }
+  };
+
+  const chapterProgress = currentChapter ? getChapterProgress(currentChapter.id) : undefined;
 
   return (
     <ThemeProvider>
@@ -371,7 +403,15 @@ const Lesson = () => {
                 <p className="text-xs text-muted-foreground">{currentChapter.title}</p>
               </div>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-4">
+              {!user && (
+                <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+                  <LogIn className="mr-2 h-4 w-4" />
+                  Sign In
+                </Button>
+              )}
+              <ThemeToggle />
+            </div>
           </div>
         </header>
 
@@ -382,6 +422,11 @@ const Lesson = () => {
               <CardHeader>
                 <CardTitle className="text-lg">Chapter {currentChapter.id} Lessons</CardTitle>
                 <CardDescription>Textbook: p.{currentChapter.textbookPages}</CardDescription>
+                {chapterProgress?.quiz_passed && (
+                  <Badge variant="default" className="bg-green-500 w-fit">
+                    Quiz Passed: {chapterProgress.quiz_score}%
+                  </Badge>
+                )}
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[calc(100vh-16rem)]">
@@ -419,7 +464,7 @@ const Lesson = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="outline">{currentLesson.number}</Badge>
-                      {currentLesson.contentType === "review" && <Badge variant="secondary">Review</Badge>}
+                      {currentLesson.contentType === "review" && <Badge variant="secondary">Review & Quiz</Badge>}
                     </div>
                     <CardTitle className="text-2xl mb-2">{currentLesson.title}</CardTitle>
                     <CardDescription className="flex items-center gap-4">
@@ -443,14 +488,23 @@ const Lesson = () => {
 
             {/* Lesson Content Tabs */}
             <Card className="glass-card">
-              <Tabs defaultValue="overview" className="w-full">
+              <Tabs defaultValue={currentLesson.contentType === "review" ? "quiz" : "overview"} className="w-full">
                 <CardHeader className="pb-4">
-                  <TabsList className="grid w-full grid-cols-5">
+                  <TabsList className={`grid w-full ${currentLesson.contentType === "review" ? "grid-cols-3" : "grid-cols-5"}`}>
                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="lecture">Lecture Notes</TabsTrigger>
-                    <TabsTrigger value="review">Review</TabsTrigger>
-                    <TabsTrigger value="chat">AI Tutor</TabsTrigger>
-                    <TabsTrigger value="practice">Practice</TabsTrigger>
+                    {currentLesson.contentType !== "review" && (
+                      <>
+                        <TabsTrigger value="lecture">Lecture Notes</TabsTrigger>
+                        <TabsTrigger value="chat">AI Tutor</TabsTrigger>
+                        <TabsTrigger value="practice">Practice</TabsTrigger>
+                      </>
+                    )}
+                    {currentLesson.contentType === "review" && (
+                      <>
+                        <TabsTrigger value="review">Review Problems</TabsTrigger>
+                        <TabsTrigger value="quiz">Chapter Quiz</TabsTrigger>
+                      </>
+                    )}
                   </TabsList>
                 </CardHeader>
 
@@ -460,10 +514,13 @@ const Lesson = () => {
                       <h3 className="text-lg font-semibold mb-2">Learning Objectives</h3>
                       <ul className="space-y-2 list-disc list-inside text-muted-foreground">
                         <li>Understand key concepts from textbook sections {currentLesson.textbookSections}</li>
-                        {currentLesson.lectureFile && <li>Review lecture materials: {currentLesson.lectureFile}</li>}
+                        {'lectureFile' in currentLesson && currentLesson.lectureFile && <li>Review lecture materials: {currentLesson.lectureFile}</li>}
                         <li>Apply knowledge through practice problems</li>
                         {currentLesson.contentType === "review" && (
-                          <li>Complete homework problems from the textbook</li>
+                          <>
+                            <li>Complete homework problems from the textbook</li>
+                            <li>Take the chapter quiz to unlock the next chapter</li>
+                          </>
                         )}
                       </ul>
                     </div>
@@ -472,26 +529,28 @@ const Lesson = () => {
                       <h3 className="text-lg font-semibold mb-2">How to Study This Lesson</h3>
                       <ol className="space-y-2 list-decimal list-inside text-muted-foreground">
                         <li>Read the assigned textbook sections</li>
-                        {currentLesson.lectureFile && <li>Review the lecture notes in the Lecture Notes tab</li>}
+                        {'lectureFile' in currentLesson && currentLesson.lectureFile && <li>Review the lecture notes in the Lecture Notes tab</li>}
                         <li>Use the AI Tutor to ask questions and clarify concepts</li>
                         <li>Test your understanding with practice questions</li>
-                        <li>Complete the review problems</li>
+                        {currentLesson.contentType === "review" && (
+                          <li className="font-medium text-primary">Take the Chapter Quiz to unlock the next chapter (80% required)</li>
+                        )}
                       </ol>
                     </div>
                   </TabsContent>
 
                   <TabsContent value="lecture" className="space-y-4">
-                    {currentLesson.pdfUrl ? (
+                    {'pdfUrl' in currentLesson && currentLesson.pdfUrl ? (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
                           <div>
-                            <p className="font-medium">{currentLesson.lectureFile}</p>
+                            <p className="font-medium">{'lectureFile' in currentLesson ? currentLesson.lectureFile : 'Lecture'}</p>
                             <p className="text-sm text-muted-foreground">Lecture notes PDF</p>
                           </div>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => window.open(currentLesson.pdfUrl, "_blank")}
+                            onClick={() => window.open(currentLesson.pdfUrl as string, "_blank")}
                             className="gap-2"
                           >
                             <FileText className="h-4 w-4" />
@@ -500,9 +559,9 @@ const Lesson = () => {
                         </div>
                         <div className="border rounded-lg overflow-hidden bg-muted/20" style={{ height: "800px" }}>
                           <iframe
-                            src={currentLesson.pdfUrl}
+                            src={currentLesson.pdfUrl as string}
                             className="w-full h-full"
-                            title={`${currentLesson.lectureFile} PDF`}
+                            title="Lecture PDF"
                             allow="autoplay"
                           />
                         </div>
@@ -532,25 +591,44 @@ const Lesson = () => {
                   </TabsContent>
 
                   <TabsContent value="review" className="space-y-4">
-                    {currentLesson.contentType === "review" ? (
-                      <div className="space-y-4">
-                        <div className="p-4 border rounded-lg bg-accent/10">
-                          <h3 className="font-semibold mb-2">Chapter Review Problems</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Complete the problems from textbook {currentLesson.textbookSections}
-                          </p>
-                        </div>
-                        <div className="border rounded-lg p-8 text-center bg-muted/20">
-                          <p className="text-muted-foreground">Homework problems interface will be integrated here</p>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Get AI guidance on solving textbook problems
-                          </p>
-                        </div>
+                    <div className="space-y-4">
+                      <div className="p-4 border rounded-lg bg-accent/10">
+                        <h3 className="font-semibold mb-2">Chapter Review Problems</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Complete the problems from textbook {currentLesson.textbookSections}
+                        </p>
                       </div>
+                      <div className="border rounded-lg p-8 text-center bg-muted/20">
+                        <p className="text-muted-foreground">Homework problems interface will be integrated here</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Get AI guidance on solving textbook problems
+                        </p>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="quiz" className="space-y-4">
+                    {!user ? (
+                      <Card className="glass-card">
+                        <CardHeader className="text-center">
+                          <CardTitle>Sign In Required</CardTitle>
+                          <CardDescription>
+                            You need to sign in to take the quiz and track your progress
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="flex justify-center">
+                          <Button onClick={() => navigate("/auth")}>
+                            <LogIn className="mr-2 h-4 w-4" />
+                            Sign In
+                          </Button>
+                        </CardContent>
+                      </Card>
                     ) : (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <p>Review problems are available in the chapter review lesson.</p>
-                      </div>
+                      <ChapterQuiz
+                        chapterId={currentChapter.id}
+                        chapterTitle={currentChapter.title}
+                        onQuizComplete={handleQuizComplete}
+                      />
                     )}
                   </TabsContent>
                 </CardContent>
