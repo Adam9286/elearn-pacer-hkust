@@ -9,10 +9,15 @@ export interface UserProgress {
   quiz_passed: boolean;
 }
 
+const DEV_MODE_KEY = "learningpacer_dev_mode";
+
 export const useUserProgress = () => {
   const [user, setUser] = useState<User | null>(null);
   const [progress, setProgress] = useState<UserProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [devMode, setDevModeState] = useState(() => {
+    return localStorage.getItem(DEV_MODE_KEY) === "true";
+  });
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -57,10 +62,16 @@ export const useUserProgress = () => {
   };
 
   const isChapterUnlocked = (chapterId: number): boolean => {
+    if (devMode) return true; // Dev mode bypasses all locks
     if (chapterId === 1) return true; // Chapter 1 always unlocked
     
     const previousChapter = progress.find(p => p.chapter_id === chapterId - 1);
     return previousChapter?.quiz_passed ?? false;
+  };
+
+  const setDevMode = (enabled: boolean) => {
+    localStorage.setItem(DEV_MODE_KEY, String(enabled));
+    setDevModeState(enabled);
   };
 
   const updateQuizScore = async (chapterId: number, score: number, totalQuestions: number) => {
@@ -154,6 +165,8 @@ export const useUserProgress = () => {
     user,
     progress,
     loading,
+    devMode,
+    setDevMode,
     getChapterProgress,
     isChapterUnlocked,
     updateQuizScore,
