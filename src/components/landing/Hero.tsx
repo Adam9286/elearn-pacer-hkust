@@ -1,8 +1,7 @@
 import { motion } from "framer-motion";
 import { ChevronDown, Sparkles, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import AnimatedBackground from "./AnimatedBackground";
-import TCPHandshake from "./TCPHandshake";
+import NetworkGridBackground from "./NetworkGridBackground";
 import MagneticButton from "./MagneticButton";
 import TextReveal from "./TextReveal";
 import Scroll3DElement from "./Scroll3DElement";
@@ -19,15 +18,10 @@ const Hero = () => {
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      <AnimatedBackground />
+      <NetworkGridBackground />
       
       {/* 3D Scroll Element - Main attraction */}
       <Scroll3DElement />
-      
-      {/* TCP Handshake - Repositioned to corner */}
-      <div className="absolute top-8 right-8 z-20 opacity-50 scale-75 origin-top-right hidden xl:block">
-        <TCPHandshake />
-      </div>
 
       {/* Content */}
       <div className="relative z-20 text-center px-4 max-w-5xl mx-auto">
