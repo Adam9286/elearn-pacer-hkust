@@ -6,7 +6,6 @@ import CTA from "@/components/landing/CTA";
 import SectionDivider from "@/components/landing/SectionDivider";
 import BusFleet from "@/components/landing/BusFleet";
 import CursorSpotlight from "@/components/landing/CursorSpotlight";
-import NetworkShowcase from "@/components/landing/NetworkShowcase";
 
 const Landing = () => {
   return (
@@ -19,8 +18,6 @@ const Landing = () => {
       
       <Hero />
       <SectionDivider variant="neural" />
-      <NetworkShowcase />
-      <SectionDivider variant="binary" />
       <PlatformIntro />
       <SectionDivider variant="robot" />
       <ModesShowcase />
