@@ -1,4 +1,4 @@
-import { Lock, CheckCircle, Circle, LogIn } from "lucide-react";
+import { Lock, CheckCircle, Circle, LogIn, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 
 interface Unit {
   id: number;
@@ -67,7 +68,7 @@ const units: Unit[] = [
 
 const CourseMode = () => {
   const navigate = useNavigate();
-  const { user, loading, getChapterProgress, isChapterUnlocked } = useUserProgress();
+  const { user, loading, getChapterProgress, isChapterUnlocked, devMode, setDevMode } = useUserProgress();
 
   const handleUnitClick = (unit: Unit) => {
     if (isChapterUnlocked(unit.id)) {
@@ -137,6 +138,25 @@ const CourseMode = () => {
 
   return (
     <div className="space-y-6">
+      {/* Dev Mode Toggle */}
+      {user && (
+        <div className="flex items-center justify-end gap-3 px-2">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Wrench className="h-4 w-4" />
+            <span>Dev Mode</span>
+          </div>
+          <Switch
+            checked={devMode}
+            onCheckedChange={setDevMode}
+          />
+          {devMode && (
+            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+              All chapters unlocked
+            </Badge>
+          )}
+        </div>
+      )}
+
       {/* Course Progress Overview */}
       <Card className="glass-card shadow-lg border-2">
         <CardHeader>
