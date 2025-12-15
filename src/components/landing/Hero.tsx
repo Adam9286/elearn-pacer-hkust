@@ -52,11 +52,11 @@ const Hero = () => {
             transition={{ duration: 4, repeat: Infinity }}
           />
           
-          <h1 className="text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] font-black tracking-tighter leading-none relative">
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tighter leading-none relative">
             <span className="block bg-gradient-to-r from-white via-white/90 to-white/80 bg-clip-text text-transparent">
               Learning
             </span>
-            <span className="block bg-gradient-to-r from-white/80 via-blue-200 to-indigo-300 bg-clip-text text-transparent -mt-2 md:-mt-4">
+            <span className="block bg-gradient-to-r from-white/80 via-blue-200 to-indigo-300 bg-clip-text text-transparent -mt-1 md:-mt-2">
               Pacer
             </span>
           </h1>
@@ -77,7 +77,7 @@ const Hero = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.5, duration: 0.8 }}
-          className="relative w-full max-w-4xl h-[300px] md:h-[350px] mb-8"
+          className="relative w-full max-w-5xl h-[350px] md:h-[420px] mb-8"
         >
           {/* Glassmorphism container */}
           <div className="absolute inset-0 rounded-2xl overflow-hidden">
