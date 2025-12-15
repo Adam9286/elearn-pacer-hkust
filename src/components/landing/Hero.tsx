@@ -39,40 +39,26 @@ const Hero = () => {
           transition={{ duration: 1 }}
           className="mb-6 relative"
         >
-          {/* Glow effect behind title */}
+          {/* Subtle glow effect behind title */}
           <motion.div
-            className="absolute inset-0 blur-3xl opacity-50"
+            className="absolute inset-0 blur-3xl opacity-30"
             style={{
-              background: 'radial-gradient(ellipse, hsl(var(--electric-cyan) / 0.4) 0%, hsl(var(--neon-purple) / 0.3) 50%, transparent 70%)',
+              background: 'radial-gradient(ellipse, hsl(220 70% 50% / 0.3) 0%, hsl(250 40% 40% / 0.2) 50%, transparent 70%)',
             }}
             animate={{ 
-              opacity: [0.3, 0.6, 0.3],
-              scale: [1, 1.1, 1]
+              opacity: [0.2, 0.35, 0.2],
+              scale: [1, 1.05, 1]
             }}
             transition={{ duration: 4, repeat: Infinity }}
           />
           
           <h1 className="text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] font-black tracking-tighter leading-none relative">
-            <motion.span 
-              className="block bg-gradient-to-r from-electric-cyan via-neon-blue to-neon-purple bg-clip-text text-transparent"
-              animate={{
-                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-              }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              style={{ backgroundSize: '200% 200%' }}
-            >
+            <span className="block bg-gradient-to-r from-white via-white/90 to-white/80 bg-clip-text text-transparent">
               Learning
-            </motion.span>
-            <motion.span 
-              className="block bg-gradient-to-r from-neon-purple via-neon-pink to-hkust-gold bg-clip-text text-transparent -mt-2 md:-mt-4"
-              animate={{
-                backgroundPosition: ['100% 50%', '0% 50%', '100% 50%'],
-              }}
-              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-              style={{ backgroundSize: '200% 200%' }}
-            >
+            </span>
+            <span className="block bg-gradient-to-r from-white/80 via-blue-200 to-indigo-300 bg-clip-text text-transparent -mt-2 md:-mt-4">
               Pacer
-            </motion.span>
+            </span>
           </h1>
         </motion.div>
 
