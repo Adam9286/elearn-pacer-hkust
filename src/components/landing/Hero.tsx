@@ -1,8 +1,11 @@
 import { motion } from "framer-motion";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown, Sparkles, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AnimatedBackground from "./AnimatedBackground";
 import TCPHandshake from "./TCPHandshake";
+import MagneticButton from "./MagneticButton";
+import TextReveal from "./TextReveal";
+import Scroll3DElement from "./Scroll3DElement";
 
 const Hero = () => {
   const navigate = useNavigate();
@@ -17,165 +20,129 @@ const Hero = () => {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <AnimatedBackground />
-      <TCPHandshake />
+      
+      {/* 3D Scroll Element - Main attraction */}
+      <Scroll3DElement />
+      
+      {/* TCP Handshake - Repositioned to corner */}
+      <div className="absolute top-8 right-8 z-20 opacity-50 scale-75 origin-top-right hidden xl:block">
+        <TCPHandshake />
+      </div>
 
       {/* Content */}
       <div className="relative z-20 text-center px-4 max-w-5xl mx-auto">
-        {/* Floating AI Brain/Robot */}
-        <div className="relative z-30">
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="mb-20"
-          >
-            <div className="relative inline-block">
-              <motion.div
-                animate={{
-                  rotate: 360,
-                  scale: [1, 1.1, 1],
-                  rotateY: [0, 360],
-                }}
-                transition={{
-                  rotate: { duration: 20, repeat: Infinity, ease: "linear" },
-                  scale: { duration: 2, repeat: Infinity, ease: "easeInOut" },
-                  rotateY: { duration: 10, repeat: Infinity, ease: "linear" },
-                }}
-                className="w-32 h-32 mx-auto mb-6 relative"
-                style={{ transformStyle: 'preserve-3d', perspective: '1000px' }}
-              >
-                <motion.div 
-                  className="absolute inset-0 bg-gradient-to-br from-neon-blue to-neon-purple rounded-full blur-2xl opacity-60"
-                  animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.6, 0.9, 0.6],
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                />
-                <motion.div 
-                  className="absolute inset-0 bg-gradient-to-br from-neon-blue via-neon-purple to-electric-cyan rounded-full flex items-center justify-center shadow-2xl"
-                  animate={{
-                    boxShadow: [
-                      '0 0 40px hsl(var(--neon-blue) / 0.5)',
-                      '0 0 80px hsl(var(--electric-cyan) / 0.8)',
-                      '0 0 40px hsl(var(--neon-blue) / 0.5)',
-                    ],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                  }}
-                >
-                  <Sparkles className="w-16 h-16 text-white animate-sparkle" />
-                </motion.div>
-              </motion.div>
-
-              {/* Particle effects */}
-              {[...Array(8)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-2 h-2 bg-electric-cyan rounded-full"
-                  style={{
-                    top: "50%",
-                    left: "50%",
-                  }}
-                  animate={{
-                    x: [0, Math.cos((i * 45 * Math.PI) / 180) * 100],
-                    y: [0, Math.sin((i * 45 * Math.PI) / 180) * 100],
-                    opacity: [1, 0],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                  }}
-                />
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Animated gradient text */}
-        <motion.h1
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 1 }}
-          className="text-5xl md:text-7xl font-bold mb-6 relative"
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 backdrop-blur-sm mb-8"
         >
-          <motion.span
-            className="bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-clip-text text-transparent"
-            style={{
-              backgroundSize: '200% 200%',
-            }}
-            animate={{
-              backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
-            }}
-            transition={{
-              duration: 8,
-              repeat: Infinity,
-              ease: 'linear',
-            }}
-          >
+          <Sparkles className="w-4 h-4 text-primary" />
+          <span className="text-sm text-white/80">ELEC3120 Computer Networks</span>
+        </motion.div>
+
+        {/* Animated gradient text with TextReveal */}
+        <h1 className="text-5xl md:text-7xl font-bold mb-6 relative">
+          <TextReveal className="text-white justify-center" delay={0.2}>
             Next-Generation AI
-            <br />
+          </TextReveal>
+          <br />
+          <TextReveal 
+            className="bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-clip-text text-transparent justify-center"
+            delay={0.5}
+          >
             Teaching Assistant
-          </motion.span>
-        </motion.h1>
+          </TextReveal>
+        </h1>
 
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 1 }}
-          className="text-xl md:text-2xl text-white/80 mb-12"
+          transition={{ delay: 0.8, duration: 0.8 }}
+          className="text-xl md:text-2xl text-white/70 mb-12 max-w-2xl mx-auto"
         >
-          Where Machine Learning Meets Education
+          Master computer networks with AI-powered learning featuring
+          personalized tutoring, interactive courses, and adaptive assessments.
         </motion.p>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 1.5, duration: 0.5 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+        {/* CTA Buttons with Magnetic Effect */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1, duration: 0.6 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-4"
+        >
+          <MagneticButton
             onClick={() => navigate("/platform")}
-            className="group relative px-8 py-4 text-lg font-semibold text-white rounded-full overflow-hidden transition-smooth"
+            className="group relative px-8 py-4 text-lg font-semibold text-white rounded-full overflow-hidden"
+            strength={0.4}
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan animate-rotate-gradient"></div>
-            <div className="absolute inset-[2px] bg-dark-void rounded-full"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan"></div>
+            <div className="absolute inset-[2px] bg-dark-void rounded-full group-hover:bg-dark-void/80 transition-all duration-300"></div>
             <span className="relative flex items-center gap-2">
               Launch Platform
-              <Sparkles className="w-5 h-5" />
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </span>
-          </motion.button>
+          </MagneticButton>
 
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 1.7, duration: 0.5 }}
+          <MagneticButton
             onClick={scrollToContent}
-            className="px-8 py-4 text-lg font-semibold text-white/80 hover:text-white border border-white/20 rounded-full hover:border-white/40 transition-smooth"
+            className="px-8 py-4 text-lg font-semibold text-white/80 hover:text-white border border-white/20 rounded-full hover:border-white/40 transition-all duration-300 backdrop-blur-sm"
+            strength={0.3}
           >
             <span className="flex items-center gap-2">
               Learn More
               <ChevronDown className="w-5 h-5" />
             </span>
-          </motion.button>
-        </div>
+          </MagneticButton>
+        </motion.div>
+
+        {/* Stats row */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.2, duration: 0.6 }}
+          className="mt-16 flex flex-wrap justify-center gap-8 md:gap-12"
+        >
+          {[
+            { label: "Learning Modes", value: "3" },
+            { label: "AI-Powered", value: "100%" },
+            { label: "Topics Covered", value: "50+" },
+          ].map((stat) => (
+            <motion.div
+              key={stat.label}
+              className="text-center"
+              whileHover={{ scale: 1.05, y: -2 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <div className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-neon-blue to-electric-cyan bg-clip-text text-transparent">
+                {stat.value}
+              </div>
+              <div className="text-sm text-white/50 mt-1">{stat.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
 
       {/* Scroll indicator */}
       <motion.div
-        animate={{ y: [0, 10, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.4 }}
       >
-        <ChevronDown className="w-8 h-8 text-white/50" />
+        <motion.div
+          className="w-6 h-10 rounded-full border-2 border-white/20 flex items-start justify-center p-2 cursor-pointer hover:border-white/40 transition-colors"
+          onClick={scrollToContent}
+          whileHover={{ scale: 1.1 }}
+        >
+          <motion.div
+            className="w-1.5 h-1.5 rounded-full bg-electric-cyan"
+            animate={{ y: [0, 12, 0] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+          />
+        </motion.div>
       </motion.div>
     </section>
   );
