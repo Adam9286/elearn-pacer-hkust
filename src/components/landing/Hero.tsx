@@ -32,30 +32,47 @@ const Hero = () => {
       {/* Content */}
       <div className="relative z-20 text-center px-4 max-w-6xl mx-auto flex flex-col items-center">
         
-        {/* LearningPacer Brand - Main Focus */}
+        {/* LearningPacer Brand - MAIN TITLE */}
         <motion.div
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-4"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1 }}
+          className="mb-6 relative"
         >
-          <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tight">
-            <span className="relative inline-block">
-              <span className="bg-gradient-to-r from-electric-cyan via-neon-purple to-neon-pink bg-clip-text text-transparent">
-                Learning
-              </span>
-              <motion.span
-                className="absolute -inset-1 bg-gradient-to-r from-electric-cyan via-neon-purple to-neon-pink opacity-30 blur-2xl"
-                animate={{ 
-                  opacity: [0.2, 0.4, 0.2],
-                  scale: [1, 1.05, 1]
-                }}
-                transition={{ duration: 3, repeat: Infinity }}
-              />
-            </span>
-            <span className="bg-gradient-to-r from-neon-purple via-neon-pink to-hkust-gold bg-clip-text text-transparent">
+          {/* Glow effect behind title */}
+          <motion.div
+            className="absolute inset-0 blur-3xl opacity-50"
+            style={{
+              background: 'radial-gradient(ellipse, hsl(var(--electric-cyan) / 0.4) 0%, hsl(var(--neon-purple) / 0.3) 50%, transparent 70%)',
+            }}
+            animate={{ 
+              opacity: [0.3, 0.6, 0.3],
+              scale: [1, 1.1, 1]
+            }}
+            transition={{ duration: 4, repeat: Infinity }}
+          />
+          
+          <h1 className="text-7xl sm:text-8xl md:text-9xl lg:text-[10rem] font-black tracking-tighter leading-none relative">
+            <motion.span 
+              className="block bg-gradient-to-r from-electric-cyan via-neon-blue to-neon-purple bg-clip-text text-transparent"
+              animate={{
+                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+              }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              style={{ backgroundSize: '200% 200%' }}
+            >
+              Learning
+            </motion.span>
+            <motion.span 
+              className="block bg-gradient-to-r from-neon-purple via-neon-pink to-hkust-gold bg-clip-text text-transparent -mt-2 md:-mt-4"
+              animate={{
+                backgroundPosition: ['100% 50%', '0% 50%', '100% 50%'],
+              }}
+              transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+              style={{ backgroundSize: '200% 200%' }}
+            >
               Pacer
-            </span>
+            </motion.span>
           </h1>
         </motion.div>
 
@@ -63,8 +80,8 @@ const Hero = () => {
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="text-lg md:text-xl text-white/60 mb-8 max-w-xl"
+          transition={{ delay: 0.4, duration: 0.6 }}
+          className="text-lg md:text-2xl text-white/70 mb-10 max-w-2xl font-medium"
         >
           Master Network Protocols Through Interactive Visualization
         </motion.p>
