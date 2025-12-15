@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-import { MessageSquare, BookOpen, FileText, CheckCircle2, Lock, TrendingUp, Sparkles } from "lucide-react";
+import { MessageSquare, BookOpen, FileText, CheckCircle2, Lock, TrendingUp, Sparkles, ArrowRight } from "lucide-react";
+import TiltCard from "./TiltCard";
 
 const ModesShowcase = () => {
   const [ref, inView] = useInView({
@@ -21,14 +22,28 @@ const ModesShowcase = () => {
       ],
       gradient: "from-neon-blue to-electric-cyan",
       mockup: (
-        <div className="space-y-2">
+        <div className="space-y-3 p-2">
           <motion.div
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-            className="flex gap-2 items-center text-white/80"
+            className="flex gap-3"
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
           >
-            <div className="w-2 h-2 bg-neon-blue rounded-full"></div>
-            <span className="text-sm">AI is typing...</span>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-neon-blue to-electric-cyan flex items-center justify-center text-white text-xs font-bold">AI</div>
+            <div className="flex-1 bg-white/10 rounded-2xl rounded-tl-sm p-3 text-sm text-white/80">
+              How can I explain TCP handshake?
+            </div>
+          </motion.div>
+          <motion.div
+            className="flex gap-3 justify-end"
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="bg-neon-purple/30 rounded-2xl rounded-tr-sm p-3 text-sm text-white/80">
+              What's SYN-ACK?
+            </div>
+            <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white text-xs font-bold">You</div>
           </motion.div>
         </div>
       )
@@ -45,18 +60,23 @@ const ModesShowcase = () => {
       ],
       gradient: "from-neon-purple to-cyber-pink",
       mockup: (
-        <div className="space-y-2">
-          <motion.div
-            initial={{ width: "0%" }}
-            animate={inView ? { width: "75%" } : {}}
-            transition={{ duration: 2, delay: 0.5 }}
-            className="h-3 bg-gradient-to-r from-neon-purple to-cyber-pink rounded-full"
-          />
-          <div className="flex gap-2">
-            <CheckCircle2 className="w-4 h-4 text-green-400" />
-            <CheckCircle2 className="w-4 h-4 text-green-400" />
-            <Lock className="w-4 h-4 text-white/30" />
-          </div>
+        <div className="space-y-3 p-2">
+          {["OSI Model Basics", "TCP/IP Protocol", "Network Security"].map((lesson, i) => (
+            <motion.div
+              key={lesson}
+              className="flex items-center gap-3 p-2 rounded-lg bg-white/5 border border-white/10"
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + i * 0.1 }}
+              whileHover={{ scale: 1.02, backgroundColor: "rgba(255,255,255,0.1)" }}
+            >
+              <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold ${i === 0 ? "bg-green-500 text-white" : i === 1 ? "bg-neon-purple text-white" : "bg-white/10 text-white/40"}`}>
+                {i === 0 ? "✓" : i === 1 ? i + 1 : <Lock className="w-3 h-3" />}
+              </div>
+              <span className="text-sm text-white/80 flex-1">{lesson}</span>
+              <ArrowRight className="w-4 h-4 text-white/30" />
+            </motion.div>
+          ))}
         </div>
       )
     },
@@ -72,15 +92,28 @@ const ModesShowcase = () => {
       ],
       gradient: "from-electric-cyan to-neon-blue",
       mockup: (
-        <div className="space-y-2">
+        <div className="p-2 space-y-3">
           <motion.div
-            animate={{ rotate: [0, 180, 360] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            className="w-12 h-12 border-4 border-electric-cyan border-t-transparent rounded-full mx-auto"
-          />
-          <div className="text-center text-white/80 text-sm">
-            <TrendingUp className="w-4 h-4 inline mr-1" />
-            Analyzing performance...
+            className="text-sm text-white/80"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            Q: Which layer handles end-to-end delivery?
+          </motion.div>
+          <div className="space-y-2">
+            {["Physical", "Transport", "Network", "Application"].map((opt, i) => (
+              <motion.div
+                key={opt}
+                className={`p-2 rounded-lg text-sm ${i === 1 ? "bg-green-500/20 border border-green-500/50 text-green-400" : "bg-white/5 border border-white/10 text-white/60"}`}
+                initial={{ opacity: 0, x: -10 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + i * 0.1 }}
+                whileHover={{ scale: 1.02 }}
+              >
+                {String.fromCharCode(65 + i)}. {opt}
+              </motion.div>
+            ))}
           </div>
         </div>
       )
@@ -89,75 +122,20 @@ const ModesShowcase = () => {
 
   return (
     <section ref={ref} className="min-h-screen py-20 px-4 relative overflow-hidden">
-      {/* Spotlight Theatre Background */}
+      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-b from-dark-void via-navy/10 to-dark-void"></div>
       
-      {/* Animated Spotlight Beams */}
-      {[...Array(3)].map((_, i) => (
-        <motion.div
-          key={`spotlight-${i}`}
-          className="absolute top-0 w-64 h-full opacity-20"
-          style={{
-            left: `${i * 33}%`,
-            background: `linear-gradient(180deg, 
-              hsl(var(--${i === 0 ? 'neon-blue' : i === 1 ? 'neon-purple' : 'electric-cyan'}) / 0.3) 0%, 
-              transparent 50%)`,
-            transformOrigin: "top center",
-          }}
-          animate={{
-            scaleX: [1, 1.5, 1],
-            opacity: [0.1, 0.3, 0.1],
-            rotate: [-5, 5, -5]
-          }}
-          transition={{
-            duration: 6,
-            delay: i * 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-      ))}
-
-      {/* Floating Geometric Shapes */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(12)].map((_, i) => {
-          const shapes = ['circle', 'triangle', 'hexagon'];
-          const shape = shapes[i % 3];
-          return (
-            <motion.div
-              key={`shape-${i}`}
-              className="absolute blur-sm"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-              }}
-              animate={{
-                y: [0, -100, 0],
-                x: [0, Math.random() * 50 - 25, 0],
-                opacity: [0, 0.3, 0],
-                rotate: [0, 360]
-              }}
-              transition={{
-                duration: 10 + i * 2,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-            >
-              {shape === 'circle' && (
-                <div className="w-8 h-8 rounded-full border-2 border-neon-blue/40" />
-              )}
-              {shape === 'triangle' && (
-                <div className="w-8 h-8 border-2 border-neon-purple/40" 
-                     style={{ clipPath: "polygon(50% 0%, 0% 100%, 100% 100%)" }} />
-              )}
-              {shape === 'hexagon' && (
-                <div className="w-8 h-8 border-2 border-electric-cyan/40"
-                     style={{ clipPath: "polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)" }} />
-              )}
-            </motion.div>
-          );
-        })}
-      </div>
+      {/* Floating orbs */}
+      <motion.div
+        className="absolute top-20 left-10 w-72 h-72 rounded-full bg-neon-blue/10 blur-3xl"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 8, repeat: Infinity }}
+      />
+      <motion.div
+        className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-electric-cyan/10 blur-3xl"
+        animate={{ scale: [1.2, 1, 1.2], opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 10, repeat: Infinity }}
+      />
       
       <div className="container mx-auto relative z-10">
         <motion.div
@@ -170,93 +148,69 @@ const ModesShowcase = () => {
             initial={{ scale: 0 }}
             animate={inView ? { scale: 1 } : {}}
             transition={{ duration: 0.5, type: "spring" }}
-            className="inline-block mb-6"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-neon-purple/10 border border-neon-purple/20 mb-6"
           >
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-neon-blue via-neon-purple to-electric-cyan flex items-center justify-center shadow-glow mx-auto">
-              <Sparkles className="w-10 h-10 text-white animate-sparkle" />
-            </div>
+            <Sparkles className="w-4 h-4 text-neon-purple" />
+            <span className="text-sm text-white/80">Three Powerful Modes</span>
           </motion.div>
           
-          <h2 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white via-neon-blue to-white bg-clip-text text-transparent">
-            Three Modes, One Goal
+          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <span className="text-white">Three Modes, </span>
+            <span className="bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-clip-text text-transparent">
+              One Goal
+            </span>
           </h2>
-          <p className="text-white text-2xl font-semibold">Master ELEC3120 your way</p>
+          <p className="text-white/60 text-lg">Master ELEC3120 your way</p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8">
+        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
           {modes.map((mode, index) => (
             <motion.div
-              key={index}
+              key={mode.title}
               initial={{ opacity: 0, y: 50 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: index * 0.2 }}
-              whileHover={{ y: -10, transition: { duration: 0.3 } }}
-              className="group relative"
+              transition={{ duration: 0.6, delay: index * 0.15 }}
             >
-              <div className="glass-card-landing p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth h-full">
-                {/* Gradient glow on hover */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 rounded-2xl transition-smooth blur-xl`}></div>
-                
-                {/* Colored Shadow Effect */}
-                <div className={`absolute -inset-1 bg-gradient-to-br ${mode.gradient} opacity-0 group-hover:opacity-20 rounded-2xl blur-2xl -z-10 transition-smooth`}></div>
-                
-                {/* Orbiting Particles */}
-                <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                  {[...Array(3)].map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className={`absolute w-2 h-2 rounded-full bg-gradient-to-br ${mode.gradient}`}
-                      style={{
-                        left: "50%",
-                        top: "50%",
-                      }}
-                      animate={{
-                        x: [0, 100 * Math.cos((i * 120 * Math.PI) / 180), 0],
-                        y: [0, 100 * Math.sin((i * 120 * Math.PI) / 180), 0],
-                        opacity: [0, 0.6, 0],
-                      }}
-                      transition={{
-                        duration: 4,
-                        delay: i * 0.5,
-                        repeat: Infinity,
-                        ease: "linear"
-                      }}
-                    />
-                  ))}
-                </div>
-                
-                <div className="relative z-10">
+              <TiltCard
+                className="h-full"
+                tiltStrength={8}
+                glareEnabled={true}
+              >
+                <div className="h-full p-6 rounded-2xl bg-gradient-to-b from-white/10 to-white/5 border border-white/10 backdrop-blur-sm hover:border-white/20 transition-colors group">
+                  {/* Gradient glow */}
+                  <div className={`absolute inset-0 bg-gradient-to-br ${mode.gradient} opacity-0 group-hover:opacity-10 rounded-2xl transition-all duration-300 blur-xl -z-10`}></div>
+                  
                   {/* Icon */}
-                  <div className={`w-16 h-16 rounded-xl bg-gradient-to-br ${mode.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-smooth shadow-glow`}>
-                    <mode.icon className="w-8 h-8 text-white" />
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${mode.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-lg`}>
+                    <mode.icon className="w-7 h-7 text-white" />
                   </div>
 
                   {/* Content */}
-                  <h3 className="text-2xl font-bold text-white mb-3">{mode.title}</h3>
-                  <p className="text-white text-base mb-6">{mode.description}</p>
+                  <h3 className="text-xl font-bold text-white mb-2">{mode.title}</h3>
+                  <p className="text-white/60 text-sm mb-5">{mode.description}</p>
 
                   {/* Mockup preview */}
-                  <div className="bg-dark-void/50 p-4 rounded-lg mb-6 min-h-[100px] flex items-center justify-center">
+                  <div className="bg-dark-void/50 rounded-xl border border-white/10 mb-5 min-h-[140px] overflow-hidden">
                     {mode.mockup}
                   </div>
 
                   {/* Features */}
-                  <ul className="space-y-3">
+                  <ul className="space-y-2">
                     {mode.features.map((feature, i) => (
                       <motion.li
                         key={i}
                         initial={{ opacity: 0, x: -10 }}
                         animate={inView ? { opacity: 1, x: 0 } : {}}
-                        transition={{ delay: index * 0.2 + i * 0.1 }}
-                        className="flex items-center gap-3 text-white text-sm"
+                        transition={{ delay: 0.5 + index * 0.1 + i * 0.05 }}
+                        className="flex items-center gap-2 text-white/50 text-sm"
                       >
-                        <CheckCircle2 className="w-5 h-5 text-electric-cyan flex-shrink-0" />
-                        <span className="font-medium">{feature}</span>
+                        <CheckCircle2 className="w-4 h-4 text-electric-cyan flex-shrink-0" />
+                        <span>{feature}</span>
                       </motion.li>
                     ))}
                   </ul>
                 </div>
-              </div>
+              </TiltCard>
             </motion.div>
           ))}
         </div>
