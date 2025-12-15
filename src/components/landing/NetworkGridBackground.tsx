@@ -1,200 +1,158 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
-interface Node {
-  id: number;
-  x: number;
-  y: number;
-  connections: number[];
-}
-
 const NetworkGridBackground = () => {
-  const [activeNodes, setActiveNodes] = useState<number[]>([]);
-  
-  // Create grid of nodes
-  const nodes: Node[] = [];
-  const cols = 12;
-  const rows = 8;
-  
-  for (let i = 0; i < cols * rows; i++) {
-    const x = (i % cols) / (cols - 1) * 100;
-    const y = Math.floor(i / cols) / (rows - 1) * 100;
-    
-    // Connect to nearby nodes
-    const connections: number[] = [];
-    if (i % cols < cols - 1) connections.push(i + 1); // right
-    if (i < cols * (rows - 1)) connections.push(i + cols); // below
-    if (i % cols < cols - 1 && i < cols * (rows - 1)) connections.push(i + cols + 1); // diagonal
-    
-    nodes.push({ id: i, x, y, connections });
-  }
+  const [stars, setStars] = useState<Array<{ id: number; x: number; y: number; size: number; delay: number }>>([]);
 
-  // Randomly activate nodes for "ping" effect
+  // Generate random stars on mount
   useEffect(() => {
-    const interval = setInterval(() => {
-      const randomNodes = Array.from({ length: 3 }, () => 
-        Math.floor(Math.random() * nodes.length)
-      );
-      setActiveNodes(randomNodes);
-    }, 2000);
-    return () => clearInterval(interval);
+    const generatedStars = Array.from({ length: 80 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      size: Math.random() * 2 + 0.5,
+      delay: Math.random() * 3,
+    }));
+    setStars(generatedStars);
   }, []);
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {/* Deep gradient base - force dark theme */}
-      <div className="absolute inset-0 bg-gradient-to-br from-dark-void via-dark-void/95 to-navy/30" />
-      
-      {/* Subtle noise texture */}
+    <div className="absolute inset-0 overflow-hidden bg-dark-void">
+      {/* Deep space base gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-dark-void via-[hsl(260,30%,8%)] to-dark-void" />
+
+      {/* Nebula cloud blobs */}
+      <motion.div
+        className="absolute -top-1/4 -left-1/4 w-[80vw] h-[80vh] rounded-full blur-[120px]"
+        style={{
+          background: 'radial-gradient(ellipse, hsl(var(--electric-cyan) / 0.15), transparent 70%)',
+        }}
+        animate={{
+          scale: [1, 1.2, 1],
+          x: [0, 50, 0],
+          y: [0, 30, 0],
+        }}
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+
+      <motion.div
+        className="absolute top-1/4 -right-1/4 w-[70vw] h-[70vh] rounded-full blur-[100px]"
+        style={{
+          background: 'radial-gradient(ellipse, hsl(var(--neon-purple) / 0.2), transparent 70%)',
+        }}
+        animate={{
+          scale: [1.1, 1, 1.1],
+          x: [0, -40, 0],
+          y: [0, 50, 0],
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+
+      <motion.div
+        className="absolute bottom-0 left-1/3 w-[60vw] h-[50vh] rounded-full blur-[80px]"
+        style={{
+          background: 'radial-gradient(ellipse, hsl(300, 70%, 50%, 0.1), transparent 70%)',
+        }}
+        animate={{
+          scale: [1, 1.15, 1],
+          x: [0, -30, 0],
+          y: [0, -20, 0],
+        }}
+        transition={{
+          duration: 15,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+
+      {/* Additional subtle nebula layer */}
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90vw] h-[60vh] rounded-full blur-[150px]"
+        style={{
+          background: 'radial-gradient(ellipse, hsl(var(--electric-cyan) / 0.08), hsl(var(--neon-purple) / 0.05), transparent 60%)',
+        }}
+        animate={{
+          rotate: [0, 360],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          rotate: { duration: 60, repeat: Infinity, ease: "linear" },
+          scale: { duration: 12, repeat: Infinity, ease: "easeInOut" },
+        }}
+      />
+
+      {/* Star particles */}
+      <div className="absolute inset-0">
+        {stars.map((star) => (
+          <motion.div
+            key={star.id}
+            className="absolute rounded-full bg-white"
+            style={{
+              left: `${star.x}%`,
+              top: `${star.y}%`,
+              width: star.size,
+              height: star.size,
+            }}
+            animate={{
+              opacity: [0.2, 1, 0.2],
+              scale: [1, 1.5, 1],
+            }}
+            transition={{
+              duration: 2 + Math.random() * 2,
+              repeat: Infinity,
+              delay: star.delay,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Shooting stars (occasional) */}
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={`shooting-${i}`}
+          className="absolute w-20 h-[1px]"
+          style={{
+            background: 'linear-gradient(90deg, transparent, hsl(var(--electric-cyan)), transparent)',
+            top: `${20 + i * 25}%`,
+            left: '-10%',
+          }}
+          animate={{
+            x: ['0vw', '120vw'],
+            opacity: [0, 1, 0],
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            repeatDelay: 8 + i * 5,
+            delay: i * 4,
+            ease: "easeOut",
+          }}
+        />
+      ))}
+
+      {/* Subtle noise texture overlay */}
       <div 
         className="absolute inset-0 opacity-[0.03]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
         }}
       />
-      
-      {/* Network grid with connections */}
-      <svg className="absolute inset-0 w-full h-full">
-        <defs>
-          <linearGradient id="connectionGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0" />
-            <stop offset="50%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0" />
-          </linearGradient>
-          <radialGradient id="nodeGlow">
-            <stop offset="0%" stopColor="hsl(var(--electric-cyan))" stopOpacity="1" />
-            <stop offset="100%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-        
-        {/* Connection lines */}
-        {nodes.map((node) =>
-          node.connections.map((targetId) => {
-            const target = nodes[targetId];
-            if (!target) return null;
-            return (
-              <motion.line
-                key={`${node.id}-${targetId}`}
-                x1={`${node.x}%`}
-                y1={`${node.y}%`}
-                x2={`${target.x}%`}
-                y2={`${target.y}%`}
-                stroke="hsl(var(--electric-cyan))"
-                strokeWidth="0.5"
-                strokeOpacity="0.1"
-              />
-            );
-          })
-        )}
-        
-        {/* Data packets traveling along connections */}
-        {[0, 1, 2, 3, 4].map((i) => {
-          const startNode = nodes[Math.floor(i * 15) % nodes.length];
-          const endNode = startNode.connections[0] ? nodes[startNode.connections[0]] : startNode;
-          return (
-            <motion.circle
-              key={`packet-${i}`}
-              r="2"
-              fill="hsl(var(--electric-cyan))"
-              filter="url(#packetGlow)"
-              animate={{
-                cx: [`${startNode.x}%`, `${endNode.x}%`],
-                cy: [`${startNode.y}%`, `${endNode.y}%`],
-                opacity: [0, 1, 1, 0],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                delay: i * 1.5,
-                ease: "linear",
-              }}
-            />
-          );
-        })}
-        
-        {/* Grid nodes */}
-        {nodes.map((node) => (
-          <g key={node.id}>
-            {/* Node dot */}
-            <circle
-              cx={`${node.x}%`}
-              cy={`${node.y}%`}
-              r="2"
-              fill="hsl(var(--electric-cyan))"
-              opacity={0.3}
-            />
-            
-            {/* Active ping effect */}
-            {activeNodes.includes(node.id) && (
-              <motion.circle
-                cx={`${node.x}%`}
-                cy={`${node.y}%`}
-                fill="none"
-                stroke="hsl(var(--electric-cyan))"
-                initial={{ r: 2, opacity: 0.8 }}
-                animate={{ r: 20, opacity: 0 }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-              />
-            )}
-          </g>
-        ))}
-      </svg>
-      
-      {/* Signal waves at bottom */}
-      <svg className="absolute bottom-0 left-0 w-full h-32 opacity-20">
-        <defs>
-          <linearGradient id="waveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        
-        {/* Multiple sine waves */}
-        {[0, 1, 2].map((i) => (
-          <motion.path
-            key={`wave-${i}`}
-            d="M0,64 Q25,32 50,64 T100,64 T150,64 T200,64 T250,64 T300,64 T350,64 T400,64 T450,64 T500,64 T550,64 T600,64 T650,64 T700,64 T750,64 T800,64 T850,64 T900,64 T950,64 T1000,64"
-            fill="none"
-            stroke="url(#waveGradient)"
-            strokeWidth={1.5 - i * 0.3}
-            strokeOpacity={0.5 - i * 0.15}
-            animate={{
-              d: [
-                "M0,64 Q25,32 50,64 T100,64 T150,64 T200,64 T250,64 T300,64 T350,64 T400,64 T450,64 T500,64 T550,64 T600,64 T650,64 T700,64 T750,64 T800,64 T850,64 T900,64 T950,64 T1000,64",
-                "M0,64 Q25,96 50,64 T100,64 T150,64 T200,64 T250,64 T300,64 T350,64 T400,64 T450,64 T500,64 T550,64 T600,64 T650,64 T700,64 T750,64 T800,64 T850,64 T900,64 T950,64 T1000,64",
-              ],
-            }}
-            transition={{
-              duration: 3 + i,
-              repeat: Infinity,
-              repeatType: "reverse",
-              ease: "easeInOut",
-              delay: i * 0.5,
-            }}
-          />
-        ))}
-      </svg>
-      
-      {/* Radial gradient spotlight */}
+
+      {/* Vignette effect */}
       <div 
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse at 50% 30%, hsl(var(--electric-cyan) / 0.08) 0%, transparent 50%)',
+          background: 'radial-gradient(ellipse at center, transparent 40%, hsl(var(--dark-void)) 100%)',
         }}
-      />
-      
-      {/* Accent glow spots */}
-      <motion.div
-        className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(circle, hsl(var(--neon-purple) / 0.1), transparent 70%)' }}
-        animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-3xl"
-        style={{ background: 'radial-gradient(circle, hsl(var(--electric-cyan) / 0.1), transparent 70%)' }}
-        animate={{ opacity: [0.5, 0.3, 0.5], scale: [1.1, 1, 1.1] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
     </div>
   );
