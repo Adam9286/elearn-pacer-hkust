@@ -5,39 +5,51 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Chapter content mapping for quiz generation context
+// Section content mapping for quiz generation context (11 sections)
 const chapterContent: Record<number, { title: string; topics: string[] }> = {
   1: {
-    title: "Computer Networks and the Internet",
-    topics: ["Network edge", "Network core", "Delay/loss/throughput", "Protocol layers", "Security basics", "Internet history", "HTTP basics", "Video streaming"]
+    title: "Foundations & Internet Overview",
+    topics: ["Network edge", "Network core", "Delay/loss/throughput", "Protocol layers", "HTTP basics", "Web fundamentals", "Video streaming", "Internet history"]
   },
   2: {
-    title: "Application Layer",
-    topics: ["Application layer principles", "Web and HTTP", "Email protocols", "DNS", "P2P applications", "Socket programming"]
+    title: "Transport Layer & End-to-End Communication",
+    topics: ["Transport layer services", "Multiplexing/demultiplexing", "UDP", "Reliable data transfer", "TCP", "Flow control", "Congestion control", "TCP fairness", "Advanced congestion control"]
   },
   3: {
-    title: "Transport Layer",
-    topics: ["Transport layer services", "Multiplexing/demultiplexing", "UDP", "Reliable data transfer", "TCP", "Congestion control", "TCP fairness"]
+    title: "Queueing & Resource Management",
+    topics: ["Queueing theory", "Queue management", "Fairness", "Token buckets", "Traffic shaping", "Active Queue Management", "RED", "Weighted fair queueing"]
   },
   4: {
-    title: "Network Layer - Data Plane",
-    topics: ["Network layer overview", "Router architecture", "IPv4", "NAT", "IPv6", "Generalized forwarding", "SDN"]
+    title: "Network Layer: IP & Addressing",
+    topics: ["IPv4 addressing", "IPv6", "NAT", "DHCP", "DNS", "Fragmentation", "Longest prefix matching", "Router architecture"]
   },
   5: {
-    title: "Network Layer - Control Plane",
-    topics: ["Routing algorithms", "OSPF", "BGP", "SDN control plane", "ICMP", "Network management"]
+    title: "Interdomain Routing & Global Internet",
+    topics: ["BGP basics", "BGP path attributes", "AS relationships", "Peering", "Transit", "Internet structure", "IXPs", "Routing policy", "Internet economics"]
   },
   6: {
-    title: "Link Layer and LANs",
-    topics: ["Link layer services", "Error detection", "Multiple access protocols", "Switched LANs", "VLANs", "Data center networking"]
+    title: "Local Area Networks & Intra-Domain Routing",
+    topics: ["Ethernet", "MAC addressing", "ARP", "DHCP", "Spanning tree protocol", "VLANs", "Distance vector routing", "Link state routing", "OSPF"]
   },
   7: {
-    title: "Wireless and Mobile Networks",
-    topics: ["Wireless links", "WiFi (802.11)", "Cellular networks", "Mobility management", "Mobile IP"]
+    title: "Wireless Networks",
+    topics: ["Wireless links", "WiFi 802.11", "CSMA/CA", "Hidden terminal problem", "Wireless interference", "Mobility management", "Handoff"]
   },
   8: {
-    title: "Security and Advanced Topics",
-    topics: ["Network security principles", "Cryptography", "Authentication", "SSL/TLS", "Firewalls", "CDN", "Datacenter networks", "Real-time video"]
+    title: "Content Delivery & Internet Performance",
+    topics: ["CDN architecture", "Content caching", "DNS-based load balancing", "Anycast", "Edge computing", "Performance optimization", "Video delivery"]
+  },
+  9: {
+    title: "Datacenter Networks",
+    topics: ["Datacenter topology", "Fat tree", "Clos networks", "Traffic patterns", "East-west traffic", "SDN in datacenters", "Load balancing", "ECMP"]
+  },
+  10: {
+    title: "Network Security",
+    topics: ["Threat models", "Symmetric cryptography", "Public key cryptography", "Digital signatures", "Authentication protocols", "SSL/TLS", "Firewalls", "IPsec", "VPNs"]
+  },
+  11: {
+    title: "Real-Time Systems & Future Networking",
+    topics: ["Real-time video", "Latency requirements", "Jitter", "QoS", "Adaptive bitrate streaming", "WebRTC", "Future networking challenges"]
   }
 };
 
@@ -56,10 +68,10 @@ serve(async (req) => {
 
     const chapter = chapterContent[chapterId];
     if (!chapter) {
-      throw new Error(`Invalid chapter ID: ${chapterId}`);
+      throw new Error(`Invalid section ID: ${chapterId}`);
     }
 
-    console.log(`Generating ${numQuestions} quiz questions for Chapter ${chapterId}: ${chapter.title}`);
+    console.log(`Generating ${numQuestions} quiz questions for Section ${chapterId}: ${chapter.title}`);
 
     const systemPrompt = `You are an expert computer networks professor creating quiz questions for the ELEC3120 course. 
 Generate exactly ${numQuestions} multiple choice questions about "${chapter.title}".
@@ -98,7 +110,7 @@ Rules:
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Generate ${numQuestions} quiz questions for Chapter ${chapterId}: ${chapter.title}. Respond with JSON only.` }
+          { role: "user", content: `Generate ${numQuestions} quiz questions for Section ${chapterId}: ${chapter.title}. Respond with JSON only.` }
         ],
       }),
     });
