@@ -7,72 +7,15 @@ import { Button } from "@/components/ui/button";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
-
-interface Unit {
-  id: number;
-  title: string;
-  description: string;
-  topics: string[];
-}
-
-const units: Unit[] = [
-  {
-    id: 1,
-    title: "Computer Networks and the Internet",
-    description: "Introduction, Web Basics, Video Streaming",
-    topics: ["Network Fundamentals", "Web & HTTP", "Video Streaming", "Chapter Review"],
-  },
-  {
-    id: 2,
-    title: "Application Layer",
-    description: "Network Applications, Web, HTTP",
-    topics: ["Application Principles", "Web & HTTP", "Chapter Review"],
-  },
-  {
-    id: 3,
-    title: "Transport Layer",
-    description: "TCP, UDP, Flow Control, Congestion Control",
-    topics: ["Transport Model", "TCP Basics", "Congestion Control", "Queue Management", "Chapter Review"],
-  },
-  {
-    id: 4,
-    title: "Network Layer - Data Plane",
-    description: "IP Fundamentals, Routing",
-    topics: ["IP Fundamentals", "Chapter Review"],
-  },
-  {
-    id: 5,
-    title: "Network Layer - Control Plane",
-    description: "BGP, Internet Structure",
-    topics: ["BGP Introduction", "BGP Advanced", "Internet Structure", "Chapter Review"],
-  },
-  {
-    id: 6,
-    title: "Link Layer and LANs",
-    description: "Ethernet, MAC, Switching",
-    topics: ["Local Area Networks", "LAN Routing", "Link Layer Challenge", "Chapter Review"],
-  },
-  {
-    id: 7,
-    title: "Wireless and Mobile Networks",
-    description: "Wireless Communication, Mobile Networks",
-    topics: ["Wireless Networks", "Chapter Review"],
-  },
-  {
-    id: 8,
-    title: "Security and Advanced Topics",
-    description: "CDN, Datacenter, Security, Real-Time Video",
-    topics: ["CDN", "Datacenter", "Security Fundamentals", "Advanced Security", "Real-Time Video"],
-  },
-];
+import { chapters } from "@/data/courseContent";
 
 const CourseMode = () => {
   const navigate = useNavigate();
   const { user, loading, getChapterProgress, isChapterUnlocked, devMode, setDevMode } = useUserProgress();
 
-  const handleUnitClick = (unit: Unit) => {
-    if (isChapterUnlocked(unit.id)) {
-      navigate(`/platform/lesson/${unit.id}-1`);
+  const handleUnitClick = (unitId: number) => {
+    if (isChapterUnlocked(unitId)) {
+      navigate(`/platform/lesson/${unitId}-1`);
     }
   };
 
@@ -87,8 +30,8 @@ const CourseMode = () => {
   };
 
   // Calculate overall progress
-  const completedChapters = units.filter(u => isUnitComplete(u.id)).length;
-  const overallProgress = Math.round((completedChapters / units.length) * 100);
+  const completedChapters = chapters.filter(c => isUnitComplete(c.id)).length;
+  const overallProgress = Math.round((completedChapters / chapters.length) * 100);
 
   if (!user) {
     return (
@@ -96,7 +39,7 @@ const CourseMode = () => {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Sign In Required</CardTitle>
           <CardDescription>
-            Create an account to track your learning progress and unlock chapters
+            Create an account to track your learning progress and unlock sections
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
@@ -151,7 +94,7 @@ const CourseMode = () => {
           />
           {devMode && (
             <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-              All chapters unlocked
+              All sections unlocked
             </Badge>
           )}
         </div>
@@ -163,7 +106,7 @@ const CourseMode = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl">Your Learning Path</CardTitle>
-              <CardDescription>Complete each chapter with 80% mastery to unlock the next</CardDescription>
+              <CardDescription>Complete each section with 80% mastery to unlock the next</CardDescription>
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-primary">{overallProgress}%</div>
@@ -174,21 +117,21 @@ const CourseMode = () => {
         <CardContent>
           <Progress value={overallProgress} className="h-3" />
           <p className="text-sm text-muted-foreground mt-2">
-            {completedChapters} of {units.length} chapters completed
+            {completedChapters} of {chapters.length} sections completed
           </p>
         </CardContent>
       </Card>
 
-      {/* Units */}
+      {/* Sections */}
       <div className="grid gap-6">
-        {units.map((unit) => {
-          const unlocked = isChapterUnlocked(unit.id);
-          const complete = isUnitComplete(unit.id);
-          const progress = getUnitProgress(unit.id);
+        {chapters.map((chapter) => {
+          const unlocked = isChapterUnlocked(chapter.id);
+          const complete = isUnitComplete(chapter.id);
+          const progress = getUnitProgress(chapter.id);
 
           return (
             <Card
-              key={unit.id}
+              key={chapter.id}
               className={`transition-smooth glass-card ${
                 !unlocked
                   ? "opacity-60 cursor-not-allowed"
@@ -206,17 +149,20 @@ const CourseMode = () => {
                       ) : (
                         <Circle className="w-6 h-6 text-primary" />
                       )}
-                      <CardTitle className="text-xl">{unit.title}</CardTitle>
+                      <Badge variant="outline" className="text-xs">
+                        Section {chapter.id}
+                      </Badge>
+                      <CardTitle className="text-xl">{chapter.title}</CardTitle>
                       {complete && (
                         <Badge variant="default" className="bg-green-500">
                           {progress}% ✓
                         </Badge>
                       )}
                     </div>
-                    <CardDescription>{unit.description}</CardDescription>
+                    <CardDescription>{chapter.description}</CardDescription>
                   </div>
                   {unlocked && (
-                    <Button variant="outline" className="ml-4" onClick={() => handleUnitClick(unit)}>
+                    <Button variant="outline" className="ml-4" onClick={() => handleUnitClick(chapter.id)}>
                       {complete ? "Review" : progress > 0 ? "Continue" : "Start"}
                     </Button>
                   )}
@@ -231,7 +177,7 @@ const CourseMode = () => {
                   <Progress value={progress} className="h-2" />
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {unit.topics.map((topic, idx) => (
+                  {chapter.topics.map((topic, idx) => (
                     <Badge
                       key={idx}
                       variant={!unlocked ? "outline" : "secondary"}
@@ -241,10 +187,13 @@ const CourseMode = () => {
                     </Badge>
                   ))}
                 </div>
+                <div className="text-xs text-muted-foreground">
+                  {chapter.lessons.length - 1} lecture{chapter.lessons.length - 1 !== 1 ? 's' : ''} + quiz
+                </div>
                 {!unlocked && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
                     <Lock className="w-4 h-4" />
-                    <span>Score 80%+ on Chapter {unit.id - 1} quiz to unlock</span>
+                    <span>Score 80%+ on Section {chapter.id - 1} quiz to unlock</span>
                   </div>
                 )}
               </CardContent>
