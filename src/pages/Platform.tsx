@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BookOpen, MessageSquare, FileText, Award, TrendingUp, Info, Home } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,15 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
 const Index = () => {
-  const [activeMode, setActiveMode] = useState("chat");
+  const location = useLocation();
+  const initialMode = (location.state as { mode?: string })?.mode || "chat";
+  const [activeMode, setActiveMode] = useState(initialMode);
+
+  useEffect(() => {
+    if (location.state?.mode) {
+      setActiveMode(location.state.mode);
+    }
+  }, [location.state]);
 
   return (
     <ThemeProvider defaultTheme="dark">
