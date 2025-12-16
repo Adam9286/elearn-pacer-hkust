@@ -80,6 +80,7 @@ export const chapters: Chapter[] = [
         number: "2.1",
         title: "Transport Model",
         lectureFile: "05-Transport_Model",
+        pdfUrl: "https://drive.google.com/file/d/1kw64qvcAQSOJMiG_Ahq2311MyfxbpTDK/preview",
         textbookSections: "3.1-3.2",
         estimatedMinutes: 45,
       },
@@ -88,6 +89,7 @@ export const chapters: Chapter[] = [
         number: "2.2",
         title: "TCP Basics",
         lectureFile: "06-TCP_Basics",
+        pdfUrl: "https://drive.google.com/file/d/1rziUx3hmRQbgsgYzRd3kO0NOD_44m4ZX/preview",
         textbookSections: "3.3-3.4",
         estimatedMinutes: 50,
       },
@@ -96,6 +98,7 @@ export const chapters: Chapter[] = [
         number: "2.3",
         title: "Congestion Control",
         lectureFile: "07-Congestion_Control",
+        pdfUrl: "https://drive.google.com/file/d/19RHzvQroi_IY8xyDPla946WI6Q5HVVEo/preview",
         textbookSections: "3.5-3.6",
         estimatedMinutes: 45,
       },
@@ -103,6 +106,7 @@ export const chapters: Chapter[] = [
         id: "2-4",
         number: "2.4",
         title: "Advanced Congestion Control",
+        pdfUrl: "https://drive.google.com/file/d/14zy8GxInY_isHQcv6A2riTwE7z4mkdwu/preview",
         lectureFile: "08-AdvancedCC",
         textbookSections: "3.7",
         estimatedMinutes: 40,
@@ -395,13 +399,13 @@ export const chapters: Chapter[] = [
 
 // Helper to get chapter by ID
 export const getChapterById = (id: number): Chapter | undefined => {
-  return chapters.find(c => c.id === id);
+  return chapters.find((c) => c.id === id);
 };
 
 // Helper to find lesson across all chapters
 export const findLesson = (lessonId: string): { chapter: Chapter; lesson: Lesson; lessonIndex: number } | null => {
   for (const chapter of chapters) {
-    const idx = chapter.lessons.findIndex(l => l.id === lessonId);
+    const idx = chapter.lessons.findIndex((l) => l.id === lessonId);
     if (idx !== -1) {
       return { chapter, lesson: chapter.lessons[idx], lessonIndex: idx };
     }
