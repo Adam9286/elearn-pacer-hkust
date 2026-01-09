@@ -20,11 +20,31 @@ const ResetPassword = () => {
 
   useEffect(() => {
     const handleRecoveryToken = async () => {
+      // DEBUG: Log what we receive
+      console.log('Password Reset - Full URL:', window.location.href);
+      console.log('Password Reset - Hash:', window.location.hash);
+      console.log('Password Reset - Search:', window.location.search);
+      
       // Check URL hash for recovery tokens (Supabase sends them in the hash)
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const type = hashParams.get('type');
+      
+      // ALSO check query params (some Supabase flows use these)
+      const queryParams = new URLSearchParams(window.location.search);
+      
+      const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+      const type = hashParams.get('type') || queryParams.get('type');
+      const errorCode = hashParams.get('error_code') || queryParams.get('error_code');
+      const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
+      
+      console.log('Password Reset - Tokens found:', { accessToken: !!accessToken, type, errorCode });
+      
+      // Check for Supabase error responses
+      if (errorCode) {
+        console.error('Supabase error:', errorCode, errorDescription);
+        setChecking(false);
+        return;
+      }
       
       if (accessToken && type === 'recovery') {
         // Set session from recovery tokens
@@ -37,6 +57,8 @@ const ResetPassword = () => {
           setIsValidSession(true);
           // Clear hash from URL for cleaner experience
           window.history.replaceState(null, '', '/reset-password');
+        } else {
+          console.error('Failed to set session:', error.message);
         }
         setChecking(false);
         return;
@@ -119,10 +141,15 @@ const ResetPassword = () => {
                 This password reset link is invalid or has expired. Please request a new one.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <Button asChild className="w-full">
-                <Link to="/auth">Back to Sign In</Link>
+                <Link to="/auth">Request New Reset Link</Link>
               </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Reset links are single-use and expire after 24 hours.
+                <br />
+                Check browser console for debug info.
+              </p>
             </CardContent>
           </Card>
         </div>
