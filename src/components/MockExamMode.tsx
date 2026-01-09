@@ -26,7 +26,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/lib/externalSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -147,10 +147,10 @@ const MockExamMode = () => {
 
     try {
       // Call edge function directly with hardcoded endpoint
-      const response = await fetch("https://oqgotlmztpvchkipslnc.supabase.co/functions/v1/generate-exam", {
+      const response = await fetch("https://dpedzjzrlzvzqrzajrda.supabase.co/functions/v1/generate-exam", {
         method: "POST",
         headers: {
-          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w",
+          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwZWR6anpybHp2enFyemFqcmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5Mzk5ODAsImV4cCI6MjA4MzUxNTk4MH0.eeUelxZoKBtWLwMwvCmHE5H6cYemYNJ06eyVEItp6Tk",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({

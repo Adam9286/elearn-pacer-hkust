@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/lib/externalSupabase";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,13 +18,13 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = externalSupabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         navigate("/platform");
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    externalSupabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         navigate("/platform");
       }
@@ -47,7 +47,7 @@ const Auth = () => {
     setLoading(true);
     const redirectUrl = `${window.location.origin}/platform`;
     
-    const { error } = await supabase.auth.signUp({
+    const { error } = await externalSupabase.auth.signUp({
       email,
       password,
       options: {
@@ -75,7 +75,7 @@ const Auth = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await externalSupabase.auth.signInWithPassword({
       email,
       password,
     });
