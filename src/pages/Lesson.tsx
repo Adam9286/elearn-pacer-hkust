@@ -18,7 +18,7 @@ const Lesson = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const [lessonProgress, setLessonProgress] = useState(0);
-  const { user, markLessonComplete, getChapterProgress, isChapterUnlocked, isSectionComplete, getLessonsCompleted, getTotalLessons } = useUserProgress();
+  const { user, loading, markLessonComplete, getChapterProgress, isChapterUnlocked, isSectionComplete, getLessonsCompleted, getTotalLessons } = useUserProgress();
 
   // Find current lesson and chapter using helper
   const lessonData = lessonId ? findLesson(lessonId) : null;
@@ -26,15 +26,15 @@ const Lesson = () => {
   const currentLesson = lessonData?.lesson ?? null;
   const lessonIndex = lessonData?.lessonIndex ?? -1;
 
-  // Check if chapter is locked
-  const chapterLocked = currentChapter ? !isChapterUnlocked(currentChapter.id) : false;
+  // Check if chapter is locked (only after progress has loaded)
+  const chapterLocked = currentChapter && !loading ? !isChapterUnlocked(currentChapter.id) : false;
 
   useEffect(() => {
-    if (chapterLocked && currentChapter) {
+    if (!loading && chapterLocked && currentChapter) {
       toast.error(`Section ${currentChapter.id} is locked. Complete the previous section first.`);
-      navigate("/platform");
+      navigate("/platform", { state: { mode: "course" } });
     }
-  }, [chapterLocked, currentChapter, navigate]);
+  }, [loading, chapterLocked, currentChapter, navigate]);
 
   if (!currentLesson || !currentChapter) {
     return (
@@ -191,11 +191,9 @@ const Lesson = () => {
             <Card className="glass-card">
               <Tabs defaultValue="overview" className="w-full">
                 <CardHeader className="pb-4">
-                  <TabsList className="grid w-full grid-cols-4">
+                  <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="lecture">Lecture Notes</TabsTrigger>
-                    <TabsTrigger value="chat">AI Tutor</TabsTrigger>
-                    <TabsTrigger value="practice">Practice</TabsTrigger>
                   </TabsList>
                 </CardHeader>
 
@@ -275,18 +273,6 @@ const Lesson = () => {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="chat" className="mt-0">
-                    <div className="text-center py-12 text-muted-foreground">
-                      <p>AI Tutor - Ask questions about {currentLesson.title}</p>
-                      <p className="text-sm mt-2">Use the Chat mode on the main platform for AI assistance.</p>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="practice" className="mt-0">
-                    <div className="text-center py-12 text-muted-foreground">
-                      <p>Practice problems for {currentLesson.title} coming soon.</p>
-                    </div>
-                  </TabsContent>
                 </CardContent>
               </Tabs>
             </Card>
