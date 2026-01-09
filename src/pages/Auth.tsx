@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -96,11 +96,20 @@ const Auth = () => {
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="absolute top-4 left-4">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/" className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </Link>
+          </Button>
+        </div>
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
         
-        <Card className="w-full max-w-md glass-card">
+        <div className="w-full max-w-md">
+          <Card className="glass-card">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               LearningPacer
@@ -192,6 +201,16 @@ const Auth = () => {
             </Tabs>
           </CardContent>
         </Card>
+          
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            <Link 
+              to="/platform" 
+              className="hover:text-primary transition-colors underline underline-offset-4"
+            >
+              Continue without signing in →
+            </Link>
+          </p>
+        </div>
       </div>
     </ThemeProvider>
   );
