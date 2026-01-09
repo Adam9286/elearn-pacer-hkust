@@ -10,7 +10,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
-import ChapterQuiz from "@/components/ChapterQuiz";
 import { useUserProgress } from "@/hooks/useUserProgress";
 import { toast } from "sonner";
 import { chapters, findLesson } from "@/data/courseContent";
@@ -19,7 +18,7 @@ const Lesson = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const [lessonProgress, setLessonProgress] = useState(0);
-  const { user, updateQuizScore, markLessonComplete, getChapterProgress, isChapterUnlocked } = useUserProgress();
+  const { user, markLessonComplete, getChapterProgress, isChapterUnlocked, isSectionComplete, getLessonsCompleted, getTotalLessons } = useUserProgress();
 
   // Find current lesson and chapter using helper
   const lessonData = lessonId ? findLesson(lessonId) : null;
@@ -32,7 +31,7 @@ const Lesson = () => {
 
   useEffect(() => {
     if (chapterLocked && currentChapter) {
-      toast.error(`Section ${currentChapter.id} is locked. Complete the previous section quiz first.`);
+      toast.error(`Section ${currentChapter.id} is locked. Complete the previous section first.`);
       navigate("/platform");
     }
   }, [chapterLocked, currentChapter, navigate]);
@@ -55,33 +54,30 @@ const Lesson = () => {
 
   const previousLesson = lessonIndex > 0 ? currentChapter.lessons[lessonIndex - 1] : null;
   const nextLesson = lessonIndex < currentChapter.lessons.length - 1 ? currentChapter.lessons[lessonIndex + 1] : null;
+  const isLastLesson = lessonIndex === currentChapter.lessons.length - 1;
 
   const handleMarkComplete = async () => {
     if (user && currentChapter && currentLesson) {
       await markLessonComplete(currentChapter.id, currentLesson.id);
+      toast.success("Lesson completed!");
     }
     setLessonProgress(100);
+    
     if (nextLesson) {
       navigate(`/platform/lesson/${nextLesson.id}`);
     } else {
-      navigate("/platform");
-    }
-  };
-
-  const handleQuizComplete = async (passed: boolean, score: number) => {
-    if (user && currentChapter) {
-      const result = await updateQuizScore(currentChapter.id, score, 5);
-      if (result && typeof result === 'object' && 'passed' in result) {
-        if (result.passed) {
-          toast.success(`Section ${currentChapter.id} completed! Next section unlocked!`);
-        } else {
-          toast.info(`You scored ${result.percentage}%. Need 80% to unlock the next section.`);
-        }
+      // Last lesson in section - check if section is now complete
+      if (user) {
+        toast.success(`Section ${currentChapter.id} completed! Next section unlocked!`);
       }
+      navigate("/platform", { state: { mode: "course" } });
     }
   };
 
   const chapterProgress = currentChapter ? getChapterProgress(currentChapter.id) : undefined;
+  const lessonsCompleted = getLessonsCompleted(currentChapter.id);
+  const totalLessons = getTotalLessons(currentChapter.id);
+  const sectionProgressPercent = totalLessons > 0 ? Math.round((lessonsCompleted / totalLessons) * 100) : 0;
 
   return (
     <ThemeProvider>
@@ -121,33 +117,38 @@ const Lesson = () => {
                 {currentChapter.textbookPages && (
                   <CardDescription>Textbook: p.{currentChapter.textbookPages}</CardDescription>
                 )}
-                {chapterProgress?.quiz_passed && (
-                  <Badge variant="default" className="bg-green-500 w-fit">
-                    Quiz Passed: {chapterProgress.quiz_score}%
-                  </Badge>
-                )}
+                <div className="mt-2">
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span>Progress</span>
+                    <span className="font-medium">{lessonsCompleted}/{totalLessons}</span>
+                  </div>
+                  <Progress value={sectionProgressPercent} className="h-2" />
+                </div>
               </CardHeader>
               <CardContent>
                 <ScrollArea className="h-[calc(100vh-16rem)]">
                   <div className="space-y-2">
-                    {currentChapter.lessons.map((lesson) => (
-                      <Button
-                        key={lesson.id}
-                        variant={lesson.id === lessonId ? "secondary" : "ghost"}
-                        className="w-full justify-start"
-                        onClick={() => navigate(`/platform/lesson/${lesson.id}`)}
-                      >
-                        {lesson.contentType === "review" ? (
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                        ) : (
-                          <Circle className="mr-2 h-4 w-4" />
-                        )}
-                        <div className="text-left flex-1">
-                          <div className="text-sm font-medium">{lesson.number}</div>
-                          <div className="text-xs text-muted-foreground truncate">{lesson.title}</div>
-                        </div>
-                      </Button>
-                    ))}
+                    {currentChapter.lessons.map((lesson) => {
+                      const isCompleted = chapterProgress?.lessons_completed?.includes(lesson.id);
+                      return (
+                        <Button
+                          key={lesson.id}
+                          variant={lesson.id === lessonId ? "secondary" : "ghost"}
+                          className="w-full justify-start"
+                          onClick={() => navigate(`/platform/lesson/${lesson.id}`)}
+                        >
+                          {isCompleted ? (
+                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                          ) : (
+                            <Circle className="mr-2 h-4 w-4" />
+                          )}
+                          <div className="text-left flex-1">
+                            <div className="text-sm font-medium">{lesson.number}</div>
+                            <div className="text-xs text-muted-foreground truncate">{lesson.title}</div>
+                          </div>
+                        </Button>
+                      );
+                    })}
                   </div>
                 </ScrollArea>
               </CardContent>
@@ -163,7 +164,6 @@ const Lesson = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="outline">{currentLesson.number}</Badge>
-                      {currentLesson.contentType === "review" && <Badge variant="secondary">Review & Quiz</Badge>}
                     </div>
                     <CardTitle className="text-2xl mb-2">{currentLesson.title}</CardTitle>
                     <CardDescription className="flex items-center gap-4">
@@ -189,18 +189,13 @@ const Lesson = () => {
 
             {/* Lesson Content Tabs */}
             <Card className="glass-card">
-              <Tabs defaultValue={currentLesson.contentType === "review" ? "quiz" : "overview"} className="w-full">
+              <Tabs defaultValue="overview" className="w-full">
                 <CardHeader className="pb-4">
-                  <TabsList className={`grid w-full ${currentLesson.contentType === "review" ? "grid-cols-3" : "grid-cols-5"}`}>
+                  <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                    {currentLesson.contentType !== "review" && (
-                      <>
-                        <TabsTrigger value="lecture">Lecture Notes</TabsTrigger>
-                        <TabsTrigger value="chat">AI Tutor</TabsTrigger>
-                        <TabsTrigger value="practice">Practice</TabsTrigger>
-                      </>
-                    )}
-                    <TabsTrigger value="quiz">Quiz</TabsTrigger>
+                    <TabsTrigger value="lecture">Lecture Notes</TabsTrigger>
+                    <TabsTrigger value="chat">AI Tutor</TabsTrigger>
+                    <TabsTrigger value="practice">Practice</TabsTrigger>
                   </TabsList>
                 </CardHeader>
 
@@ -220,7 +215,7 @@ const Lesson = () => {
                           </li>
                           <li className="flex items-start gap-2">
                             <Circle className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <span>Prepare for the section quiz</span>
+                            <span>Prepare for the next lecture</span>
                           </li>
                         </ul>
                       </div>
@@ -252,55 +247,45 @@ const Lesson = () => {
                             Next: {nextLesson.title}
                           </Button>
                         ) : (
-                          <Button onClick={handleMarkComplete}>Complete Section</Button>
+                          <Button onClick={handleMarkComplete}>
+                            Complete Section
+                          </Button>
                         )}
                       </div>
                     </div>
                   </TabsContent>
 
-                  {currentLesson.contentType !== "review" && (
-                    <>
-                      <TabsContent value="lecture" className="mt-0">
-                        <div className="space-y-6">
-                          {currentLesson.pdfUrl ? (
-                            <div className="aspect-video rounded-lg overflow-hidden border">
-                              <iframe
-                                src={currentLesson.pdfUrl}
-                                className="w-full h-full"
-                                title={`${currentLesson.title} Lecture Slides`}
-                                allow="autoplay"
-                              />
-                            </div>
-                          ) : (
-                            <div className="text-center py-12 text-muted-foreground">
-                              <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                              <p>Lecture notes for this section will be available soon.</p>
-                            </div>
-                          )}
+                  <TabsContent value="lecture" className="mt-0">
+                    <div className="space-y-6">
+                      {currentLesson.pdfUrl ? (
+                        <div className="aspect-video rounded-lg overflow-hidden border">
+                          <iframe
+                            src={currentLesson.pdfUrl}
+                            className="w-full h-full"
+                            title={`${currentLesson.title} Lecture Slides`}
+                            allow="autoplay"
+                          />
                         </div>
-                      </TabsContent>
-
-                      <TabsContent value="chat" className="mt-0">
+                      ) : (
                         <div className="text-center py-12 text-muted-foreground">
-                          <p>AI Tutor - Ask questions about {currentLesson.title}</p>
-                          <p className="text-sm mt-2">Use the Chat mode on the main platform for AI assistance.</p>
+                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>Lecture notes for this section will be available soon.</p>
                         </div>
-                      </TabsContent>
+                      )}
+                    </div>
+                  </TabsContent>
 
-                      <TabsContent value="practice" className="mt-0">
-                        <div className="text-center py-12 text-muted-foreground">
-                          <p>Practice problems for {currentLesson.title} coming soon.</p>
-                        </div>
-                      </TabsContent>
-                    </>
-                  )}
+                  <TabsContent value="chat" className="mt-0">
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p>AI Tutor - Ask questions about {currentLesson.title}</p>
+                      <p className="text-sm mt-2">Use the Chat mode on the main platform for AI assistance.</p>
+                    </div>
+                  </TabsContent>
 
-                  <TabsContent value="quiz" className="mt-0">
-                    <ChapterQuiz
-                      chapterId={currentChapter.id}
-                      chapterTitle={currentChapter.title}
-                      onQuizComplete={handleQuizComplete}
-                    />
+                  <TabsContent value="practice" className="mt-0">
+                    <div className="text-center py-12 text-muted-foreground">
+                      <p>Practice problems for {currentLesson.title} coming soon.</p>
+                    </div>
                   </TabsContent>
                 </CardContent>
               </Tabs>

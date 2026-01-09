@@ -9,7 +9,6 @@ export interface Lesson {
   pdfUrl?: string;
   textbookSections?: string;
   estimatedMinutes: number;
-  contentType?: "review";
 }
 
 export interface Chapter {
@@ -57,14 +56,6 @@ export const chapters: Chapter[] = [
         textbookSections: "1.6",
         estimatedMinutes: 35,
       },
-      {
-        id: "1-review",
-        number: "1.R",
-        title: "Section 1 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 30,
-      },
     ],
   },
   // Section 2 — Transport Layer & End-to-End Communication
@@ -111,14 +102,6 @@ export const chapters: Chapter[] = [
         textbookSections: "3.7",
         estimatedMinutes: 40,
       },
-      {
-        id: "2-review",
-        number: "2.R",
-        title: "Section 2 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 45,
-      },
     ],
   },
   // Section 3 — Queueing & In-Network Resource Management
@@ -138,14 +121,6 @@ export const chapters: Chapter[] = [
         textbookSections: "3.8",
         estimatedMinutes: 50,
       },
-      {
-        id: "3-review",
-        number: "3.R",
-        title: "Section 3 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 25,
-      },
     ],
   },
   // Section 4 — Network Layer: IP & Addressing
@@ -164,14 +139,6 @@ export const chapters: Chapter[] = [
         pdfUrl: "https://drive.google.com/file/d/1A_j9nRUZIJwfRDTGLglBdJcSWH_96DWt/preview",
         textbookSections: "4.1-4.3",
         estimatedMinutes: 55,
-      },
-      {
-        id: "4-review",
-        number: "4.R",
-        title: "Section 4 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 25,
       },
     ],
   },
@@ -208,14 +175,6 @@ export const chapters: Chapter[] = [
         lectureFile: "13-Internet",
         pdfUrl: "https://drive.google.com/file/d/1zxjDWYAtl5aZ1zq3t6YCtmiyVyo08sAu/preview",
         textbookSections: "5.5",
-        estimatedMinutes: 35,
-      },
-      {
-        id: "5-review",
-        number: "5.R",
-        title: "Section 5 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
         estimatedMinutes: 35,
       },
     ],
@@ -255,14 +214,6 @@ export const chapters: Chapter[] = [
         textbookSections: "6.5-6.6",
         estimatedMinutes: 45,
       },
-      {
-        id: "6-review",
-        number: "6.R",
-        title: "Section 6 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 35,
-      },
     ],
   },
   // Section 7 — Wireless Networks
@@ -281,14 +232,6 @@ export const chapters: Chapter[] = [
         pdfUrl: "https://drive.google.com/file/d/1j4W5Z1BzOxyXwvNA0mNo-nF0QWtlDyws/preview",
         textbookSections: "7.1-7.4",
         estimatedMinutes: 55,
-      },
-      {
-        id: "7-review",
-        number: "7.R",
-        title: "Section 7 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 25,
       },
     ],
   },
@@ -309,14 +252,6 @@ export const chapters: Chapter[] = [
         textbookSections: "8.1",
         estimatedMinutes: 45,
       },
-      {
-        id: "8-review",
-        number: "8.R",
-        title: "Section 8 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 25,
-      },
     ],
   },
   // Section 9 — Datacenter Networks
@@ -335,14 +270,6 @@ export const chapters: Chapter[] = [
         pdfUrl: "https://drive.google.com/file/d/1yXNqdmHO8UwzqhJEodeUWry4tKGehpKt/preview",
         textbookSections: "8.2",
         estimatedMinutes: 50,
-      },
-      {
-        id: "9-review",
-        number: "9.R",
-        title: "Section 9 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 25,
       },
     ],
   },
@@ -372,14 +299,6 @@ export const chapters: Chapter[] = [
         textbookSections: "8.6-8.8",
         estimatedMinutes: 45,
       },
-      {
-        id: "10-review",
-        number: "10.R",
-        title: "Section 10 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 30,
-      },
     ],
   },
   // Section 11 — Real-Time Systems & Future Networking
@@ -398,14 +317,6 @@ export const chapters: Chapter[] = [
         pdfUrl: "https://drive.google.com/file/d/1lKywW7Ntv04RLQV9AvLCUYJ1nlqQ4yqE/preview",
         textbookSections: "8.9",
         estimatedMinutes: 45,
-      },
-      {
-        id: "11-review",
-        number: "11.R",
-        title: "Section 11 Review & Quiz",
-        contentType: "review",
-        textbookSections: "Review",
-        estimatedMinutes: 25,
       },
     ],
   },

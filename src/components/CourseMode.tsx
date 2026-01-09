@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Lock, CheckCircle, Circle, LogIn, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +12,24 @@ import { chapters } from "@/data/courseContent";
 
 const CourseMode = () => {
   const navigate = useNavigate();
-  const { user, loading, getChapterProgress, isChapterUnlocked, devMode, setDevMode } = useUserProgress();
+  const { 
+    user, 
+    loading, 
+    isChapterUnlocked, 
+    isSectionComplete,
+    getLessonsCompleted,
+    getTotalLessons,
+    devMode, 
+    setDevMode,
+    refetch
+  } = useUserProgress();
+
+  // Refetch progress when component mounts and user is available
+  useEffect(() => {
+    if (user) {
+      refetch();
+    }
+  }, [user]);
 
   const handleUnitClick = (unitId: number) => {
     if (isChapterUnlocked(unitId)) {
@@ -19,18 +37,8 @@ const CourseMode = () => {
     }
   };
 
-  const getUnitProgress = (unitId: number) => {
-    const progress = getChapterProgress(unitId);
-    return progress?.quiz_score ?? 0;
-  };
-
-  const isUnitComplete = (unitId: number) => {
-    const progress = getChapterProgress(unitId);
-    return progress?.quiz_passed ?? false;
-  };
-
-  // Calculate overall progress
-  const completedChapters = chapters.filter(c => isUnitComplete(c.id)).length;
+  // Calculate overall progress based on completed sections
+  const completedChapters = chapters.filter(c => isSectionComplete(c.id)).length;
   const overallProgress = Math.round((completedChapters / chapters.length) * 100);
 
   if (!user) {
@@ -106,7 +114,7 @@ const CourseMode = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl">Your Learning Path</CardTitle>
-              <CardDescription>Complete each section with 80% mastery to unlock the next</CardDescription>
+              <CardDescription>Complete all lectures to unlock the next section</CardDescription>
             </div>
             <div className="text-right">
               <div className="text-3xl font-bold text-primary">{overallProgress}%</div>
@@ -126,8 +134,10 @@ const CourseMode = () => {
       <div className="grid gap-6">
         {chapters.map((chapter) => {
           const unlocked = isChapterUnlocked(chapter.id);
-          const complete = isUnitComplete(chapter.id);
-          const progress = getUnitProgress(chapter.id);
+          const complete = isSectionComplete(chapter.id);
+          const lessonsCompleted = getLessonsCompleted(chapter.id);
+          const totalLessons = getTotalLessons(chapter.id);
+          const progressPercent = totalLessons > 0 ? Math.round((lessonsCompleted / totalLessons) * 100) : 0;
 
           return (
             <Card
@@ -155,7 +165,7 @@ const CourseMode = () => {
                       <CardTitle className="text-xl">{chapter.title}</CardTitle>
                       {complete && (
                         <Badge variant="default" className="bg-green-500">
-                          {progress}% ✓
+                          Complete ✓
                         </Badge>
                       )}
                     </div>
@@ -163,7 +173,7 @@ const CourseMode = () => {
                   </div>
                   {unlocked && (
                     <Button variant="outline" className="ml-4" onClick={() => handleUnitClick(chapter.id)}>
-                      {complete ? "Review" : progress > 0 ? "Continue" : "Start"}
+                      {complete ? "Review" : lessonsCompleted > 0 ? "Continue" : "Start"}
                     </Button>
                   )}
                 </div>
@@ -171,10 +181,12 @@ const CourseMode = () => {
               <CardContent className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Quiz Score</span>
-                    <span className="text-sm font-bold text-primary">{progress}%</span>
+                    <span className="text-sm font-medium">Progress</span>
+                    <span className="text-sm font-bold text-primary">
+                      {lessonsCompleted}/{totalLessons} lectures
+                    </span>
                   </div>
-                  <Progress value={progress} className="h-2" />
+                  <Progress value={progressPercent} className="h-2" />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {chapter.topics.map((topic, idx) => (
@@ -188,12 +200,12 @@ const CourseMode = () => {
                   ))}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {chapter.lessons.length - 1} lecture{chapter.lessons.length - 1 !== 1 ? 's' : ''} + quiz
+                  {totalLessons} lecture{totalLessons !== 1 ? 's' : ''}
                 </div>
                 {!unlocked && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
                     <Lock className="w-4 h-4" />
-                    <span>Score 80%+ on Section {chapter.id - 1} quiz to unlock</span>
+                    <span>Complete all lectures in Section {chapter.id - 1} to unlock</span>
                   </div>
                 )}
               </CardContent>
