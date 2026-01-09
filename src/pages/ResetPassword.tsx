@@ -19,8 +19,30 @@ const ResetPassword = () => {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Check if user came from a valid password reset link
-    const checkSession = async () => {
+    const handleRecoveryToken = async () => {
+      // Check URL hash for recovery tokens (Supabase sends them in the hash)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      if (accessToken && type === 'recovery') {
+        // Set session from recovery tokens
+        const { error } = await externalSupabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || ''
+        });
+        
+        if (!error) {
+          setIsValidSession(true);
+          // Clear hash from URL for cleaner experience
+          window.history.replaceState(null, '', '/reset-password');
+        }
+        setChecking(false);
+        return;
+      }
+      
+      // Fallback: check for existing session
       const { data: { session } } = await externalSupabase.auth.getSession();
       if (session) {
         setIsValidSession(true);
@@ -28,10 +50,10 @@ const ResetPassword = () => {
       setChecking(false);
     };
     
-    checkSession();
+    handleRecoveryToken();
 
-    // Listen for auth state changes (password recovery event)
-    const { data: { subscription } } = externalSupabase.auth.onAuthStateChange((event, session) => {
+    // Also listen for PASSWORD_RECOVERY event as fallback
+    const { data: { subscription } } = externalSupabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setIsValidSession(true);
         setChecking(false);
