@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut } from "lucide-react";
+import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Users } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,7 @@ import CourseMode from "@/components/CourseMode";
 import MockExamMode from "@/components/MockExamMode";
 import UserStats from "@/components/UserStats";
 import HowItWorks from "@/components/HowItWorks";
+import Community from "@/components/Community";
 import ThemeToggle from "@/components/ThemeToggle";
 import AccountSettings from "@/components/AccountSettings";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -111,34 +112,41 @@ const Index = () => {
 
         {/* Mode Selector */}
         <Tabs value={activeMode} onValueChange={setActiveMode} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 h-auto p-2 glass-card">
+          <TabsList className="grid w-full grid-cols-5 h-auto p-2 glass-card">
             <TabsTrigger 
               value="chat" 
               className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <MessageSquare className="w-5 h-5" />
-              <span className="font-semibold">Chat Mode</span>
+              <span className="font-semibold hidden sm:inline">Chat Mode</span>
             </TabsTrigger>
             <TabsTrigger 
               value="course" 
               className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <BookOpen className="w-5 h-5" />
-              <span className="font-semibold">Course Mode</span>
+              <span className="font-semibold hidden sm:inline">Course Mode</span>
             </TabsTrigger>
             <TabsTrigger 
               value="exam" 
               className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <FileText className="w-5 h-5" />
-              <span className="font-semibold">Mock Exam</span>
+              <span className="font-semibold hidden sm:inline">Mock Exam</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="community" 
+              className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+            >
+              <Users className="w-5 h-5" />
+              <span className="font-semibold hidden sm:inline">Community</span>
             </TabsTrigger>
             <TabsTrigger 
               value="info" 
               className="flex items-center gap-2 py-3 data-[state=active]:gradient-accent data-[state=active]:text-navy transition-smooth"
             >
               <Info className="w-5 h-5" />
-              <span className="font-semibold">How It Works</span>
+              <span className="font-semibold hidden sm:inline">How It Works</span>
             </TabsTrigger>
           </TabsList>
 
@@ -152,6 +160,10 @@ const Index = () => {
 
           <TabsContent value="exam" className="mt-6">
             <MockExamMode />
+          </TabsContent>
+
+          <TabsContent value="community" className="mt-6">
+            <Community />
           </TabsContent>
 
           <TabsContent value="info" className="mt-6">
