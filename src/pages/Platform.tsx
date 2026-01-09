@@ -12,7 +12,7 @@ import HowItWorks from "@/components/HowItWorks";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useUserProgress } from "@/contexts/UserProgressContext";
-import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/lib/externalSupabase";
 import { toast } from "sonner";
 
 const Index = () => {
@@ -64,7 +64,7 @@ const Index = () => {
                     variant="outline"
                     size="sm"
                     onClick={async () => {
-                      await supabase.auth.signOut();
+                      await externalSupabase.auth.signOut();
                       toast.success("Signed out successfully");
                       navigate("/");
                     }}

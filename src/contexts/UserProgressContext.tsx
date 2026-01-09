@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { externalSupabase } from "@/lib/externalSupabase";
 import { User } from "@supabase/supabase-js";
 import { chapters } from "@/data/courseContent";
 
@@ -38,11 +38,11 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
   });
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = externalSupabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    externalSupabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
 
@@ -57,7 +57,7 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
     }
     
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await externalSupabase
       .from("user_progress")
       .select("*")
       .eq("user_id", user.id);
@@ -125,7 +125,7 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
     const updatedLessons = [...currentLessons, lessonId];
 
     if (existing) {
-      const { error } = await supabase
+      const { error } = await externalSupabase
         .from("user_progress")
         .update({
           lessons_completed: updatedLessons,
@@ -136,7 +136,7 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) return { error: error.message };
     } else {
-      const { error } = await supabase
+      const { error } = await externalSupabase
         .from("user_progress")
         .insert({
           user_id: user.id,
