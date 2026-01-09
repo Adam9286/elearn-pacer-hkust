@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Lock, CheckCircle, Circle, LogIn, Wrench } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Lock, CheckCircle, Circle, LogIn, Wrench, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,6 +9,7 @@ import { useUserProgress } from "@/contexts/UserProgressContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { chapters } from "@/data/courseContent";
+import { motion } from "framer-motion";
 
 const CourseMode = () => {
   const navigate = useNavigate();
@@ -109,27 +110,165 @@ const CourseMode = () => {
         </div>
       )}
 
-      {/* Course Progress Overview */}
-      <Card className="glass-card shadow-lg border-2">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl">Your Learning Path</CardTitle>
-              <CardDescription>Complete all lectures to unlock the next section</CardDescription>
-            </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold text-primary">{overallProgress}%</div>
-              <p className="text-sm text-muted-foreground">Overall Progress</p>
-            </div>
+      {/* Animated Learning Path Progress */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="glass-card shadow-lg border-2 overflow-hidden relative">
+          {/* Animated background particles */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            {[...Array(20)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-1 h-1 rounded-full bg-primary/20"
+                initial={{ 
+                  x: Math.random() * 100 + "%", 
+                  y: Math.random() * 100 + "%",
+                  scale: Math.random() * 0.5 + 0.5
+                }}
+                animate={{ 
+                  y: [null, "-20%"],
+                  opacity: [0.3, 0.8, 0.3]
+                }}
+                transition={{ 
+                  duration: Math.random() * 3 + 2,
+                  repeat: Infinity,
+                  delay: Math.random() * 2
+                }}
+              />
+            ))}
           </div>
-        </CardHeader>
-        <CardContent>
-          <Progress value={overallProgress} className="h-3" />
-          <p className="text-sm text-muted-foreground mt-2">
-            {completedChapters} of {chapters.length} sections completed
-          </p>
-        </CardContent>
-      </Card>
+          
+          <CardHeader className="relative z-10">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <CardTitle className="text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+                Your Learning Path
+              </CardTitle>
+            </div>
+            <CardDescription>Complete all lectures to unlock the next section</CardDescription>
+          </CardHeader>
+          
+          <CardContent className="relative z-10">
+            <div className="flex flex-col lg:flex-row items-center gap-8">
+              {/* Circular Progress Ring */}
+              <div className="relative flex-shrink-0">
+                <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 120 120">
+                  {/* Background circle */}
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    stroke="currentColor"
+                    strokeWidth="8"
+                    fill="none"
+                    className="text-muted/20"
+                  />
+                  {/* Progress circle */}
+                  <motion.circle
+                    cx="60"
+                    cy="60"
+                    r="52"
+                    stroke="url(#progressGradient)"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeLinecap="round"
+                    initial={{ strokeDasharray: "326.7", strokeDashoffset: 326.7 }}
+                    animate={{ strokeDashoffset: 326.7 - (326.7 * overallProgress) / 100 }}
+                    transition={{ duration: 1.5, ease: "easeOut" }}
+                  />
+                  {/* Gradient definition */}
+                  <defs>
+                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stopColor="hsl(var(--primary))" />
+                      <stop offset="100%" stopColor="hsl(var(--accent))" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                {/* Center content */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <motion.span 
+                    className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, type: "spring" }}
+                  >
+                    {overallProgress}%
+                  </motion.span>
+                  <span className="text-xs text-muted-foreground">Complete</span>
+                </div>
+                {/* Glow effect */}
+                {overallProgress > 0 && (
+                  <div className="absolute inset-0 rounded-full bg-primary/10 blur-xl animate-pulse" />
+                )}
+              </div>
+              
+              {/* Section indicators and stats */}
+              <div className="flex-1 space-y-4">
+                {/* Section milestone dots */}
+                <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap">
+                  {chapters.map((chapter, index) => {
+                    const isComplete = isSectionComplete(chapter.id);
+                    const isUnlocked = isChapterUnlocked(chapter.id);
+                    return (
+                      <motion.div
+                        key={chapter.id}
+                        className="relative group"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 cursor-pointer
+                            ${isComplete 
+                              ? "bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg shadow-green-500/30" 
+                              : isUnlocked 
+                                ? "bg-gradient-to-br from-primary to-accent text-white shadow-lg shadow-primary/30"
+                                : "bg-muted/30 text-muted-foreground"
+                            }`}
+                          onClick={() => isUnlocked && handleUnitClick(chapter.id)}
+                        >
+                          {isComplete ? "✓" : chapter.id}
+                        </div>
+                        {/* Tooltip */}
+                        <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-popover text-popover-foreground text-xs px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-20">
+                          {chapter.title}
+                        </div>
+                        {/* Connecting line */}
+                        {index < chapters.length - 1 && (
+                          <div className={`absolute top-1/2 left-full w-2 h-0.5 transform -translate-y-1/2
+                            ${isComplete ? "bg-green-500" : "bg-muted/30"}`} 
+                          />
+                        )}
+                      </motion.div>
+                    );
+                  })}
+                </div>
+                
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <motion.div 
+                    className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 border border-primary/20"
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="text-2xl font-bold text-primary">{completedChapters}</div>
+                    <div className="text-sm text-muted-foreground">Sections Complete</div>
+                  </motion.div>
+                  <motion.div 
+                    className="p-4 rounded-xl bg-gradient-to-br from-accent/10 to-accent/5 border border-accent/20"
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="text-2xl font-bold text-accent">{chapters.length - completedChapters}</div>
+                    <div className="text-sm text-muted-foreground">Sections Remaining</div>
+                  </motion.div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Sections */}
       <div className="grid gap-6">

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import ChatMode from "@/components/ChatMode";
 import CourseMode from "@/components/CourseMode";
 import MockExamMode from "@/components/MockExamMode";
-import UserStats from "@/components/UserStats";
 import HowItWorks from "@/components/HowItWorks";
 import Community from "@/components/Community";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -90,7 +89,7 @@ const Index = () => {
                   </Link>
                 </Button>
               )}
-              <UserStats />
+              
             </div>
           </div>
         </div>
@@ -176,7 +175,7 @@ const Index = () => {
       <footer className="mt-16 py-8 border-t bg-card/50">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
           <p className="text-sm">
-            LearningPacer • ELEC3120 Final Year Project • The Hong Kong University of Science and Technology
+            LearningPacer • ELEC3120 Learning Platform • The Hong Kong University of Science and Technology
           </p>
         </div>
       </footer>
