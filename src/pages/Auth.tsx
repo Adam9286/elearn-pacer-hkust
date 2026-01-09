@@ -98,7 +98,7 @@ const Auth = () => {
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="absolute top-4 left-4">
           <Button variant="ghost" size="sm" asChild>
-            <Link to="/" className="flex items-center gap-2">
+            <Link to="/platform" className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               <span>Back</span>
             </Link>
