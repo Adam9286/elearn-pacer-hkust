@@ -21,6 +21,7 @@ const CourseMode = () => {
     getTotalLessons,
     devMode, 
     setDevMode,
+    isAdmin,
     refetch
   } = useUserProgress();
 
@@ -89,8 +90,8 @@ const CourseMode = () => {
 
   return (
     <div className="space-y-6">
-      {/* Dev Mode Toggle */}
-      {user && (
+      {/* Dev Mode Toggle - Admin Only */}
+      {user && isAdmin && (
         <div className="flex items-center justify-end gap-3 px-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Wrench className="h-4 w-4" />
