@@ -10,6 +10,7 @@ import MockExamMode from "@/components/MockExamMode";
 import UserStats from "@/components/UserStats";
 import HowItWorks from "@/components/HowItWorks";
 import ThemeToggle from "@/components/ThemeToggle";
+import AccountSettings from "@/components/AccountSettings";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useUserProgress } from "@/contexts/UserProgressContext";
 import { externalSupabase } from "@/lib/externalSupabase";
@@ -56,10 +57,11 @@ const Index = () => {
             <div className="flex items-center gap-4">
               <ThemeToggle />
               {user ? (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <span className="text-sm dark:text-white/80 text-gray-700 hidden sm:block">
                     {user.email}
                   </span>
+                  <AccountSettings userEmail={user.email || ""} />
                   <Button
                     variant="outline"
                     size="sm"

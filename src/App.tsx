@@ -8,6 +8,7 @@ import Landing from "./pages/Landing";
 import Platform from "./pages/Platform";
 import Lesson from "./pages/Lesson";
 import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/platform" element={<Platform />} />
             <Route path="/platform/lesson/:lessonId" element={<Lesson />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
