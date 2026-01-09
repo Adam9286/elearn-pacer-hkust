@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
+import { chapters } from "@/data/courseContent";
 
 export interface UserProgress {
   chapter_id: number;
@@ -61,12 +62,26 @@ export const useUserProgress = () => {
     return progress.find(p => p.chapter_id === chapterId);
   };
 
+  // Check if all lessons in a chapter are completed
+  const isSectionComplete = (chapterId: number): boolean => {
+    const chapterProgress = progress.find(p => p.chapter_id === chapterId);
+    const chapter = chapters.find(c => c.id === chapterId);
+    
+    if (!chapter) return false;
+    if (!chapterProgress) return false;
+    
+    const totalLessons = chapter.lessons.length;
+    const completedLessons = chapterProgress.lessons_completed?.length ?? 0;
+    
+    return completedLessons >= totalLessons;
+  };
+
   const isChapterUnlocked = (chapterId: number): boolean => {
     if (devMode) return true; // Dev mode bypasses all locks
     if (chapterId === 1) return true; // Chapter 1 always unlocked
     
-    const previousChapter = progress.find(p => p.chapter_id === chapterId - 1);
-    return previousChapter?.quiz_passed ?? false;
+    // Check if previous section has all lessons completed
+    return isSectionComplete(chapterId - 1);
   };
 
   const setDevMode = (enabled: boolean) => {
@@ -74,51 +89,14 @@ export const useUserProgress = () => {
     setDevModeState(enabled);
   };
 
-  const updateQuizScore = async (chapterId: number, score: number, totalQuestions: number) => {
-    if (!user) return { error: "Not authenticated" };
+  const getLessonsCompleted = (chapterId: number): number => {
+    const chapterProgress = progress.find(p => p.chapter_id === chapterId);
+    return chapterProgress?.lessons_completed?.length ?? 0;
+  };
 
-    const percentage = Math.round((score / totalQuestions) * 100);
-    const passed = percentage >= 80;
-
-    // Check if record exists
-    const existing = progress.find(p => p.chapter_id === chapterId);
-
-    if (existing) {
-      const { error } = await supabase
-        .from("user_progress")
-        .update({
-          quiz_score: percentage,
-          quiz_passed: passed,
-          updated_at: new Date().toISOString()
-        })
-        .eq("user_id", user.id)
-        .eq("chapter_id", chapterId);
-
-      if (error) return { error: error.message };
-    } else {
-      const { error } = await supabase
-        .from("user_progress")
-        .insert({
-          user_id: user.id,
-          chapter_id: chapterId,
-          quiz_score: percentage,
-          quiz_passed: passed,
-          lessons_completed: []
-        });
-
-      if (error) return { error: error.message };
-    }
-
-    // Record quiz attempt
-    await supabase.from("quiz_attempts").insert({
-      user_id: user.id,
-      chapter_id: chapterId,
-      score: percentage,
-      total_questions: totalQuestions
-    });
-
-    await fetchProgress();
-    return { passed, percentage };
+  const getTotalLessons = (chapterId: number): number => {
+    const chapter = chapters.find(c => c.id === chapterId);
+    return chapter?.lessons.length ?? 0;
   };
 
   const markLessonComplete = async (chapterId: number, lessonId: string) => {
@@ -169,7 +147,9 @@ export const useUserProgress = () => {
     setDevMode,
     getChapterProgress,
     isChapterUnlocked,
-    updateQuizScore,
+    isSectionComplete,
+    getLessonsCompleted,
+    getTotalLessons,
     markLessonComplete,
     refetch: fetchProgress
   };
