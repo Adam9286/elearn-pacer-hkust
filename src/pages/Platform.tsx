@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { BookOpen, MessageSquare, FileText, Award, TrendingUp, Info, Home } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import ChatMode from "@/components/ChatMode";
@@ -11,8 +11,13 @@ import UserStats from "@/components/UserStats";
 import HowItWorks from "@/components/HowItWorks";
 import ThemeToggle from "@/components/ThemeToggle";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { useUserProgress } from "@/contexts/UserProgressContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user } = useUserProgress();
   const location = useLocation();
   const initialMode = (location.state as { mode?: string })?.mode || "chat";
   const [activeMode, setActiveMode] = useState(initialMode);
@@ -48,8 +53,40 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
               <ThemeToggle />
+              {user ? (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm dark:text-white/80 text-gray-700 hidden sm:block">
+                    {user.email}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      toast.success("Signed out successfully");
+                      navigate("/");
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline">Sign Out</span>
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  asChild
+                  variant="default"
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Link to="/auth">
+                    <LogIn className="w-4 h-4" />
+                    <span>Sign In</span>
+                  </Link>
+                </Button>
+              )}
               <UserStats />
             </div>
           </div>
