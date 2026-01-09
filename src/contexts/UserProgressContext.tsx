@@ -17,6 +17,7 @@ interface UserProgressContextType {
   progress: UserProgress[];
   loading: boolean;
   devMode: boolean;
+  isAdmin: boolean;
   setDevMode: (enabled: boolean) => void;
   getChapterProgress: (chapterId: number) => UserProgress | undefined;
   isChapterUnlocked: (chapterId: number) => boolean;
@@ -33,21 +34,43 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [progress, setProgress] = useState<UserProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [devMode, setDevModeState] = useState(() => {
     return localStorage.getItem(DEV_MODE_KEY) === "true";
   });
 
+  // Check if user has admin role
+  const checkAdminRole = useCallback(async (userId: string) => {
+    const { data, error } = await externalSupabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .eq('role', 'admin')
+      .single();
+    
+    setIsAdmin(!error && data !== null);
+  }, []);
+
   useEffect(() => {
     const { data: { subscription } } = externalSupabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        setTimeout(() => checkAdminRole(session.user.id), 0);
+      } else {
+        setIsAdmin(false);
+        setDevModeState(false);
+      }
     });
 
     externalSupabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      if (session?.user) {
+        checkAdminRole(session.user.id);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [checkAdminRole]);
 
   const fetchProgress = useCallback(async () => {
     if (!user) {
@@ -98,9 +121,10 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
   }, [devMode, isSectionComplete]);
 
   const setDevMode = useCallback((enabled: boolean) => {
+    if (!isAdmin && enabled) return; // Block non-admins from enabling
     localStorage.setItem(DEV_MODE_KEY, String(enabled));
     setDevModeState(enabled);
-  }, []);
+  }, [isAdmin]);
 
   const getLessonsCompleted = useCallback((chapterId: number): number => {
     const chapterProgress = progress.find(p => p.chapter_id === chapterId);
@@ -157,6 +181,7 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
     progress,
     loading,
     devMode,
+    isAdmin,
     setDevMode,
     getChapterProgress,
     isChapterUnlocked,
