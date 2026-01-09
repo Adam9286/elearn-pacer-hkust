@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { chapters } from "@/data/courseContent";
@@ -12,7 +12,24 @@ export interface UserProgress {
 
 const DEV_MODE_KEY = "learningpacer_dev_mode";
 
-export const useUserProgress = () => {
+interface UserProgressContextType {
+  user: User | null;
+  progress: UserProgress[];
+  loading: boolean;
+  devMode: boolean;
+  setDevMode: (enabled: boolean) => void;
+  getChapterProgress: (chapterId: number) => UserProgress | undefined;
+  isChapterUnlocked: (chapterId: number) => boolean;
+  isSectionComplete: (chapterId: number) => boolean;
+  getLessonsCompleted: (chapterId: number) => number;
+  getTotalLessons: (chapterId: number) => number;
+  markLessonComplete: (chapterId: number, lessonId: string) => Promise<{ success?: boolean; error?: string }>;
+  refetch: () => Promise<void>;
+}
+
+const UserProgressContext = createContext<UserProgressContextType | undefined>(undefined);
+
+export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [progress, setProgress] = useState<UserProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,17 +49,12 @@ export const useUserProgress = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      fetchProgress();
-    } else {
+  const fetchProgress = useCallback(async () => {
+    if (!user) {
       setProgress([]);
       setLoading(false);
+      return;
     }
-  }, [user]);
-
-  const fetchProgress = async () => {
-    if (!user) return;
     
     setLoading(true);
     const { data, error } = await supabase
@@ -56,14 +68,17 @@ export const useUserProgress = () => {
       setProgress(data as UserProgress[]);
     }
     setLoading(false);
-  };
+  }, [user]);
 
-  const getChapterProgress = (chapterId: number): UserProgress | undefined => {
+  useEffect(() => {
+    fetchProgress();
+  }, [fetchProgress]);
+
+  const getChapterProgress = useCallback((chapterId: number): UserProgress | undefined => {
     return progress.find(p => p.chapter_id === chapterId);
-  };
+  }, [progress]);
 
-  // Check if all lessons in a chapter are completed
-  const isSectionComplete = (chapterId: number): boolean => {
+  const isSectionComplete = useCallback((chapterId: number): boolean => {
     const chapterProgress = progress.find(p => p.chapter_id === chapterId);
     const chapter = chapters.find(c => c.id === chapterId);
     
@@ -74,39 +89,37 @@ export const useUserProgress = () => {
     const completedLessons = chapterProgress.lessons_completed?.length ?? 0;
     
     return completedLessons >= totalLessons;
-  };
+  }, [progress]);
 
-  const isChapterUnlocked = (chapterId: number): boolean => {
-    if (devMode) return true; // Dev mode bypasses all locks
-    if (chapterId === 1) return true; // Chapter 1 always unlocked
-    
-    // Check if previous section has all lessons completed
+  const isChapterUnlocked = useCallback((chapterId: number): boolean => {
+    if (devMode) return true;
+    if (chapterId === 1) return true;
     return isSectionComplete(chapterId - 1);
-  };
+  }, [devMode, isSectionComplete]);
 
-  const setDevMode = (enabled: boolean) => {
+  const setDevMode = useCallback((enabled: boolean) => {
     localStorage.setItem(DEV_MODE_KEY, String(enabled));
     setDevModeState(enabled);
-  };
+  }, []);
 
-  const getLessonsCompleted = (chapterId: number): number => {
+  const getLessonsCompleted = useCallback((chapterId: number): number => {
     const chapterProgress = progress.find(p => p.chapter_id === chapterId);
     return chapterProgress?.lessons_completed?.length ?? 0;
-  };
+  }, [progress]);
 
-  const getTotalLessons = (chapterId: number): number => {
+  const getTotalLessons = useCallback((chapterId: number): number => {
     const chapter = chapters.find(c => c.id === chapterId);
     return chapter?.lessons.length ?? 0;
-  };
+  }, []);
 
-  const markLessonComplete = async (chapterId: number, lessonId: string) => {
+  const markLessonComplete = useCallback(async (chapterId: number, lessonId: string) => {
     if (!user) return { error: "Not authenticated" };
 
     const existing = progress.find(p => p.chapter_id === chapterId);
     const currentLessons = existing?.lessons_completed || [];
 
     if (currentLessons.includes(lessonId)) {
-      return { success: true }; // Already completed
+      return { success: true };
     }
 
     const updatedLessons = [...currentLessons, lessonId];
@@ -137,9 +150,9 @@ export const useUserProgress = () => {
 
     await fetchProgress();
     return { success: true };
-  };
+  }, [user, progress, fetchProgress]);
 
-  return {
+  const value: UserProgressContextType = {
     user,
     progress,
     loading,
@@ -153,4 +166,18 @@ export const useUserProgress = () => {
     markLessonComplete,
     refetch: fetchProgress
   };
+
+  return (
+    <UserProgressContext.Provider value={value}>
+      {children}
+    </UserProgressContext.Provider>
+  );
+};
+
+export const useUserProgress = () => {
+  const context = useContext(UserProgressContext);
+  if (context === undefined) {
+    throw new Error("useUserProgress must be used within a UserProgressProvider");
+  }
+  return context;
 };

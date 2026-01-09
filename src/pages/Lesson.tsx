@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
-import { useUserProgress } from "@/hooks/useUserProgress";
+import { useUserProgress } from "@/contexts/UserProgressContext";
 import { toast } from "sonner";
 import { chapters, findLesson } from "@/data/courseContent";
 
