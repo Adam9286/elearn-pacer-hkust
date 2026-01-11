@@ -148,7 +148,7 @@ const MockExamMode = () => {
 
     try {
       // Call n8n webhook directly (bypasses edge functions)
-      const response = await fetch("https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator", {
+      const response = await fetch("https://smellycat9286.app.n8n.cloud/webhook/exam-generator", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
