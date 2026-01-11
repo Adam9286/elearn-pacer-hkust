@@ -90,7 +90,8 @@ const MockExamMode = () => {
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
 
   // Exam customization state
-  const [topic, setTopic] = useState("Computer Networks - General");
+  // Course is fixed - not editable by users
+  const courseName = "ELEC3120 - Computer Networks";
   const [numMCQ, setNumMCQ] = useState("10");
   const [numOpenEnded, setNumOpenEnded] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
@@ -154,7 +155,7 @@ const MockExamMode = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          topic: topic || "Computer Networks - General",
+          topic: courseName,
           numMultipleChoice: parseInt(numMCQ),
           numOpenEnded: parseInt(numOpenEnded),
           difficulty: difficulty,
@@ -461,7 +462,7 @@ const MockExamMode = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-4 border rounded-lg bg-secondary/50">
                   <div>
-                    <p className="font-medium">ELEC3120 Mock Exam - {topic}</p>
+                    <p className="font-medium">{courseName} - Mock Exam</p>
                     <p className="text-sm text-muted-foreground">
                       {numMCQ} MCQs, {numOpenEnded} Open-ended • {difficulty} difficulty
                     </p>
@@ -513,15 +514,14 @@ const MockExamMode = () => {
             <div className="space-y-4 p-4 border rounded-lg bg-secondary/20">
               <h3 className="font-semibold text-lg">Customize Your Exam</h3>
 
-              <div>
-                <Label htmlFor="topic">Topic Focus</Label>
-                <Input
-                  id="topic"
-                  placeholder="e.g., TCP/IP, Network Security, Routing"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  disabled={isLoadingQuestions}
-                />
+              <div className="flex items-center gap-3">
+                <Label className="text-muted-foreground">Course</Label>
+                <Badge 
+                  variant="secondary" 
+                  className="px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary border border-primary/20"
+                >
+                  {courseName}
+                </Badge>
               </div>
 
               {/* Lecture Selection Section */}
