@@ -16,18 +16,35 @@ import { useUserProgress } from "@/contexts/UserProgressContext";
 import { externalSupabase } from "@/lib/externalSupabase";
 import { toast } from "sonner";
 
+const studyTips = [
+  "Start with 'Why' before 'How' — understanding the problem makes memorizing easier.",
+  "Draw packet flows yourself before checking slides — active recall beats passive reading.",
+  "Explain concepts out loud as if teaching someone; gaps become immediately obvious.",
+  "When stuck, break the problem into layers: Physical → Link → Network → Transport → Application.",
+  "Review quiz mistakes carefully — errors reveal exactly what needs more attention.",
+  "Connect new concepts to familiar ones: TCP's reliability is like certified mail with tracking.",
+];
+
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useUserProgress();
   const location = useLocation();
   const initialMode = (location.state as { mode?: string })?.mode || "chat";
   const [activeMode, setActiveMode] = useState(initialMode);
+  const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
     if (location.state?.mode) {
       setActiveMode(location.state.mode);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % studyTips.length);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <ThemeProvider defaultTheme="dark">
@@ -103,8 +120,8 @@ const Index = () => {
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Welcome to Your AI Teaching Assistant
             </CardTitle>
-            <CardDescription className="text-base">
-              Master ELEC3120 with personalized learning paths, adaptive quizzes, and instant answers
+            <CardDescription className="text-base transition-opacity duration-500">
+              💡 {studyTips[tipIndex]}
             </CardDescription>
           </CardHeader>
         </Card>
