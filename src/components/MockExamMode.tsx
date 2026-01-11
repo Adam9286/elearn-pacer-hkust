@@ -169,8 +169,20 @@ const MockExamMode = () => {
         throw new Error(errorData?.error || `Failed to generate exam (${response.status})`);
       }
 
+      // Check for empty response body
+      const responseText = await response.text();
+      if (!responseText || responseText.trim() === '') {
+        throw new Error("n8n webhook returned empty response. Make sure the workflow is active (not in test mode) and the 'Respond to Webhook' node is configured correctly.");
+      }
+
       // Parse JSON response containing Google Drive link
-      const result = await response.json();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error("[GenerateExam] Failed to parse response:", responseText);
+        throw new Error(`Invalid JSON response from n8n: ${responseText.substring(0, 100)}`);
+      }
       console.log("[GenerateExam] response JSON:", result);
 
       // Robust validation and fallback logic
