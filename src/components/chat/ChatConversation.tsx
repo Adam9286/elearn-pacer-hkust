@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Lightbulb, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn } from 'lucide-react';
+import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,7 @@ import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMath } from '@/components/RenderMath';
 import { ChatMessage } from '@/hooks/useChatHistory';
 import { Link } from 'react-router-dom';
+import { SmartHints } from './SmartHints';
 
 interface LocalMessage {
   id: string;
@@ -57,11 +58,17 @@ export const ChatConversation = ({
   const [loadingStage, setLoadingStage] = useState('');
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [newMessageId, setNewMessageId] = useState<string | null>(null);
+  const [hintsCollapsed, setHintsCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Local messages for non-authenticated users or during loading
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([WELCOME_MESSAGE]);
+
+  // Handle question click from Smart Hints
+  const handleQuestionClick = (question: string) => {
+    setInput(question);
+  };
 
   // Combine database messages with welcome message
   const displayMessages: LocalMessage[] = isAuthenticated && messages.length > 0
@@ -359,39 +366,11 @@ export const ChatConversation = ({
   return (
     <div className="flex flex-col h-full">
       {/* Smart Hints */}
-      <Card className="glass-card shadow-lg mx-4 mt-4">
-        <CardHeader className="border-b bg-gradient-to-r from-primary/80 to-accent/70 py-3">
-          <CardTitle className="flex items-center gap-2 text-lg text-white">
-            <Lightbulb className="w-5 h-5 text-accent animate-float" />
-            Smart Hints
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 transition-smooth hover:bg-primary/10">
-              <h4 className="font-semibold text-sm mb-1 flex items-center gap-1.5">
-                <Lightbulb className="w-4 h-4" />
-                Tiered Help System
-              </h4>
-              <p className="text-xs text-muted-foreground">Get hints from symptoms to complete solutions</p>
-            </div>
-            <div className="p-3 rounded-lg bg-accent/5 border border-accent/20 transition-smooth hover:bg-accent/10">
-              <h4 className="font-semibold text-sm mb-1 flex items-center gap-1.5">
-                <BookOpen className="w-4 h-4" />
-                Source Citations
-              </h4>
-              <p className="text-xs text-muted-foreground">Every answer references course materials</p>
-            </div>
-            <div className="p-3 rounded-lg bg-secondary border transition-smooth hover:bg-secondary/80">
-              <h4 className="font-semibold text-sm mb-1 flex items-center gap-1.5">
-                <MessageSquare className="w-4 h-4" />
-                Scope Protection
-              </h4>
-              <p className="text-xs text-muted-foreground">Only ELEC3120 topics - no hallucinations</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <SmartHints
+        onQuestionClick={handleQuestionClick}
+        isCollapsed={hintsCollapsed}
+        onToggleCollapse={() => setHintsCollapsed(!hintsCollapsed)}
+      />
 
       {/* Auth prompt for non-authenticated users */}
       {!isAuthenticated && (

@@ -138,6 +138,50 @@ export const useChatHistory = (userId: string | null) => {
     }
   }, [activeConversationId]);
 
+  // Delete multiple conversations
+  const deleteMultipleConversations = useCallback(async (conversationIds: string[]) => {
+    if (!userId || conversationIds.length === 0) return;
+
+    try {
+      const { error } = await externalSupabase
+        .from('chat_conversations')
+        .delete()
+        .in('id', conversationIds);
+
+      if (error) throw error;
+      
+      setConversations(prev => prev.filter(conv => !conversationIds.includes(conv.id)));
+      
+      // If deleting the active conversation, reset
+      if (activeConversationId && conversationIds.includes(activeConversationId)) {
+        setActiveConversationId(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Error deleting multiple conversations:', error);
+    }
+  }, [userId, activeConversationId]);
+
+  // Delete all conversations for the user
+  const deleteAllConversations = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      const { error } = await externalSupabase
+        .from('chat_conversations')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      setConversations([]);
+      setActiveConversationId(null);
+      setMessages([]);
+    } catch (error) {
+      console.error('Error deleting all conversations:', error);
+    }
+  }, [userId]);
+
   // Save a message to the database
   const saveMessage = useCallback(async (
     conversationId: string,
@@ -230,6 +274,8 @@ export const useChatHistory = (userId: string | null) => {
     createConversation,
     updateConversationTitle,
     deleteConversation,
+    deleteMultipleConversations,
+    deleteAllConversations,
     saveMessage,
     addMessageLocally,
     updateMessageLocally,

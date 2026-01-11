@@ -1,12 +1,25 @@
 import { useState } from 'react';
-import { Plus, MessageSquare, Trash2, MoreHorizontal, ChevronLeft, ChevronRight } from 'lucide-react';
+import { 
+  Plus, 
+  MessageSquare, 
+  Trash2, 
+  MoreHorizontal, 
+  ChevronLeft, 
+  ChevronRight,
+  CheckSquare,
+  Square,
+  X,
+  Trash
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -31,6 +44,8 @@ interface ChatSidebarProps {
   onSelectConversation: (id: string) => void;
   onNewChat: () => void;
   onDeleteConversation: (id: string) => void;
+  onDeleteMultiple?: (ids: string[]) => void;
+  onDeleteAll?: () => void;
 }
 
 // Group conversations by date
@@ -77,9 +92,17 @@ export const ChatSidebar = ({
   onSelectConversation,
   onNewChat,
   onDeleteConversation,
+  onDeleteMultiple,
+  onDeleteAll,
 }: ChatSidebarProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  
+  // Selection mode state
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const groupedConversations = groupConversationsByDate(conversations);
 
@@ -94,6 +117,45 @@ export const ChatSidebar = ({
     }
     setDeleteDialogOpen(false);
     setConversationToDelete(null);
+  };
+
+  const handleConfirmClearAll = () => {
+    onDeleteAll?.();
+    setClearAllDialogOpen(false);
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleConfirmBulkDelete = () => {
+    onDeleteMultiple?.(Array.from(selectedIds));
+    setBulkDeleteDialogOpen(false);
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === conversations.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(conversations.map(c => c.id)));
+    }
+  };
+
+  const exitSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
   };
 
   if (isCollapsed) {
@@ -123,23 +185,101 @@ export const ChatSidebar = ({
     <>
       <div className="w-64 h-full border-r bg-card flex flex-col">
         {/* Header */}
-        <div className="p-3 border-b flex items-center justify-between">
-          <Button
-            onClick={onNewChat}
-            className="flex-1 mr-2 gap-2"
-            variant="outline"
-          >
-            <Plus className="h-4 w-4" />
-            New Chat
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleCollapse}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
+        <div className="p-3 border-b flex items-center justify-between gap-2">
+          {isSelectionMode ? (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exitSelectionMode}
+                className="gap-1"
+              >
+                <X className="h-4 w-4" />
+                Cancel
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {selectedIds.size} selected
+              </span>
+            </>
+          ) : (
+            <>
+              <Button
+                onClick={onNewChat}
+                className="flex-1 gap-2"
+                variant="outline"
+              >
+                <Plus className="h-4 w-4" />
+                New Chat
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={() => setIsSelectionMode(true)}
+                    disabled={conversations.length === 0}
+                  >
+                    <CheckSquare className="h-4 w-4 mr-2" />
+                    Select chats
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => setClearAllDialogOpen(true)}
+                    disabled={conversations.length === 0}
+                  >
+                    <Trash className="h-4 w-4 mr-2" />
+                    Clear all chats
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onToggleCollapse}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
+
+        {/* Selection Mode Actions */}
+        {isSelectionMode && (
+          <div className="p-2 border-b bg-muted/50 flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSelectAll}
+              className="text-xs"
+            >
+              {selectedIds.size === conversations.length ? (
+                <>
+                  <Square className="h-3 w-3 mr-1" />
+                  Deselect all
+                </>
+              ) : (
+                <>
+                  <CheckSquare className="h-3 w-3 mr-1" />
+                  Select all
+                </>
+              )}
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setBulkDeleteDialogOpen(true)}
+              disabled={selectedIds.size === 0}
+              className="text-xs"
+            >
+              <Trash2 className="h-3 w-3 mr-1" />
+              Delete ({selectedIds.size})
+            </Button>
+          </div>
+        )}
 
         {/* Conversations List */}
         <ScrollArea className="flex-1">
@@ -169,40 +309,57 @@ export const ChatSidebar = ({
                           key={conv.id}
                           className={cn(
                             "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors",
-                            activeConversationId === conv.id
+                            activeConversationId === conv.id && !isSelectionMode
                               ? "bg-primary/10 text-primary"
-                              : "hover:bg-muted"
+                              : "hover:bg-muted",
+                            isSelectionMode && selectedIds.has(conv.id) && "bg-primary/10"
                           )}
-                          onClick={() => onSelectConversation(conv.id)}
+                          onClick={() => {
+                            if (isSelectionMode) {
+                              toggleSelection(conv.id);
+                            } else {
+                              onSelectConversation(conv.id);
+                            }
+                          }}
                         >
-                          <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                          {isSelectionMode ? (
+                            <Checkbox
+                              checked={selectedIds.has(conv.id)}
+                              onCheckedChange={() => toggleSelection(conv.id)}
+                              className="flex-shrink-0"
+                            />
+                          ) : (
+                            <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                          )}
                           <span className="flex-1 text-sm truncate">
                             {conv.title}
                           </span>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <MoreHorizontal className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                className="text-destructive focus:text-destructive"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteClick(conv.id);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {!isSelectionMode && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="h-3 w-3" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteClick(conv.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -214,7 +371,7 @@ export const ChatSidebar = ({
         </ScrollArea>
       </div>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Single Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -231,6 +388,50 @@ export const ChatSidebar = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Clear All Confirmation Dialog */}
+      <AlertDialog open={clearAllDialogOpen} onOpenChange={setClearAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear all chats?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete ALL {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} and their messages.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmClearAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.size} conversation{selectedIds.size !== 1 ? 's' : ''}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected conversations and all their messages.
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmBulkDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Selected
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
