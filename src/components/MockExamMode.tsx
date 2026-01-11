@@ -147,11 +147,10 @@ const MockExamMode = () => {
     setProgress(0);
 
     try {
-      // Call edge function directly with hardcoded endpoint
-      const response = await fetch("https://dpedzjzrlzvzqrzajrda.supabase.co/functions/v1/generate-exam", {
+      // Call n8n webhook directly (bypasses edge functions)
+      const response = await fetch("https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator", {
         method: "POST",
         headers: {
-          Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRwZWR6anpybHp2enFyemFqcmRhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc5Mzk5ODAsImV4cCI6MjA4MzUxNTk4MH0.eeUelxZoKBtWLwMwvCmHE5H6cYemYNJ06eyVEItp6Tk",
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -161,6 +160,7 @@ const MockExamMode = () => {
           difficulty: difficulty,
           includeTopics: includeTopics,
           excludeTopics: excludeTopics,
+          sessionId: `exam-${Date.now()}`,
         }),
       });
 
