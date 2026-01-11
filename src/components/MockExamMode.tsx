@@ -94,10 +94,9 @@ const MockExamMode = () => {
   const [numOpenEnded, setNumOpenEnded] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
   
-  // Lecture selection: "all" = all included (can exclude), "only" = none included (must select)
-  const [selectionMode, setSelectionMode] = useState<'all' | 'only'>('all');
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([]); // For "only" mode
-  const [excludeTopics, setExcludeTopics] = useState<string[]>([]); // For "all" mode
+  // Simple lecture selection: checked = included, unchecked = excluded
+  // Starts with all lectures selected
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([...LECTURE_TOPICS]);
 
   const { toast } = useToast();
 
@@ -159,13 +158,9 @@ const MockExamMode = () => {
           numMultipleChoice: parseInt(numMCQ),
           numOpenEnded: parseInt(numOpenEnded),
           difficulty: difficulty,
-          // Calculate includeTopics based on selection mode
-          includeTopics: selectionMode === 'only' 
-            ? selectedTopics // Send only selected lectures
-            : (excludeTopics.length > 0 
-                ? LECTURE_TOPICS.filter(t => !excludeTopics.includes(t)) 
-                : []), // Empty = all lectures
-          excludeTopics: selectionMode === 'only' ? [] : excludeTopics,
+          // Send selected lectures (empty means all)
+          includeTopics: selectedTopics.length === LECTURE_TOPICS.length ? [] : selectedTopics,
+          excludeTopics: [],
           sessionId: `exam-${Date.now()}`,
         }),
       });
@@ -294,64 +289,19 @@ const MockExamMode = () => {
     setError("");
     setExamLink(null);
     setDownloadLink(null);
-    setExcludeTopics([]);
-    setSelectedTopics([]);
-    setSelectionMode('all');
+    setSelectedTopics([...LECTURE_TOPICS]);
   };
   
   // Helper functions for lecture selection
-  const handleSelectAll = () => {
-    if (selectionMode === 'only') {
-      setSelectedTopics([...LECTURE_TOPICS]);
-    } else {
-      setExcludeTopics([]);
-    }
-  };
-  
-  const handleClearAll = () => {
-    if (selectionMode === 'only') {
-      setSelectedTopics([]);
-    } else {
-      setExcludeTopics([...LECTURE_TOPICS]);
-    }
-  };
-  
-  const handleOnlyThisLecture = (lecture: string) => {
-    setSelectionMode('only');
-    setSelectedTopics([lecture]);
-    setExcludeTopics([]);
-  };
+  const handleSelectAll = () => setSelectedTopics([...LECTURE_TOPICS]);
+  const handleClearAll = () => setSelectedTopics([]);
   
   const toggleLecture = (lecture: string) => {
-    if (selectionMode === 'only') {
-      if (selectedTopics.includes(lecture)) {
-        setSelectedTopics(selectedTopics.filter(t => t !== lecture));
-      } else {
-        setSelectedTopics([...selectedTopics, lecture]);
-      }
-    } else {
-      if (excludeTopics.includes(lecture)) {
-        setExcludeTopics(excludeTopics.filter(t => t !== lecture));
-      } else {
-        setExcludeTopics([...excludeTopics, lecture]);
-      }
-    }
-  };
-  
-  const isLectureIncluded = (lecture: string) => {
-    if (selectionMode === 'only') {
-      return selectedTopics.includes(lecture);
-    } else {
-      return !excludeTopics.includes(lecture);
-    }
-  };
-  
-  const getIncludedCount = () => {
-    if (selectionMode === 'only') {
-      return selectedTopics.length;
-    } else {
-      return LECTURE_TOPICS.length - excludeTopics.length;
-    }
+    setSelectedTopics(prev => 
+      prev.includes(lecture) 
+        ? prev.filter(t => t !== lecture)
+        : [...prev, lecture]
+    );
   };
 
   const handleViewExam = () => {
@@ -522,6 +472,45 @@ const MockExamMode = () => {
   if (!examStarted) {
     return (
       <div className="space-y-6">
+        {/* How to Use Guide - At the Top */}
+        {!examLink && (
+          <Card className="glass-card border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Brain className="w-5 h-5 text-primary" />
+                How to Use Mock Exam Generator
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-primary">1.</span>
+                    <p><strong>Select Lectures</strong> — Choose which lectures to include. Use "Select All" to include everything, or pick specific ones.</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-primary">2.</span>
+                    <p><strong>Set Question Count</strong> — Choose how many MCQs and open-ended questions you want.</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-primary">3.</span>
+                    <p><strong>Pick Difficulty</strong> — Easy for basics, Medium for balanced, Hard for exam-level.</p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="font-bold text-primary">4.</span>
+                    <p><strong>Generate & Download</strong> — Get your personalized PDF exam in about 2 minutes!</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-muted-foreground text-xs pt-2 border-t">
+                💡 <strong>Tip:</strong> Focus on specific lectures you want to practice — just uncheck the ones you don't need.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Success Card - Exam Generated */}
         {examLink && (
           <Card className="glass-card shadow-lg border-2 border-primary/50">
@@ -553,27 +542,14 @@ const MockExamMode = () => {
                   </div>
                 </div>
                 
-                {(selectionMode === 'only' ? selectedTopics.length > 0 : excludeTopics.length > 0) && (
+                {selectedTopics.length < LECTURE_TOPICS.length && selectedTopics.length > 0 && (
                   <div className="p-3 border rounded-lg bg-secondary/30 text-sm">
-                    {selectionMode === 'only' ? (
-                      <>
-                        <p>
-                          <span className="font-medium text-primary">Selected lectures:</span> {selectedTopics.join(", ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Questions generated only from these lectures.
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p>
-                          <span className="font-medium text-destructive">Excluded lectures:</span> {excludeTopics.join(", ")}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Questions generated from all other lectures.
-                        </p>
-                      </>
-                    )}
+                    <p>
+                      <span className="font-medium text-primary">Selected lectures:</span> {selectedTopics.join(", ")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Questions generated only from these lectures.
+                    </p>
                   </div>
                 )}
               </div>
@@ -599,43 +575,13 @@ const MockExamMode = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-sm">Lecture Topics</h4>
-                  <Badge variant={getIncludedCount() === 0 ? "destructive" : "secondary"} className="text-xs">
-                    {getIncludedCount()}/{LECTURE_TOPICS.length} included
+                  <Badge variant={selectedTopics.length === 0 ? "destructive" : "secondary"} className="text-xs">
+                    {selectedTopics.length}/{LECTURE_TOPICS.length} selected
                   </Badge>
                 </div>
                 
-                {/* Selection Mode Toggle */}
-                <div className="flex gap-2 p-1 bg-secondary rounded-lg">
-                  <Button
-                    variant={selectionMode === 'all' ? 'default' : 'ghost'}
-                    size="sm"
-                    className="flex-1 h-8"
-                    onClick={() => {
-                      setSelectionMode('all');
-                      setSelectedTopics([]);
-                    }}
-                    disabled={isLoadingQuestions}
-                  >
-                    Include All
-                  </Button>
-                  <Button
-                    variant={selectionMode === 'only' ? 'default' : 'ghost'}
-                    size="sm"
-                    className="flex-1 h-8"
-                    onClick={() => {
-                      setSelectionMode('only');
-                      setExcludeTopics([]);
-                    }}
-                    disabled={isLoadingQuestions}
-                  >
-                    Select Only
-                  </Button>
-                </div>
-                
                 <p className="text-xs text-muted-foreground">
-                  {selectionMode === 'all' 
-                    ? "All lectures included. Uncheck to exclude specific lectures."
-                    : "No lectures selected. Check the lectures you want questions from."}
+                  Check the lectures you want questions from. Uncheck to exclude.
                 </p>
                 
                 {/* Quick Action Buttons */}
@@ -665,90 +611,39 @@ const MockExamMode = () => {
                 {/* Checkbox Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-64 overflow-y-auto p-2 border rounded-lg bg-background">
                   {LECTURE_TOPICS.map((lecture) => {
-                    const included = isLectureIncluded(lecture);
+                    const included = selectedTopics.includes(lecture);
                     
                     return (
                       <div
                         key={lecture}
                         className={cn(
-                          "flex items-center justify-between p-2 rounded-md hover:bg-secondary/50 transition-colors",
+                          "flex items-center gap-2 p-2 rounded-md hover:bg-secondary/50 transition-colors cursor-pointer",
                           !included && "opacity-50"
                         )}
+                        onClick={() => toggleLecture(lecture)}
                       >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <Checkbox
-                            id={lecture}
-                            checked={included}
-                            onCheckedChange={() => toggleLecture(lecture)}
-                            disabled={isLoadingQuestions}
-                          />
-                          <Label
-                            htmlFor={lecture}
-                            className={cn(
-                              "text-xs cursor-pointer truncate",
-                              !included && "line-through text-muted-foreground"
-                            )}
-                          >
-                            {lecture}
-                          </Label>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs shrink-0"
-                          onClick={() => handleOnlyThisLecture(lecture)}
+                        <Checkbox
+                          id={lecture}
+                          checked={included}
+                          onCheckedChange={() => toggleLecture(lecture)}
                           disabled={isLoadingQuestions}
+                        />
+                        <Label
+                          htmlFor={lecture}
+                          className={cn(
+                            "text-xs cursor-pointer truncate flex-1",
+                            !included && "line-through text-muted-foreground"
+                          )}
                         >
-                          Only
-                        </Button>
+                          {lecture}
+                        </Label>
                       </div>
                     );
                   })}
                 </div>
                 
-                {/* Selection Summary */}
-                {selectionMode === 'only' && selectedTopics.length > 0 && (
-                  <div className="p-2 border rounded-lg bg-primary/5">
-                    <p className="text-xs font-medium text-primary mb-1">Selected lectures:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedTopics.map((topic) => (
-                        <Badge key={topic} variant="default" className="text-xs">
-                          {topic}
-                          <button
-                            onClick={() => setSelectedTopics(selectedTopics.filter(t => t !== topic))}
-                            className="ml-1 hover:text-primary-foreground/80"
-                            disabled={isLoadingQuestions}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {selectionMode === 'all' && excludeTopics.length > 0 && (
-                  <div className="p-2 border rounded-lg bg-destructive/5">
-                    <p className="text-xs font-medium text-destructive mb-1">Excluded lectures:</p>
-                    <div className="flex flex-wrap gap-1">
-                      {excludeTopics.map((topic) => (
-                        <Badge key={topic} variant="destructive" className="text-xs">
-                          {topic}
-                          <button
-                            onClick={() => setExcludeTopics(excludeTopics.filter(t => t !== topic))}
-                            className="ml-1 hover:text-destructive-foreground/80"
-                            disabled={isLoadingQuestions}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Warning if no lectures selected in "only" mode */}
-                {selectionMode === 'only' && selectedTopics.length === 0 && (
+                {/* Warning if no lectures selected */}
+                {selectedTopics.length === 0 && (
                   <Alert variant="destructive" className="py-2">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription className="text-xs">
@@ -817,44 +712,6 @@ const MockExamMode = () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="flex items-start space-x-3">
-                <CheckCircle2 className="w-5 h-5 text-primary mt-1" />
-                <div>
-                  <h3 className="font-semibold mb-1">Personalized Questions</h3>
-                  <p className="text-sm text-muted-foreground">
-                    AI generates questions from your uploaded course materials
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <FileText className="w-5 h-5 text-primary mt-1" />
-                <div>
-                  <h3 className="font-semibold mb-1">Downloadable PDF</h3>
-                  <p className="text-sm text-muted-foreground">Get your exam as a printable PDF document</p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <Brain className="w-5 h-5 text-primary mt-1" />
-                <div>
-                  <h3 className="font-semibold mb-1">Multiple Question Types</h3>
-                  <p className="text-sm text-muted-foreground">
-                    MCQs and open-ended questions for comprehensive testing
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start space-x-3">
-                <Clock className="w-5 h-5 text-primary mt-1" />
-                <div>
-                  <h3 className="font-semibold mb-1">Ready in Minutes</h3>
-                  <p className="text-sm text-muted-foreground">Your exam will be generated and ready to download</p>
-                </div>
-              </div>
-            </div>
-
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -885,7 +742,11 @@ const MockExamMode = () => {
                 </div>
               </div>
             ) : (
-              <Button onClick={handleStartExam} className="w-full gradient-primary shadow-glow text-lg py-6">
+              <Button 
+                onClick={handleStartExam} 
+                className="w-full gradient-primary shadow-glow text-lg py-6"
+                disabled={selectedTopics.length === 0}
+              >
                 <FileText className="w-5 h-5 mr-2" />
                 Generate & Download Exam PDF
               </Button>
