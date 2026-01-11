@@ -514,15 +514,6 @@ const MockExamMode = () => {
             <div className="space-y-4 p-4 border rounded-lg bg-secondary/20">
               <h3 className="font-semibold text-lg">Customize Your Exam</h3>
 
-              <div className="flex items-center gap-3">
-                <Label className="text-muted-foreground">Course</Label>
-                <Badge 
-                  variant="secondary" 
-                  className="px-3 py-1.5 text-sm font-medium bg-primary/10 text-primary border border-primary/20"
-                >
-                  {courseName}
-                </Badge>
-              </div>
 
               {/* Lecture Selection Section */}
               <div className="space-y-3 pt-2 border-t">
