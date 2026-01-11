@@ -91,7 +91,7 @@ const MockExamMode = () => {
 
   // Exam customization state
   // Course is fixed - not editable by users
-  const courseName = "ELEC3120 - Computer Networks";
+  const courseName = "Computer Networks";
   const [numMCQ, setNumMCQ] = useState("10");
   const [numOpenEnded, setNumOpenEnded] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
