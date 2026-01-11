@@ -12,6 +12,7 @@ import {
   Download,
   X,
   Check,
+  ChevronsUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { externalSupabase } from "@/lib/externalSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -93,10 +95,8 @@ const MockExamMode = () => {
   const [numMCQ, setNumMCQ] = useState("10");
   const [numOpenEnded, setNumOpenEnded] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
-  
-  // Simple lecture selection: checked = included, unchecked = excluded
-  // Starts with all lectures selected
-  const [selectedTopics, setSelectedTopics] = useState<string[]>([...LECTURE_TOPICS]);
+  const [includeTopics, setIncludeTopics] = useState<string[]>([]);
+  const [excludeTopics, setExcludeTopics] = useState<string[]>([]);
 
   const { toast } = useToast();
 
@@ -148,7 +148,7 @@ const MockExamMode = () => {
 
     try {
       // Call n8n webhook directly (bypasses edge functions)
-      const response = await fetch("https://smellycat9286.app.n8n.cloud/webhook/exam-generator", {
+      const response = await fetch("https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -158,9 +158,8 @@ const MockExamMode = () => {
           numMultipleChoice: parseInt(numMCQ),
           numOpenEnded: parseInt(numOpenEnded),
           difficulty: difficulty,
-          // Send selected lectures (empty means all)
-          includeTopics: selectedTopics.length === LECTURE_TOPICS.length ? [] : selectedTopics,
-          excludeTopics: [],
+          includeTopics: includeTopics,
+          excludeTopics: excludeTopics,
           sessionId: `exam-${Date.now()}`,
         }),
       });
@@ -172,8 +171,10 @@ const MockExamMode = () => {
 
       // Check for empty response body
       const responseText = await response.text();
-      if (!responseText || responseText.trim() === '') {
-        throw new Error("n8n webhook returned empty response. Make sure the workflow is active (not in test mode) and the 'Respond to Webhook' node is configured correctly.");
+      if (!responseText || responseText.trim() === "") {
+        throw new Error(
+          "n8n webhook returned empty response. Make sure the workflow is active (not in test mode) and the 'Respond to Webhook' node is configured correctly.",
+        );
       }
 
       // Parse JSON response containing Google Drive link
@@ -289,19 +290,8 @@ const MockExamMode = () => {
     setError("");
     setExamLink(null);
     setDownloadLink(null);
-    setSelectedTopics([...LECTURE_TOPICS]);
-  };
-  
-  // Helper functions for lecture selection
-  const handleSelectAll = () => setSelectedTopics([...LECTURE_TOPICS]);
-  const handleClearAll = () => setSelectedTopics([]);
-  
-  const toggleLecture = (lecture: string) => {
-    setSelectedTopics(prev => 
-      prev.includes(lecture) 
-        ? prev.filter(t => t !== lecture)
-        : [...prev, lecture]
-    );
+    setIncludeTopics([]);
+    setExcludeTopics([]);
   };
 
   const handleViewExam = () => {
@@ -321,14 +311,14 @@ const MockExamMode = () => {
   const handleDownloadExam = () => {
     // Prefer downloadLink if available
     let link = downloadLink?.trim();
-    
+
     if (!link || !link.startsWith("http")) {
       // Fallback: try to derive from examLink
       const viewLink = examLink?.trim();
       if (viewLink && viewLink.startsWith("http")) {
         const fileIdMatch = viewLink.match(/\/d\/([^\/]+)/);
         const fileId = fileIdMatch ? fileIdMatch[1] : null;
-        
+
         if (fileId) {
           link = `https://drive.google.com/uc?export=download&id=${fileId}`;
         }
@@ -472,45 +462,6 @@ const MockExamMode = () => {
   if (!examStarted) {
     return (
       <div className="space-y-6">
-        {/* How to Use Guide - At the Top */}
-        {!examLink && (
-          <Card className="glass-card border-primary/30 bg-gradient-to-br from-primary/5 to-primary/10">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Brain className="w-5 h-5 text-primary" />
-                How to Use Mock Exam Generator
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-primary">1.</span>
-                    <p><strong>Select Lectures</strong> — Choose which lectures to include. Use "Select All" to include everything, or pick specific ones.</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-primary">2.</span>
-                    <p><strong>Set Question Count</strong> — Choose how many MCQs and open-ended questions you want.</p>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-primary">3.</span>
-                    <p><strong>Pick Difficulty</strong> — Easy for basics, Medium for balanced, Hard for exam-level.</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <span className="font-bold text-primary">4.</span>
-                    <p><strong>Generate & Download</strong> — Get your personalized PDF exam in about 2 minutes!</p>
-                  </div>
-                </div>
-              </div>
-              <p className="text-muted-foreground text-xs pt-2 border-t">
-                💡 <strong>Tip:</strong> Focus on specific lectures you want to practice — just uncheck the ones you don't need.
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Success Card - Exam Generated */}
         {examLink && (
           <Card className="glass-card shadow-lg border-2 border-primary/50">
@@ -541,15 +492,19 @@ const MockExamMode = () => {
                     </Button>
                   </div>
                 </div>
-                
-                {selectedTopics.length < LECTURE_TOPICS.length && selectedTopics.length > 0 && (
+
+                {(includeTopics.length > 0 || excludeTopics.length > 0) && (
                   <div className="p-3 border rounded-lg bg-secondary/30 text-sm">
-                    <p>
-                      <span className="font-medium text-primary">Selected lectures:</span> {selectedTopics.join(", ")}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Questions generated only from these lectures.
-                    </p>
+                    {includeTopics.length > 0 && (
+                      <p className="mb-1">
+                        <span className="font-medium text-primary">Included:</span> {includeTopics.join(", ")}
+                      </p>
+                    )}
+                    {excludeTopics.length > 0 && (
+                      <p>
+                        <span className="font-medium text-destructive">Excluded:</span> {excludeTopics.join(", ")}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -571,143 +526,207 @@ const MockExamMode = () => {
           <CardContent className="space-y-6">
             {/* Exam Customization */}
             <div className="space-y-4 p-4 border rounded-lg bg-secondary/20">
-              {/* Lecture Selection Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-sm">Lecture Topics</h4>
-                  <Badge variant={selectedTopics.length === 0 ? "destructive" : "secondary"} className="text-xs">
-                    {selectedTopics.length}/{LECTURE_TOPICS.length} selected
-                  </Badge>
-                </div>
-                
-                <p className="text-xs text-muted-foreground">
-                  Check the lectures you want questions from. Uncheck to exclude.
-                </p>
-                
-                {/* Quick Action Buttons */}
-                <div className="flex gap-2 flex-wrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={handleSelectAll}
-                    disabled={isLoadingQuestions}
-                  >
-                    <Check className="h-3 w-3 mr-1" />
-                    Select All
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={handleClearAll}
-                    disabled={isLoadingQuestions}
-                  >
-                    <X className="h-3 w-3 mr-1" />
-                    Clear All
-                  </Button>
-                </div>
-                
-                {/* Checkbox Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-1 max-h-64 overflow-y-auto p-2 border rounded-lg bg-background">
-                  {LECTURE_TOPICS.map((lecture) => {
-                    const included = selectedTopics.includes(lecture);
-                    
-                    return (
-                      <div
-                        key={lecture}
-                        className={cn(
-                          "flex items-center gap-2 p-2 rounded-md hover:bg-secondary/50 transition-colors cursor-pointer",
-                          !included && "opacity-50"
-                        )}
-                        onClick={() => toggleLecture(lecture)}
-                      >
-                        <Checkbox
-                          id={lecture}
-                          checked={included}
-                          onCheckedChange={() => toggleLecture(lecture)}
-                          disabled={isLoadingQuestions}
-                        />
-                        <Label
-                          htmlFor={lecture}
-                          className={cn(
-                            "text-xs cursor-pointer truncate flex-1",
-                            !included && "line-through text-muted-foreground"
-                          )}
-                        >
-                          {lecture}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Warning if no lectures selected */}
-                {selectedTopics.length === 0 && (
-                  <Alert variant="destructive" className="py-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription className="text-xs">
-                      Please select at least one lecture to generate the exam.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-              
-              <div className="border-t pt-4 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="mcq">Multiple Choice Questions</Label>
-                    <Select value={numMCQ} onValueChange={setNumMCQ} disabled={isLoadingQuestions}>
-                      <SelectTrigger id="mcq">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="5">5 Questions</SelectItem>
-                        <SelectItem value="10">10 Questions</SelectItem>
-                        <SelectItem value="15">15 Questions</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              <h3 className="font-semibold text-lg">Customize Your Exam</h3>
 
-                  <div>
-                    <Label htmlFor="open">Open-Ended Questions</Label>
-                    <Select value={numOpenEnded} onValueChange={setNumOpenEnded} disabled={isLoadingQuestions}>
-                      <SelectTrigger id="open">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3">3 Questions</SelectItem>
-                        <SelectItem value="5">5 Questions</SelectItem>
-                        <SelectItem value="7">7 Questions</SelectItem>
-                      </SelectContent>
-                    </Select>
+              {/* Lecture Selection Section */}
+              <div className="space-y-3 pt-2 border-t">
+                <h4 className="font-semibold text-sm">Lecture Selection</h4>
+                <div>
+                  <Label>Lecture Topics (PDFs)</Label>
+                  <div className="space-y-2 mt-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          disabled={isLoadingQuestions}
+                          className="w-full justify-between"
+                        >
+                          Select lectures to include/exclude
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0" align="start">
+                        <Command>
+                          <CommandInput placeholder="Search lectures..." />
+                          <CommandList>
+                            <CommandEmpty>No lecture found.</CommandEmpty>
+                            <CommandGroup>
+                              {LECTURE_TOPICS.map((lecture) => {
+                                const isIncluded = includeTopics.includes(lecture);
+                                const isExcluded = excludeTopics.includes(lecture);
+
+                                return (
+                                  <CommandItem
+                                    key={lecture}
+                                    onSelect={() => {
+                                      if (isIncluded) {
+                                        setIncludeTopics(includeTopics.filter((t) => t !== lecture));
+                                        setExcludeTopics([...excludeTopics, lecture]);
+                                      } else if (isExcluded) {
+                                        setExcludeTopics(excludeTopics.filter((t) => t !== lecture));
+                                      } else {
+                                        setIncludeTopics([...includeTopics, lecture]);
+                                      }
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between w-full">
+                                      <span>{lecture}</span>
+                                      {isIncluded && (
+                                        <Badge variant="secondary" className="ml-2">
+                                          <Check className="h-3 w-3" />
+                                        </Badge>
+                                      )}
+                                      {isExcluded && (
+                                        <Badge variant="destructive" className="ml-2">
+                                          <X className="h-3 w-3" />
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </CommandItem>
+                                );
+                              })}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+
+                    {/* Display selected topics as badges */}
+                    {includeTopics.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Included:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {includeTopics.map((topic) => (
+                            <Badge key={topic} variant="secondary" className="text-xs">
+                              {topic}
+                              <button
+                                onClick={() => setIncludeTopics(includeTopics.filter((t) => t !== topic))}
+                                className="ml-1 hover:text-destructive"
+                                disabled={isLoadingQuestions}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {excludeTopics.length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-muted-foreground">Excluded:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {excludeTopics.map((topic) => (
+                            <Badge key={topic} variant="destructive" className="text-xs">
+                              {topic}
+                              <button
+                                onClick={() => setExcludeTopics(excludeTopics.filter((t) => t !== topic))}
+                                className="ml-1 hover:text-foreground"
+                                disabled={isLoadingQuestions}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="mcq">Multiple Choice Questions</Label>
+                  <Select value={numMCQ} onValueChange={setNumMCQ} disabled={isLoadingQuestions}>
+                    <SelectTrigger id="mcq">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 Questions</SelectItem>
+                      <SelectItem value="10">10 Questions</SelectItem>
+                      <SelectItem value="15">15 Questions</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div>
-                  <Label>Difficulty Level</Label>
-                  <RadioGroup value={difficulty} onValueChange={setDifficulty} disabled={isLoadingQuestions}>
-                    <div className="flex gap-4 mt-2">
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="easy" id="easy" />
-                        <Label htmlFor="easy" className="font-normal cursor-pointer">
-                          Easy
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="medium" id="medium" />
-                        <Label htmlFor="medium" className="font-normal cursor-pointer">
-                          Medium
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="hard" id="hard" />
-                        <Label htmlFor="hard" className="font-normal cursor-pointer">
-                          Hard
-                        </Label>
-                      </div>
+                  <Label htmlFor="open">Open-Ended Questions</Label>
+                  <Select value={numOpenEnded} onValueChange={setNumOpenEnded} disabled={isLoadingQuestions}>
+                    <SelectTrigger id="open">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="3">3 Questions</SelectItem>
+                      <SelectItem value="5">5 Questions</SelectItem>
+                      <SelectItem value="7">7 Questions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Difficulty Level</Label>
+                <RadioGroup value={difficulty} onValueChange={setDifficulty} disabled={isLoadingQuestions}>
+                  <div className="flex gap-4 mt-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="easy" id="easy" />
+                      <Label htmlFor="easy" className="font-normal cursor-pointer">
+                        Easy
+                      </Label>
                     </div>
-                  </RadioGroup>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="medium" id="medium" />
+                      <Label htmlFor="medium" className="font-normal cursor-pointer">
+                        Medium
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="hard" id="hard" />
+                      <Label htmlFor="hard" className="font-normal cursor-pointer">
+                        Hard
+                      </Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6">
+              <div className="flex items-start space-x-3">
+                <CheckCircle2 className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Personalized Questions</h3>
+                  <p className="text-sm text-muted-foreground">
+                    AI generates questions from your uploaded course materials
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <FileText className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Downloadable PDF</h3>
+                  <p className="text-sm text-muted-foreground">Get your exam as a printable PDF document</p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <Brain className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Multiple Question Types</h3>
+                  <p className="text-sm text-muted-foreground">
+                    MCQs and open-ended questions for comprehensive testing
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-3">
+                <Clock className="w-5 h-5 text-primary mt-1" />
+                <div>
+                  <h3 className="font-semibold mb-1">Ready in Minutes</h3>
+                  <p className="text-sm text-muted-foreground">Your exam will be generated and ready to download</p>
                 </div>
               </div>
             </div>
@@ -742,11 +761,7 @@ const MockExamMode = () => {
                 </div>
               </div>
             ) : (
-              <Button 
-                onClick={handleStartExam} 
-                className="w-full gradient-primary shadow-glow text-lg py-6"
-                disabled={selectedTopics.length === 0}
-              >
+              <Button onClick={handleStartExam} className="w-full gradient-primary shadow-glow text-lg py-6">
                 <FileText className="w-5 h-5 mr-2" />
                 Generate & Download Exam PDF
               </Button>
