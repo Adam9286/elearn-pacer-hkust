@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Users } from "lucide-react";
+import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Users, Lightbulb } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -120,9 +120,24 @@ const Index = () => {
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Welcome to Your AI Teaching Assistant
             </CardTitle>
-            <CardDescription className="text-base transition-opacity duration-500">
-              💡 {studyTips[tipIndex]}
-            </CardDescription>
+            
+            {/* Study Tips Box */}
+            <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-accent/15 via-primary/10 to-accent/15 border border-accent/30 shadow-inner">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-1.5 rounded-lg bg-accent/20">
+                  <Lightbulb className="w-4 h-4 text-accent animate-pulse" />
+                </div>
+                <span className="text-xs font-bold uppercase tracking-wider text-accent">
+                  Study Tip
+                </span>
+              </div>
+              <p 
+                key={tipIndex}
+                className="text-foreground/90 italic text-base leading-relaxed animate-fade-in"
+              >
+                {studyTips[tipIndex]}
+              </p>
+            </div>
           </CardHeader>
         </Card>
 
