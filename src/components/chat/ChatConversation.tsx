@@ -12,7 +12,6 @@ import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMath } from '@/components/RenderMath';
 import { ChatMessage } from '@/hooks/useChatHistory';
 import { Link } from 'react-router-dom';
-import { SmartHints } from './SmartHints';
 
 interface LocalMessage {
   id: string;
@@ -58,17 +57,11 @@ export const ChatConversation = ({
   const [loadingStage, setLoadingStage] = useState('');
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [newMessageId, setNewMessageId] = useState<string | null>(null);
-  const [hintsCollapsed, setHintsCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Local messages for non-authenticated users or during loading
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([WELCOME_MESSAGE]);
-
-  // Handle question click from Smart Hints
-  const handleQuestionClick = (question: string) => {
-    setInput(question);
-  };
 
   // Combine database messages with welcome message
   const displayMessages: LocalMessage[] = isAuthenticated && messages.length > 0
@@ -365,12 +358,6 @@ export const ChatConversation = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Smart Hints */}
-      <SmartHints
-        onQuestionClick={handleQuestionClick}
-        isCollapsed={hintsCollapsed}
-        onToggleCollapse={() => setHintsCollapsed(!hintsCollapsed)}
-      />
 
       {/* Auth prompt for non-authenticated users */}
       {!isAuthenticated && (
