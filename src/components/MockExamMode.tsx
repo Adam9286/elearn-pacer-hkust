@@ -95,7 +95,7 @@ const MockExamMode = () => {
   const [numMCQ, setNumMCQ] = useState("10");
   const [numOpenEnded, setNumOpenEnded] = useState("5");
   const [difficulty, setDifficulty] = useState("medium");
-  const [includeTopics, setIncludeTopics] = useState<string[]>([]);
+  // Simplified: All lectures included by default. User can only EXCLUDE specific lectures.
   const [excludeTopics, setExcludeTopics] = useState<string[]>([]);
 
   const { toast } = useToast();
@@ -158,7 +158,11 @@ const MockExamMode = () => {
           numMultipleChoice: parseInt(numMCQ),
           numOpenEnded: parseInt(numOpenEnded),
           difficulty: difficulty,
-          includeTopics: includeTopics,
+          // Send only the included lectures (all lectures minus excluded ones)
+          // Empty includeTopics means "use all lectures" on n8n side
+          includeTopics: excludeTopics.length > 0 
+            ? LECTURE_TOPICS.filter(t => !excludeTopics.includes(t))
+            : [], // Empty = all lectures
           excludeTopics: excludeTopics,
           sessionId: `exam-${Date.now()}`,
         }),
@@ -288,7 +292,6 @@ const MockExamMode = () => {
     setError("");
     setExamLink(null);
     setDownloadLink(null);
-    setIncludeTopics([]);
     setExcludeTopics([]);
   };
 
@@ -491,18 +494,14 @@ const MockExamMode = () => {
                   </div>
                 </div>
                 
-                {(includeTopics.length > 0 || excludeTopics.length > 0) && (
+                {excludeTopics.length > 0 && (
                   <div className="p-3 border rounded-lg bg-secondary/30 text-sm">
-                    {includeTopics.length > 0 && (
-                      <p className="mb-1">
-                        <span className="font-medium text-primary">Included:</span> {includeTopics.join(", ")}
-                      </p>
-                    )}
-                    {excludeTopics.length > 0 && (
-                      <p>
-                        <span className="font-medium text-destructive">Excluded:</span> {excludeTopics.join(", ")}
-                      </p>
-                    )}
+                    <p>
+                      <span className="font-medium text-destructive">Excluded lectures:</span> {excludeTopics.join(", ")}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Questions generated from all other lectures.
+                    </p>
                   </div>
                 )}
               </div>
@@ -524,14 +523,20 @@ const MockExamMode = () => {
           <CardContent className="space-y-6">
             {/* Exam Customization */}
             <div className="space-y-4 p-4 border rounded-lg bg-secondary/20">
-              <h3 className="font-semibold text-lg">Customize Your Exam</h3>
-
-
               {/* Lecture Selection Section */}
               <div className="space-y-3 pt-2 border-t">
-                <h4 className="font-semibold text-sm">Lecture Selection</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-sm">Lecture Topics</h4>
+                  <Badge variant="secondary" className="text-xs">
+                    {excludeTopics.length === 0 
+                      ? "All lectures included" 
+                      : `${LECTURE_TOPICS.length - excludeTopics.length}/${LECTURE_TOPICS.length} included`}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  By default, all lectures are included. Click to exclude specific lectures from the exam.
+                </p>
                 <div>
-                  <Label>Lecture Topics (PDFs)</Label>
                   <div className="space-y-2 mt-2">
                     <Popover>
                       <PopoverTrigger asChild>
@@ -541,7 +546,9 @@ const MockExamMode = () => {
                           disabled={isLoadingQuestions}
                           className="w-full justify-between"
                         >
-                          Select lectures to include/exclude
+                          {excludeTopics.length === 0 
+                            ? "All lectures included (click to exclude)" 
+                            : `${excludeTopics.length} lecture(s) excluded`}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -552,33 +559,32 @@ const MockExamMode = () => {
                             <CommandEmpty>No lecture found.</CommandEmpty>
                             <CommandGroup>
                               {LECTURE_TOPICS.map((lecture) => {
-                                const isIncluded = includeTopics.includes(lecture);
                                 const isExcluded = excludeTopics.includes(lecture);
                                 
                                 return (
                                   <CommandItem
                                     key={lecture}
                                     onSelect={() => {
-                                      if (isIncluded) {
-                                        setIncludeTopics(includeTopics.filter((t) => t !== lecture));
-                                        setExcludeTopics([...excludeTopics, lecture]);
-                                      } else if (isExcluded) {
+                                      if (isExcluded) {
+                                        // Re-include the lecture
                                         setExcludeTopics(excludeTopics.filter((t) => t !== lecture));
                                       } else {
-                                        setIncludeTopics([...includeTopics, lecture]);
+                                        // Exclude the lecture
+                                        setExcludeTopics([...excludeTopics, lecture]);
                                       }
                                     }}
                                   >
                                     <div className="flex items-center justify-between w-full">
-                                      <span>{lecture}</span>
-                                      {isIncluded && (
-                                        <Badge variant="secondary" className="ml-2">
-                                          <Check className="h-3 w-3" />
-                                        </Badge>
-                                      )}
-                                      {isExcluded && (
+                                      <span className={isExcluded ? "text-muted-foreground line-through" : ""}>
+                                        {lecture}
+                                      </span>
+                                      {isExcluded ? (
                                         <Badge variant="destructive" className="ml-2">
                                           <X className="h-3 w-3" />
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="secondary" className="ml-2">
+                                          <Check className="h-3 w-3" />
                                         </Badge>
                                       )}
                                     </div>
@@ -591,30 +597,10 @@ const MockExamMode = () => {
                       </PopoverContent>
                     </Popover>
 
-                    {/* Display selected topics as badges */}
-                    {includeTopics.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Included:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {includeTopics.map((topic) => (
-                            <Badge key={topic} variant="secondary" className="text-xs">
-                              {topic}
-                              <button
-                                onClick={() => setIncludeTopics(includeTopics.filter((t) => t !== topic))}
-                                className="ml-1 hover:text-destructive"
-                                disabled={isLoadingQuestions}
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
+                    {/* Display excluded topics as badges */}
                     {excludeTopics.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Excluded:</p>
+                        <p className="text-xs text-muted-foreground">Excluded from exam:</p>
                         <div className="flex flex-wrap gap-1">
                           {excludeTopics.map((topic) => (
                             <Badge key={topic} variant="destructive" className="text-xs">
@@ -629,6 +615,15 @@ const MockExamMode = () => {
                             </Badge>
                           ))}
                         </div>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs h-6 px-2"
+                          onClick={() => setExcludeTopics([])}
+                          disabled={isLoadingQuestions}
+                        >
+                          Clear all exclusions
+                        </Button>
                       </div>
                     )}
                   </div>
