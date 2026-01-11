@@ -17,12 +17,13 @@ import { externalSupabase } from "@/lib/externalSupabase";
 import { toast } from "sonner";
 
 const studyTips = [
-  "Start with 'Why' before 'How' — understanding the problem makes memorizing easier.",
-  "Draw packet flows yourself before checking slides — active recall beats passive reading.",
-  "Explain concepts out loud as if teaching someone; gaps become immediately obvious.",
-  "When stuck, break the problem into layers: Physical → Link → Network → Transport → Application.",
-  "Review quiz mistakes carefully — errors reveal exactly what needs more attention.",
-  "Connect new concepts to familiar ones: TCP's reliability is like certified mail with tracking.",
+  "TCP is like the HKUST minibus — it waits, confirms you're on, and won't leave anyone behind. UDP? That's the MTR, it runs whether you're ready or not.",
+  "Think of packet routing like finding LG7 from your hall — multiple paths exist, routers just pick the fastest one available.",
+  "The CYT elevator during class change is basically network congestion — too many packets, not enough bandwidth. That's why we need flow control!",
+  "Canvas notifications = broadcast, WhatsApp group = multicast, DM your groupmate = unicast. You already understand addressing modes.",
+  "Draw the packet flow like you'd draw directions to the Red Bird — sketching it yourself beats memorizing someone else's map.",
+  "Review quiz mistakes like debugging code — each error tells you exactly where your understanding has gaps.",
+  "When stuck, think in layers: Physical (cables) → Link (WiFi) → Network (routing) → Transport (TCP/UDP) → Application (your app).",
 ];
 
 const Index = () => {
