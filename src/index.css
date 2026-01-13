@@ -25,7 +25,7 @@ All colors MUST be HSL.
     --cyber-yellow: 60 100% 50%;
     
     /* Semantic Tokens - defaults to Clean theme light grey values */
-    --background: 0 0% 94%;           /* #F0F0F0 - light grey */
+    --background: 0 0% 50%;           /* #F0F0F0 - light grey */
     --foreground: 0 0% 12%;
 
     --card: 0 0% 98%;                 /* #F9F9F9 - slightly lighter for cards */
