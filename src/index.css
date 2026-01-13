@@ -112,287 +112,289 @@ All colors MUST be HSL.
   }
 
   /* ========== LIGHT THEMES ========== */
+  /* All light themes use 84-87% lightness with distinct color tints for eye comfort */
   
-  /* Sage - Warm gray-green, calming, nature-inspired */
+  /* Sage - Distinct green tint, calming, nature-inspired */
   .sage {
-    --background: 150 12% 91%;
-    --foreground: 160 25% 15%;
+    --background: 140 25% 84%;
+    --foreground: 150 30% 12%;
 
-    --card: 150 12% 94%;
-    --card-foreground: 160 25% 15%;
+    --card: 140 22% 89%;
+    --card-foreground: 150 30% 12%;
 
-    --popover: 150 12% 94%;
-    --popover-foreground: 160 25% 15%;
+    --popover: 140 22% 89%;
+    --popover-foreground: 150 30% 12%;
 
     --primary: 160 45% 35%;
-    --primary-foreground: 150 12% 98%;
+    --primary-foreground: 140 25% 98%;
 
-    --secondary: 150 12% 88%;
-    --secondary-foreground: 160 25% 15%;
+    --secondary: 140 20% 80%;
+    --secondary-foreground: 150 30% 12%;
 
-    --muted: 150 10% 85%;
-    --muted-foreground: 160 15% 40%;
+    --muted: 140 15% 78%;
+    --muted-foreground: 150 20% 35%;
 
-    --accent: 45 65% 50%;
-    --accent-foreground: 160 25% 15%;
+    --accent: 160 50% 38%;
+    --accent-foreground: 140 25% 98%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 150 12% 98%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 140 25% 98%;
 
-    --border: 150 12% 82%;
-    --input: 150 12% 82%;
+    --border: 140 18% 72%;
+    --input: 140 18% 75%;
     --ring: 160 45% 35%;
     
-    --glass-bg: hsla(150, 12%, 94%, 0.85);
-    --glass-border: hsla(160, 45%, 35%, 0.15);
-    --shadow-glow: 0 0 20px hsla(160, 45%, 35%, 0.2);
+    --glass-bg: hsla(140, 22%, 89%, 0.9);
+    --glass-border: hsla(160, 45%, 35%, 0.2);
+    --shadow-glow: 0 0 20px hsla(160, 45%, 35%, 0.15);
   }
 
-  /* Cream - Warm ivory, paper-like feel */
+  /* Cream - Warm sepia/parchment, cozy, reading-friendly */
   .cream {
-    --background: 40 35% 93%;
-    --foreground: 30 35% 15%;
+    --background: 35 40% 84%;
+    --foreground: 25 40% 12%;
 
-    --card: 40 35% 96%;
-    --card-foreground: 30 35% 15%;
+    --card: 35 35% 89%;
+    --card-foreground: 25 40% 12%;
 
-    --popover: 40 35% 96%;
-    --popover-foreground: 30 35% 15%;
+    --popover: 35 35% 89%;
+    --popover-foreground: 25 40% 12%;
 
-    --primary: 30 55% 40%;
-    --primary-foreground: 40 35% 98%;
+    --primary: 25 55% 40%;
+    --primary-foreground: 35 40% 98%;
 
-    --secondary: 40 30% 88%;
-    --secondary-foreground: 30 35% 15%;
+    --secondary: 35 30% 78%;
+    --secondary-foreground: 25 40% 12%;
 
-    --muted: 40 25% 85%;
-    --muted-foreground: 30 20% 40%;
+    --muted: 35 25% 76%;
+    --muted-foreground: 25 30% 35%;
 
-    --accent: 45 70% 50%;
-    --accent-foreground: 30 35% 15%;
+    --accent: 30 60% 45%;
+    --accent-foreground: 35 40% 98%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 40 35% 98%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 35 40% 98%;
 
-    --border: 40 25% 82%;
-    --input: 40 25% 82%;
-    --ring: 30 55% 40%;
+    --border: 35 25% 70%;
+    --input: 35 25% 73%;
+    --ring: 25 55% 40%;
     
-    --glass-bg: hsla(40, 35%, 96%, 0.85);
-    --glass-border: hsla(30, 55%, 40%, 0.15);
-    --shadow-glow: 0 0 20px hsla(30, 55%, 40%, 0.2);
+    --glass-bg: hsla(35, 35%, 89%, 0.9);
+    --glass-border: hsla(25, 55%, 40%, 0.2);
+    --shadow-glow: 0 0 20px hsla(25, 55%, 40%, 0.15);
   }
 
-  /* Lavender - Soft purple-gray, gentle, relaxing */
+  /* Lavender - Distinct purple tint, gentle, relaxing */
   .lavender {
-    --background: 270 18% 93%;
-    --foreground: 280 25% 15%;
+    --background: 260 30% 86%;
+    --foreground: 270 35% 12%;
 
-    --card: 270 18% 96%;
-    --card-foreground: 280 25% 15%;
+    --card: 260 25% 91%;
+    --card-foreground: 270 35% 12%;
 
-    --popover: 270 18% 96%;
-    --popover-foreground: 280 25% 15%;
+    --popover: 260 25% 91%;
+    --popover-foreground: 270 35% 12%;
 
-    --primary: 270 45% 50%;
-    --primary-foreground: 270 18% 98%;
+    --primary: 270 45% 48%;
+    --primary-foreground: 260 30% 98%;
 
-    --secondary: 270 15% 88%;
-    --secondary-foreground: 280 25% 15%;
+    --secondary: 260 22% 80%;
+    --secondary-foreground: 270 35% 12%;
 
-    --muted: 270 12% 85%;
-    --muted-foreground: 280 15% 40%;
+    --muted: 260 18% 78%;
+    --muted-foreground: 270 25% 35%;
 
-    --accent: 320 50% 55%;
-    --accent-foreground: 280 25% 15%;
+    --accent: 280 50% 52%;
+    --accent-foreground: 260 30% 98%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 270 18% 98%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 260 30% 98%;
 
-    --border: 270 15% 82%;
-    --input: 270 15% 82%;
-    --ring: 270 45% 50%;
+    --border: 260 20% 72%;
+    --input: 260 20% 75%;
+    --ring: 270 45% 48%;
     
-    --glass-bg: hsla(270, 18%, 96%, 0.85);
-    --glass-border: hsla(270, 45%, 50%, 0.15);
-    --shadow-glow: 0 0 20px hsla(270, 45%, 50%, 0.2);
+    --glass-bg: hsla(260, 25%, 91%, 0.9);
+    --glass-border: hsla(270, 45%, 48%, 0.2);
+    --shadow-glow: 0 0 20px hsla(270, 45%, 48%, 0.15);
   }
 
-  /* Ocean - Cool blue-gray, fresh, clean */
+  /* Ocean - Distinct blue tint, fresh, clean */
   .ocean {
-    --background: 200 18% 92%;
-    --foreground: 210 30% 15%;
+    --background: 200 35% 85%;
+    --foreground: 210 40% 12%;
 
-    --card: 200 18% 95%;
-    --card-foreground: 210 30% 15%;
+    --card: 200 30% 90%;
+    --card-foreground: 210 40% 12%;
 
-    --popover: 200 18% 95%;
-    --popover-foreground: 210 30% 15%;
+    --popover: 200 30% 90%;
+    --popover-foreground: 210 40% 12%;
 
     --primary: 200 55% 40%;
-    --primary-foreground: 200 18% 98%;
+    --primary-foreground: 200 35% 98%;
 
-    --secondary: 200 15% 88%;
-    --secondary-foreground: 210 30% 15%;
+    --secondary: 200 25% 78%;
+    --secondary-foreground: 210 40% 12%;
 
-    --muted: 200 12% 85%;
-    --muted-foreground: 210 20% 40%;
+    --muted: 200 20% 76%;
+    --muted-foreground: 210 30% 35%;
 
-    --accent: 180 50% 45%;
-    --accent-foreground: 210 30% 15%;
+    --accent: 190 55% 42%;
+    --accent-foreground: 200 35% 98%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 200 18% 98%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 200 35% 98%;
 
-    --border: 200 15% 82%;
-    --input: 200 15% 82%;
+    --border: 200 22% 70%;
+    --input: 200 22% 73%;
     --ring: 200 55% 40%;
     
-    --glass-bg: hsla(200, 18%, 95%, 0.85);
-    --glass-border: hsla(200, 55%, 40%, 0.15);
-    --shadow-glow: 0 0 20px hsla(200, 55%, 40%, 0.2);
+    --glass-bg: hsla(200, 30%, 90%, 0.9);
+    --glass-border: hsla(200, 55%, 40%, 0.2);
+    --shadow-glow: 0 0 20px hsla(200, 55%, 40%, 0.15);
   }
 
   /* Light class - fallback, uses Sage values */
   .light {
-    --background: 150 12% 91%;
-    --foreground: 160 25% 15%;
+    --background: 140 25% 84%;
+    --foreground: 150 30% 12%;
 
-    --card: 150 12% 94%;
-    --card-foreground: 160 25% 15%;
+    --card: 140 22% 89%;
+    --card-foreground: 150 30% 12%;
 
-    --popover: 150 12% 94%;
-    --popover-foreground: 160 25% 15%;
+    --popover: 140 22% 89%;
+    --popover-foreground: 150 30% 12%;
 
     --primary: 160 45% 35%;
-    --primary-foreground: 150 12% 98%;
+    --primary-foreground: 140 25% 98%;
 
-    --secondary: 150 12% 88%;
-    --secondary-foreground: 160 25% 15%;
+    --secondary: 140 20% 80%;
+    --secondary-foreground: 150 30% 12%;
 
-    --muted: 150 10% 85%;
-    --muted-foreground: 160 15% 40%;
+    --muted: 140 15% 78%;
+    --muted-foreground: 150 20% 35%;
 
-    --accent: 45 65% 50%;
-    --accent-foreground: 160 25% 15%;
+    --accent: 160 50% 38%;
+    --accent-foreground: 140 25% 98%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 150 12% 98%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 140 25% 98%;
 
-    --border: 150 12% 82%;
-    --input: 150 12% 82%;
+    --border: 140 18% 72%;
+    --input: 140 18% 75%;
     --ring: 160 45% 35%;
     
-    --glass-bg: hsla(150, 12%, 94%, 0.85);
-    --glass-border: hsla(160, 45%, 35%, 0.15);
-    --shadow-glow: 0 0 20px hsla(160, 45%, 35%, 0.2);
+    --glass-bg: hsla(140, 22%, 89%, 0.9);
+    --glass-border: hsla(160, 45%, 35%, 0.2);
+    --shadow-glow: 0 0 20px hsla(160, 45%, 35%, 0.15);
   }
 
   /* ========== DARK THEMES ========== */
+  /* All dark themes use Material Design recommended #121212 base or similar desaturated greys */
 
-  /* Midnight - Default tech look (existing dark) */
+  /* Midnight - Material Design recommended dark base with cyan accent */
   .midnight {
-    --background: 220 20% 10%;
-    --foreground: 0 0% 98%;
+    --background: 0 0% 7%;
+    --foreground: 0 0% 95%;
 
-    --card: 220 20% 12%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 220 20% 12%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 186 100% 50%;
-    --primary-foreground: 220 20% 10%;
+    --primary: 186 60% 50%;
+    --primary-foreground: 0 0% 7%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 0 0% 14%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 186 100% 50%;
-    --accent-foreground: 220 20% 10%;
+    --accent: 186 60% 50%;
+    --accent-foreground: 0 0% 7%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 55% 40%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 186 100% 50%;
+    --border: 0 0% 16%;
+    --input: 0 0% 16%;
+    --ring: 186 60% 50%;
     
-    --glass-bg: hsla(220, 20%, 12%, 0.8);
-    --glass-border: hsla(186, 100%, 50%, 0.2);
-    --shadow-glow: 0 0 20px hsla(186, 100%, 50%, 0.3);
+    --glass-bg: hsla(0, 0%, 10%, 0.85);
+    --glass-border: hsla(186, 60%, 50%, 0.2);
+    --shadow-glow: 0 0 20px hsla(186, 60%, 50%, 0.25);
   }
 
-  /* Forest - Dark green, nature, earthy */
-  .forest {
-    --background: 160 30% 8%;
-    --foreground: 150 15% 95%;
+  /* Slate - Calm blue-grey, professional, easy on eyes */
+  .slate {
+    --background: 215 20% 14%;
+    --foreground: 210 15% 93%;
 
-    --card: 160 28% 11%;
-    --card-foreground: 150 15% 95%;
+    --card: 215 18% 17%;
+    --card-foreground: 210 15% 93%;
 
-    --popover: 160 28% 11%;
-    --popover-foreground: 150 15% 95%;
+    --popover: 215 18% 17%;
+    --popover-foreground: 210 15% 93%;
 
-    --primary: 150 60% 45%;
-    --primary-foreground: 160 30% 8%;
+    --primary: 200 50% 55%;
+    --primary-foreground: 215 20% 10%;
 
-    --secondary: 160 25% 15%;
-    --secondary-foreground: 150 15% 95%;
+    --secondary: 215 15% 20%;
+    --secondary-foreground: 210 15% 93%;
 
-    --muted: 160 20% 15%;
-    --muted-foreground: 150 15% 60%;
+    --muted: 215 12% 20%;
+    --muted-foreground: 210 15% 58%;
 
-    --accent: 45 70% 50%;
-    --accent-foreground: 160 30% 8%;
+    --accent: 200 50% 55%;
+    --accent-foreground: 215 20% 10%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 150 15% 95%;
+    --destructive: 0 55% 40%;
+    --destructive-foreground: 210 15% 93%;
 
-    --border: 160 25% 15%;
-    --input: 160 25% 15%;
-    --ring: 150 60% 45%;
+    --border: 215 15% 22%;
+    --input: 215 15% 22%;
+    --ring: 200 50% 55%;
     
-    --glass-bg: hsla(160, 28%, 11%, 0.8);
-    --glass-border: hsla(150, 60%, 45%, 0.2);
-    --shadow-glow: 0 0 20px hsla(150, 60%, 45%, 0.3);
+    --glass-bg: hsla(215, 18%, 17%, 0.85);
+    --glass-border: hsla(200, 50%, 55%, 0.2);
+    --shadow-glow: 0 0 20px hsla(200, 50%, 55%, 0.25);
   }
 
-  /* Dusk - Deep purple, evening vibes */
-  .dusk {
-    --background: 280 25% 10%;
-    --foreground: 270 15% 95%;
+  /* Mocha - Warm brown-grey, cozy and restful */
+  .mocha {
+    --background: 20 12% 10%;
+    --foreground: 30 10% 92%;
 
-    --card: 280 23% 13%;
-    --card-foreground: 270 15% 95%;
+    --card: 20 10% 13%;
+    --card-foreground: 30 10% 92%;
 
-    --popover: 280 23% 13%;
-    --popover-foreground: 270 15% 95%;
+    --popover: 20 10% 13%;
+    --popover-foreground: 30 10% 92%;
 
-    --primary: 320 70% 55%;
-    --primary-foreground: 280 25% 10%;
+    --primary: 35 55% 52%;
+    --primary-foreground: 20 12% 8%;
 
-    --secondary: 280 20% 17%;
-    --secondary-foreground: 270 15% 95%;
+    --secondary: 20 8% 16%;
+    --secondary-foreground: 30 10% 92%;
 
-    --muted: 280 18% 17%;
-    --muted-foreground: 270 15% 60%;
+    --muted: 20 6% 16%;
+    --muted-foreground: 30 8% 55%;
 
-    --accent: 270 60% 60%;
-    --accent-foreground: 280 25% 10%;
+    --accent: 35 55% 52%;
+    --accent-foreground: 20 12% 8%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 270 15% 95%;
+    --destructive: 0 55% 40%;
+    --destructive-foreground: 30 10% 92%;
 
-    --border: 280 20% 17%;
-    --input: 280 20% 17%;
-    --ring: 320 70% 55%;
+    --border: 20 8% 18%;
+    --input: 20 8% 18%;
+    --ring: 35 55% 52%;
     
-    --glass-bg: hsla(280, 23%, 13%, 0.8);
-    --glass-border: hsla(320, 70%, 55%, 0.2);
-    --shadow-glow: 0 0 20px hsla(320, 70%, 55%, 0.3);
+    --glass-bg: hsla(20, 10%, 13%, 0.85);
+    --glass-border: hsla(35, 55%, 52%, 0.2);
+    --shadow-glow: 0 0 20px hsla(35, 55%, 52%, 0.25);
   }
 
   /* Carbon - True dark gray, minimal, neutral */

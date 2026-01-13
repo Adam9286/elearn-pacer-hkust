@@ -2,24 +2,24 @@ import { createContext, useContext, useEffect, useState } from "react";
 
 // All available themes
 export type Theme =
-  | "midnight" | "forest" | "dusk" | "carbon"  // Dark themes
+  | "midnight" | "slate" | "mocha" | "carbon"  // Dark themes
   | "sage" | "cream" | "lavender" | "ocean";    // Light themes
 
-export const darkThemes: Theme[] = ["midnight", "forest", "dusk", "carbon"];
+export const darkThemes: Theme[] = ["midnight", "slate", "mocha", "carbon"];
 export const lightThemes: Theme[] = ["sage", "cream", "lavender", "ocean"];
 
 export const themeConfig: Record<Theme, { name: string; bg: string; accent: string; isDark: boolean }> = {
-  // Light themes (soft, comfortable)
-  sage: { name: "Sage", bg: "#e8ede8", accent: "#4a9080", isDark: false },
-  cream: { name: "Cream", bg: "#f5f0e6", accent: "#c9a050", isDark: false },
-  lavender: { name: "Lavender", bg: "#ebe8f0", accent: "#8b6fad", isDark: false },
-  ocean: { name: "Ocean", bg: "#e6eef2", accent: "#4a90a5", isDark: false },
+  // Light themes (soft, comfortable - 86-88% lightness, distinct tints)
+  sage: { name: "Sage", bg: "#d4e0d4", accent: "#4a8066", isDark: false },
+  cream: { name: "Cream", bg: "#e8dcc8", accent: "#8b6b3d", isDark: false },
+  lavender: { name: "Lavender", bg: "#ddd6e8", accent: "#7a5a9e", isDark: false },
+  ocean: { name: "Ocean", bg: "#cddbe8", accent: "#3d7a9e", isDark: true },
   
-  // Dark themes (rich, comfortable)
-  midnight: { name: "Midnight", bg: "#141a24", accent: "#00ffff", isDark: true },
-  forest: { name: "Forest", bg: "#0f1a14", accent: "#34d399", isDark: true },
-  dusk: { name: "Dusk", bg: "#1a1420", accent: "#f472b6", isDark: true },
-  carbon: { name: "Carbon", bg: "#141414", accent: "#f97316", isDark: true },
+  // Dark themes (Material-recommended, desaturated for comfort)
+  midnight: { name: "Midnight", bg: "#121212", accent: "#4db6c9", isDark: true },
+  slate: { name: "Slate", bg: "#1e2530", accent: "#5a9ec9", isDark: true },
+  mocha: { name: "Mocha", bg: "#1a1614", accent: "#c9a05a", isDark: true },
+  carbon: { name: "Carbon", bg: "#171717", accent: "#d97a3d", isDark: true },
 };
 
 type ThemeProviderProps = {
@@ -44,6 +44,9 @@ export function ThemeProvider({
     // Migrate old theme values
     if (stored === "dark") return "midnight" as Theme;
     if (stored === "light") return "sage" as Theme;
+    // Migrate renamed themes
+    if (stored === "forest") return "slate" as Theme;
+    if (stored === "dusk") return "mocha" as Theme;
     // Check if stored value is a valid theme
     if (stored && stored in themeConfig) return stored as Theme;
     return defaultTheme;
