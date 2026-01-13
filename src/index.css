@@ -114,12 +114,12 @@ All colors MUST be HSL.
   /* ========== LIGHT THEMES ========== */
   /* All light themes use 84-87% lightness with distinct color tints for eye comfort */
   
-  /* Clean - Neutral off-white, minimal, distraction-free */
+  /* Clean - Light grey, minimal, distraction-free */
   .clean {
-    --background: 0 0% 96%;
+    --background: 0 0% 94%;           /* #F0F0F0 - light grey */
     --foreground: 0 0% 12%;
 
-    --card: 0 0% 98%;
+    --card: 0 0% 98%;                 /* #F9F9F9 - very light grey for cards */
     --card-foreground: 0 0% 12%;
 
     --popover: 0 0% 98%;
@@ -128,10 +128,10 @@ All colors MUST be HSL.
     --primary: 220 60% 50%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 92%;
+    --secondary: 0 0% 91%;            /* Slightly darker for contrast */
     --secondary-foreground: 0 0% 12%;
 
-    --muted: 0 0% 90%;
+    --muted: 0 0% 88%;                /* Darker muted areas */
     --muted-foreground: 0 0% 40%;
 
     --accent: 220 60% 50%;
@@ -140,8 +140,8 @@ All colors MUST be HSL.
     --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 85%;
-    --input: 0 0% 87%;
+    --border: 0 0% 83%;               /* More visible borders */
+    --input: 0 0% 85%;
     --ring: 220 60% 50%;
     
     --glass-bg: hsla(0, 0%, 98%, 0.9);
