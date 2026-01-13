@@ -7,13 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { externalSupabase } from "@/lib/externalSupabase";
 import { useUserProgress } from "@/contexts/UserProgressContext";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface Announcement {
   id: string;
@@ -59,8 +61,12 @@ const categoryColors: Record<string, string> = {
   other: "bg-gray-500/20 text-gray-400 border-gray-500/30",
 };
 
+type SectionType = 'announcements' | 'discussions' | 'feedback';
+
 const Community = () => {
   const { user, isAdmin } = useUserProgress();
+  const isMobile = useIsMobile();
+  const [activeSection, setActiveSection] = useState<SectionType>('announcements');
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
@@ -123,7 +129,6 @@ const Community = () => {
       .select("*")
       .order("created_at", { ascending: false });
     if (!error && data) {
-      // Fetch replies for each discussion
       const discussionsWithReplies = await Promise.all(
         data.map(async (d) => {
           const { data: replies } = await externalSupabase
@@ -266,6 +271,95 @@ const Community = () => {
     }
   };
 
+  // Navigation Item Component
+  const NavItem = ({ 
+    icon: Icon, 
+    label, 
+    badge, 
+    section 
+  }: { 
+    icon: React.ElementType; 
+    label: string; 
+    badge: number; 
+    section: SectionType;
+  }) => (
+    <button
+      onClick={() => setActiveSection(section)}
+      className={cn(
+        "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
+        "hover:bg-accent/10 group relative",
+        activeSection === section && "bg-accent/20"
+      )}
+    >
+      {/* Active indicator bar */}
+      <div className={cn(
+        "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full transition-all duration-200",
+        activeSection === section ? "bg-primary opacity-100" : "opacity-0"
+      )} />
+      
+      <div className={cn(
+        "p-2 rounded-lg transition-colors",
+        activeSection === section 
+          ? "bg-primary/20 text-primary" 
+          : "bg-muted/50 text-muted-foreground group-hover:bg-muted group-hover:text-foreground"
+      )}>
+        <Icon className="w-5 h-5" />
+      </div>
+      
+      <span className={cn(
+        "flex-1 text-left font-medium transition-colors",
+        activeSection === section ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+      )}>
+        {label}
+      </span>
+      
+      {badge > 0 && (
+        <Badge 
+          variant="secondary" 
+          className={cn(
+            "text-xs transition-all",
+            activeSection === section && "bg-primary/20 text-primary"
+          )}
+        >
+          {badge}
+        </Badge>
+      )}
+    </button>
+  );
+
+  // Mobile Tab Navigation
+  const MobileNav = () => (
+    <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+      {[
+        { section: 'announcements' as SectionType, icon: Megaphone, label: 'Announcements', count: announcements.length },
+        { section: 'discussions' as SectionType, icon: MessageCircle, label: 'Discussions', count: discussions.length },
+        { section: 'feedback' as SectionType, icon: Send, label: 'Feedback', count: feedbacks.length },
+      ].map(({ section, icon: Icon, label, count }) => (
+        <button
+          key={section}
+          onClick={() => setActiveSection(section)}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all",
+            activeSection === section 
+              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
+              : "bg-muted/50 text-muted-foreground hover:bg-muted"
+          )}
+        >
+          <Icon className="w-4 h-4" />
+          <span className="font-medium">{label}</span>
+          {count > 0 && (
+            <Badge 
+              variant={activeSection === section ? "secondary" : "outline"} 
+              className="text-xs ml-1"
+            >
+              {count}
+            </Badge>
+          )}
+        </button>
+      ))}
+    </div>
+  );
+
   if (!user) {
     return (
       <Card className="glass-card">
@@ -292,81 +386,101 @@ const Community = () => {
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <Tabs defaultValue="announcements" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
-          <TabsTrigger value="announcements" className="flex items-center gap-2">
-            <Megaphone className="w-4 h-4" />
-            Announcements
-          </TabsTrigger>
-          <TabsTrigger value="discussions" className="flex items-center gap-2">
-            <MessageCircle className="w-4 h-4" />
-            Discussions
-          </TabsTrigger>
-          <TabsTrigger value="feedback" className="flex items-center gap-2">
-            <Send className="w-4 h-4" />
-            Feedback
-          </TabsTrigger>
-        </TabsList>
+  // Announcements Timeline View
+  const AnnouncementsSection = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      {isAdmin && (
+        <Dialog open={newAnnouncementOpen} onOpenChange={setNewAnnouncementOpen}>
+          <DialogTrigger asChild>
+            <Button className="w-full gradient-primary">
+              <Plus className="w-4 h-4 mr-2" />
+              New Announcement
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Announcement</DialogTitle>
+              <DialogDescription>Post an announcement for all students.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <Input
+                placeholder="Announcement title"
+                value={announcementTitle}
+                onChange={(e) => setAnnouncementTitle(e.target.value)}
+              />
+              <Textarea
+                placeholder="Announcement content..."
+                value={announcementContent}
+                onChange={(e) => setAnnouncementContent(e.target.value)}
+                rows={4}
+              />
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={announcementPinned}
+                  onChange={(e) => setAnnouncementPinned(e.target.checked)}
+                  className="rounded"
+                />
+                Pin this announcement
+              </label>
+              <Button onClick={submitAnnouncement} className="w-full">
+                Post Announcement
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
-        {/* Announcements Tab */}
-        <TabsContent value="announcements" className="space-y-4">
-          {isAdmin && (
-            <Dialog open={newAnnouncementOpen} onOpenChange={setNewAnnouncementOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full gradient-primary">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Announcement
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create Announcement</DialogTitle>
-                  <DialogDescription>Post an announcement for all students.</DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 pt-4">
-                  <Input
-                    placeholder="Announcement title"
-                    value={announcementTitle}
-                    onChange={(e) => setAnnouncementTitle(e.target.value)}
-                  />
-                  <Textarea
-                    placeholder="Announcement content..."
-                    value={announcementContent}
-                    onChange={(e) => setAnnouncementContent(e.target.value)}
-                    rows={4}
-                  />
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={announcementPinned}
-                      onChange={(e) => setAnnouncementPinned(e.target.checked)}
-                      className="rounded"
-                    />
-                    Pin this announcement
-                  </label>
-                  <Button onClick={submitAnnouncement} className="w-full">
-                    Post Announcement
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          )}
-
-          {announcements.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No announcements yet.
-              </CardContent>
-            </Card>
-          ) : (
-            announcements.map((a) => (
-              <Card key={a.id} className={`glass-card ${a.pinned ? "border-accent/50" : ""}`}>
+      {announcements.length === 0 ? (
+        <Card className="glass-card">
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No announcements yet.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="relative pl-8">
+          {/* Timeline vertical line */}
+          <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-gradient-to-b from-primary/50 via-border to-transparent" />
+          
+          {announcements.map((a, index) => (
+            <motion.div 
+              key={a.id} 
+              className="relative mb-6 last:mb-0"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+            >
+              {/* Timeline dot */}
+              <div className={cn(
+                "absolute -left-5 top-4 w-4 h-4 rounded-full border-2 transition-all",
+                a.pinned 
+                  ? "bg-primary border-primary shadow-lg shadow-primary/50" 
+                  : "bg-background border-muted-foreground/50"
+              )}>
+                {a.pinned && (
+                  <div className="absolute inset-0 rounded-full bg-primary animate-ping opacity-25" />
+                )}
+              </div>
+              
+              <Card className={cn(
+                "glass-card ml-2 transition-all hover:shadow-lg",
+                a.pinned && "border-primary/30 shadow-primary/10"
+              )}>
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
-                      {a.pinned && <Pin className="w-4 h-4 text-accent" />}
+                      {a.pinned && (
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                          <Pin className="w-3 h-3 mr-1" />
+                          Pinned
+                        </Badge>
+                      )}
                       <CardTitle className="text-lg">{a.title}</CardTitle>
                     </div>
                     {isAdmin && (
@@ -383,93 +497,113 @@ const Community = () => {
                   <p className="text-sm whitespace-pre-wrap">{a.content}</p>
                 </CardContent>
               </Card>
-            ))
-          )}
-        </TabsContent>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
 
-        {/* Discussions Tab */}
-        <TabsContent value="discussions" className="space-y-4">
-          <Dialog open={newDiscussionOpen} onOpenChange={setNewDiscussionOpen}>
-            <DialogTrigger asChild>
-              <Button className="w-full gradient-primary">
-                <Plus className="w-4 h-4 mr-2" />
-                Start a Discussion
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Start a Discussion</DialogTitle>
-                <DialogDescription>Ask questions or start a conversation with other students.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <Input
-                  placeholder="Discussion title"
-                  value={discussionTitle}
-                  onChange={(e) => setDiscussionTitle(e.target.value)}
-                />
-                <Textarea
-                  placeholder="What's on your mind?"
-                  value={discussionContent}
-                  onChange={(e) => setDiscussionContent(e.target.value)}
-                  rows={4}
-                />
-                <div className="flex items-center space-x-2">
-                  <Checkbox 
-                    id="anonymous-discussion"
-                    checked={discussionAnonymous}
-                    onCheckedChange={(checked) => setDiscussionAnonymous(checked === true)}
-                  />
-                  <label 
-                    htmlFor="anonymous-discussion" 
-                    className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer"
-                  >
-                    <EyeOff className="w-4 h-4" />
-                    Post anonymously
-                  </label>
-                </div>
-                <Button onClick={submitDiscussion} className="w-full">
-                  Post Discussion
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+  // Discussions Section
+  const DiscussionsSection = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-4"
+    >
+      <Dialog open={newDiscussionOpen} onOpenChange={setNewDiscussionOpen}>
+        <DialogTrigger asChild>
+          <Button className="w-full gradient-primary">
+            <Plus className="w-4 h-4 mr-2" />
+            Start a Discussion
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start a Discussion</DialogTitle>
+            <DialogDescription>Ask questions or start a conversation with other students.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Input
+              placeholder="Discussion title"
+              value={discussionTitle}
+              onChange={(e) => setDiscussionTitle(e.target.value)}
+            />
+            <Textarea
+              placeholder="What's on your mind?"
+              value={discussionContent}
+              onChange={(e) => setDiscussionContent(e.target.value)}
+              rows={4}
+            />
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="anonymous-discussion"
+                checked={discussionAnonymous}
+                onCheckedChange={(checked) => setDiscussionAnonymous(checked === true)}
+              />
+              <label 
+                htmlFor="anonymous-discussion" 
+                className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer"
+              >
+                <EyeOff className="w-4 h-4" />
+                Post anonymously
+              </label>
+            </div>
+            <Button onClick={submitDiscussion} className="w-full">
+              Post Discussion
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-          {discussions.length === 0 ? (
-            <Card className="glass-card">
-              <CardContent className="py-8 text-center text-muted-foreground">
-                No discussions yet. Be the first to start one!
-              </CardContent>
-            </Card>
-          ) : (
-            discussions.map((d) => (
-              <Card key={d.id} className="glass-card">
+      {discussions.length === 0 ? (
+        <Card className="glass-card">
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No discussions yet. Be the first to start one!
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {discussions.map((d, index) => (
+            <motion.div
+              key={d.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className={cn(
+                expandedDiscussion === d.id && "md:col-span-2"
+              )}
+            >
+              <Card className="glass-card h-full transition-all hover:shadow-lg">
                 <Collapsible
                   open={expandedDiscussion === d.id}
                   onOpenChange={() => setExpandedDiscussion(expandedDiscussion === d.id ? null : d.id)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{d.title}</CardTitle>
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-lg truncate">{d.title}</CardTitle>
                         <CardDescription>
                           {getDisplayName(d.user_email, d.content)} •{" "}
                           {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         {d.user_id === user?.id && (
                           <Button variant="ghost" size="icon" onClick={() => deleteDiscussion(d.id)}>
                             <Trash2 className="w-4 h-4 text-destructive" />
                           </Button>
                         )}
                         <CollapsibleTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            <MessageCircle className="w-4 h-4 mr-1" />
-                            {d.replies?.length || 0}
+                          <Button variant="ghost" size="sm" className="gap-1">
+                            <MessageCircle className="w-4 h-4" />
+                            <span className="font-semibold">{d.replies?.length || 0}</span>
                             {expandedDiscussion === d.id ? (
-                              <ChevronUp className="w-4 h-4 ml-1" />
+                              <ChevronUp className="w-4 h-4" />
                             ) : (
-                              <ChevronDown className="w-4 h-4 ml-1" />
+                              <ChevronDown className="w-4 h-4" />
                             )}
                           </Button>
                         </CollapsibleTrigger>
@@ -477,7 +611,12 @@ const Community = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap mb-4">{getCleanContent(d.content)}</p>
+                    <p className={cn(
+                      "text-sm whitespace-pre-wrap mb-4",
+                      expandedDiscussion !== d.id && "line-clamp-2"
+                    )}>
+                      {getCleanContent(d.content)}
+                    </p>
                     <CollapsibleContent className="space-y-4">
                       <div className="border-t pt-4 space-y-3">
                         {d.replies?.map((r) => (
@@ -520,83 +659,100 @@ const Community = () => {
                   </CardContent>
                 </Collapsible>
               </Card>
-            ))
-          )}
-        </TabsContent>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
 
-        {/* Feedback Tab */}
-        <TabsContent value="feedback" className="space-y-6">
+  // Feedback Section
+  const FeedbackSection = () => (
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.2 }}
+      className="space-y-6"
+    >
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-lg">Submit Feedback</CardTitle>
+          <CardDescription>
+            Help us improve LearningPacer by sharing your thoughts, reporting bugs, or suggesting features.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Select value={feedbackCategory} onValueChange={setFeedbackCategory}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="platform">Platform</SelectItem>
+              <SelectItem value="course">Course Content</SelectItem>
+              <SelectItem value="bug">Bug Report</SelectItem>
+              <SelectItem value="feature">Feature Request</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder="Brief title for your feedback"
+            value={feedbackTitle}
+            onChange={(e) => setFeedbackTitle(e.target.value)}
+          />
+          <Textarea
+            placeholder="Describe your feedback in detail..."
+            value={feedbackContent}
+            onChange={(e) => setFeedbackContent(e.target.value)}
+            rows={4}
+          />
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="anonymous-feedback"
+              checked={feedbackAnonymous}
+              onCheckedChange={(checked) => setFeedbackAnonymous(checked === true)}
+            />
+            <label 
+              htmlFor="anonymous-feedback" 
+              className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer"
+            >
+              <EyeOff className="w-4 h-4" />
+              Submit anonymously
+            </label>
+          </div>
+          <Button onClick={submitFeedback} className="w-full gradient-primary">
+            <Send className="w-4 h-4 mr-2" />
+            Submit Feedback
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4">
+        <h3 className="text-lg font-semibold">Recent Feedback</h3>
+        {feedbacks.length === 0 ? (
           <Card className="glass-card">
-            <CardHeader>
-              <CardTitle className="text-lg">Submit Feedback</CardTitle>
-              <CardDescription>
-                Help us improve LearningPacer by sharing your thoughts, reporting bugs, or suggesting features.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Select value={feedbackCategory} onValueChange={setFeedbackCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="platform">Platform</SelectItem>
-                  <SelectItem value="course">Course Content</SelectItem>
-                  <SelectItem value="bug">Bug Report</SelectItem>
-                  <SelectItem value="feature">Feature Request</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                placeholder="Brief title for your feedback"
-                value={feedbackTitle}
-                onChange={(e) => setFeedbackTitle(e.target.value)}
-              />
-              <Textarea
-                placeholder="Describe your feedback in detail..."
-                value={feedbackContent}
-                onChange={(e) => setFeedbackContent(e.target.value)}
-                rows={4}
-              />
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="anonymous-feedback"
-                  checked={feedbackAnonymous}
-                  onCheckedChange={(checked) => setFeedbackAnonymous(checked === true)}
-                />
-                <label 
-                  htmlFor="anonymous-feedback" 
-                  className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer"
-                >
-                  <EyeOff className="w-4 h-4" />
-                  Submit anonymously
-                </label>
-              </div>
-              <Button onClick={submitFeedback} className="w-full gradient-primary">
-                <Send className="w-4 h-4 mr-2" />
-                Submit Feedback
-              </Button>
+            <CardContent className="py-8 text-center text-muted-foreground">
+              No feedback submitted yet.
             </CardContent>
           </Card>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Recent Feedback</h3>
-            {feedbacks.length === 0 ? (
-              <Card className="glass-card">
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No feedback submitted yet.
-                </CardContent>
-              </Card>
-            ) : (
-              feedbacks.map((f) => (
-                <Card key={f.id} className="glass-card">
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {feedbacks.map((f, index) => (
+              <motion.div
+                key={f.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="glass-card h-full transition-all hover:shadow-lg">
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <Badge variant="outline" className={categoryColors[f.category]}>
                             {f.category}
                           </Badge>
-                          <CardTitle className="text-base">{f.title}</CardTitle>
+                          <CardTitle className="text-base truncate">{f.title}</CardTitle>
                         </div>
                         <CardDescription>
                           {getDisplayName(f.user_email, f.content)} •{" "}
@@ -606,14 +762,66 @@ const Community = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{getCleanContent(f.content)}</p>
+                    <p className="text-sm whitespace-pre-wrap line-clamp-3">{getCleanContent(f.content)}</p>
                   </CardContent>
                 </Card>
-              ))
-            )}
+              </motion.div>
+            ))}
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </div>
+    </motion.div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {isMobile ? (
+        <>
+          <MobileNav />
+          <AnimatePresence mode="wait">
+            {activeSection === 'announcements' && <AnnouncementsSection key="announcements" />}
+            {activeSection === 'discussions' && <DiscussionsSection key="discussions" />}
+            {activeSection === 'feedback' && <FeedbackSection key="feedback" />}
+          </AnimatePresence>
+        </>
+      ) : (
+        <div className="flex gap-6">
+          {/* Vertical Sidebar Navigation */}
+          <div className="w-56 shrink-0 space-y-2">
+            <Card className="glass-card sticky top-4">
+              <CardContent className="p-3 space-y-1">
+                <NavItem 
+                  icon={Megaphone} 
+                  label="Announcements" 
+                  badge={announcements.length}
+                  section="announcements"
+                />
+                <NavItem 
+                  icon={MessageCircle} 
+                  label="Discussions" 
+                  badge={discussions.length}
+                  section="discussions"
+                />
+                <NavItem 
+                  icon={Send} 
+                  label="Feedback" 
+                  badge={feedbacks.length}
+                  section="feedback"
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Content Area */}
+          <div className="flex-1 min-w-0">
+            <AnimatePresence mode="wait">
+              {activeSection === 'announcements' && <AnnouncementsSection key="announcements" />}
+              {activeSection === 'discussions' && <DiscussionsSection key="discussions" />}
+              {activeSection === 'feedback' && <FeedbackSection key="feedback" />}
+            </AnimatePresence>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
