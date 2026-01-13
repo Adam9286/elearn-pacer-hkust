@@ -29,30 +29,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { externalSupabase } from "@/lib/externalSupabase";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-
-const LECTURE_TOPICS = [
-  "01-Introduction",
-  "02-Web",
-  "04-Video",
-  "05-Transport_Model",
-  "06-TCP_Basics",
-  "07-Congestion_Control",
-  "08-AdvancedCC",
-  "09-Queue",
-  "10-IP",
-  "11-BGP",
-  "12-BGP2",
-  "13-Internet",
-  "14-Local_Area_Network",
-  "15-LAN_Routing",
-  "16-Link_Layer_Challenge",
-  "17-Wireless_Network_updated",
-  "18-CDN",
-  "19-Datacenter",
-  "20-Security",
-  "21-Security2",
-  "22-Real_Time_Video",
-];
+import { WEBHOOKS } from "@/constants/api";
+import { LECTURE_TOPICS } from "@/data/examTopics";
 
 interface Question {
   id: number;
@@ -148,7 +126,7 @@ const MockExamMode = () => {
 
     try {
       // Call n8n webhook directly (bypasses edge functions)
-      const response = await fetch("https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator", {
+      const response = await fetch(WEBHOOKS.EXAM_GENERATOR, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

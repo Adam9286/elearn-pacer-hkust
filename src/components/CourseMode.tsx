@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Lock, CheckCircle, Circle, LogIn, Wrench, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { chapters } from "@/data/courseContent";
 import { motion } from "framer-motion";
+import { AnimatedParticles } from "@/components/ui/AnimatedParticles";
 
 const CourseMode = () => {
   const navigate = useNavigate();
@@ -117,29 +118,8 @@ const CourseMode = () => {
         transition={{ duration: 0.5 }}
       >
         <Card className="glass-card shadow-lg border-2 overflow-hidden relative">
-          {/* Animated background particles */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="absolute w-1 h-1 rounded-full bg-primary/20"
-                initial={{ 
-                  x: Math.random() * 100 + "%", 
-                  y: Math.random() * 100 + "%",
-                  scale: Math.random() * 0.5 + 0.5
-                }}
-                animate={{ 
-                  y: [null, "-20%"],
-                  opacity: [0.3, 0.8, 0.3]
-                }}
-                transition={{ 
-                  duration: Math.random() * 3 + 2,
-                  repeat: Infinity,
-                  delay: Math.random() * 2
-                }}
-              />
-            ))}
-          </div>
+          {/* Animated background particles - memoized for performance */}
+          <AnimatedParticles count={20} className="bg-primary/20" />
           
           <CardHeader className="relative z-10">
             <div className="flex items-center gap-2 mb-2">

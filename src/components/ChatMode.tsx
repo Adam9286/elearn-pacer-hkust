@@ -5,6 +5,7 @@ import { externalSupabase } from '@/lib/externalSupabase';
 import { useChatHistory, ChatMessage } from '@/hooks/useChatHistory';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
+import { WEBHOOKS } from '@/constants/api';
 
 const ChatMode = () => {
   const { toast } = useToast();
@@ -160,20 +161,17 @@ const ChatMode = () => {
 
     // Call n8n webhook for AI response
     try {
-      const response = await fetch(
-        'https://smellycat9286.app.n8n.cloud/webhook-test/638fa33f-5871-43b3-a34e-d318a2147001',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            query: content,
-            sessionId,
-            attachments: uploadedUrls,
-          }),
-        }
-      );
+      const response = await fetch(WEBHOOKS.CHAT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: content,
+          sessionId,
+          attachments: uploadedUrls,
+        }),
+      });
 
       const data = await response.json();
       const payload = data.body ?? data;

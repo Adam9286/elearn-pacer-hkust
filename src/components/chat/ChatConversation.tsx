@@ -12,6 +12,9 @@ import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMath } from '@/components/RenderMath';
 import { ChatMessage } from '@/hooks/useChatHistory';
 import { Link } from 'react-router-dom';
+import { WEBHOOKS } from '@/constants/api';
+import { validateFiles, validateImageFile } from '@/utils/fileValidation';
+import { UPLOAD_CONFIG, ALLOWED_TYPES_DISPLAY } from '@/constants/upload';
 
 interface LocalMessage {
   id: string;
@@ -93,27 +96,14 @@ export const ChatConversation = ({
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const maxSize = 20 * 1024 * 1024;
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'text/plain'];
+    const { validFiles, errors } = validateFiles(files);
 
-    const validFiles = files.filter((file) => {
-      if (file.size > maxSize) {
-        toast({
-          title: 'File too large',
-          description: `${file.name} exceeds 20MB limit`,
-          variant: 'destructive',
-        });
-        return false;
-      }
-      if (!allowedTypes.includes(file.type)) {
-        toast({
-          title: 'Invalid file type',
-          description: `${file.name} must be PDF, PNG, JPG, or TXT`,
-          variant: 'destructive',
-        });
-        return false;
-      }
-      return true;
+    errors.forEach((error) => {
+      toast({
+        title: 'Invalid file',
+        description: error,
+        variant: 'destructive',
+      });
     });
 
     setAttachments((prev) => [...prev, ...validFiles]);
@@ -144,27 +134,14 @@ export const ChatConversation = ({
     setIsDraggingOver(false);
 
     const files = Array.from(e.dataTransfer.files);
-    const maxSize = 20 * 1024 * 1024;
-    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'text/plain'];
+    const { validFiles, errors } = validateFiles(files);
 
-    const validFiles = files.filter((file) => {
-      if (file.size > maxSize) {
-        toast({
-          title: 'File too large',
-          description: `${file.name} exceeds 20MB limit`,
-          variant: 'destructive',
-        });
-        return false;
-      }
-      if (!allowedTypes.includes(file.type)) {
-        toast({
-          title: 'Invalid file type',
-          description: `${file.name} must be PDF, PNG, JPG, or TXT`,
-          variant: 'destructive',
-        });
-        return false;
-      }
-      return true;
+    errors.forEach((error) => {
+      toast({
+        title: 'Invalid file',
+        description: error,
+        variant: 'destructive',
+      });
     });
 
     setAttachments((prev) => [...prev, ...validFiles]);
@@ -180,27 +157,18 @@ export const ChatConversation = ({
     if (imageFiles.length === 0) return;
     e.preventDefault();
 
-    const maxSize = 20 * 1024 * 1024;
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg'];
-
-    const validFiles = imageFiles.filter((file) => {
-      if (file.size > maxSize) {
+    const validFiles: File[] = [];
+    imageFiles.forEach((file) => {
+      const result = validateImageFile(file);
+      if (result.valid) {
+        validFiles.push(file);
+      } else if (result.error) {
         toast({
-          title: 'Image too large',
-          description: 'Pasted image exceeds 20MB limit',
+          title: 'Invalid image',
+          description: result.error,
           variant: 'destructive',
         });
-        return false;
       }
-      if (!allowedTypes.includes(file.type)) {
-        toast({
-          title: 'Unsupported image format',
-          description: 'Only PNG and JPG images are supported',
-          variant: 'destructive',
-        });
-        return false;
-      }
-      return true;
     });
 
     if (validFiles.length > 0) {
@@ -284,20 +252,17 @@ export const ChatConversation = ({
         setLocalLoadingStage('Searching course materials');
         setEstimatedTime(10);
 
-        const response = await fetch(
-          'https://smellycat9286.app.n8n.cloud/webhook-test/638fa33f-5871-43b3-a34e-d318a2147001',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              query: userInput,
-              sessionId: `session_${Date.now()}`,
-              attachments: uploadedUrls,
-            }),
-          }
-        );
+        const response = await fetch(WEBHOOKS.CHAT, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            query: userInput,
+            sessionId: `session_${Date.now()}`,
+            attachments: uploadedUrls,
+          }),
+        });
 
         setLocalLoadingProgress(70);
         setLocalLoadingStage('Generating response');
