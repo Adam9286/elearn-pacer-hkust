@@ -64,11 +64,9 @@ export function ThemeProvider({
     // Add the current theme class
     root.classList.add(theme);
     
-    // Also add dark/light class for compatibility with existing styles
+    // Add dark class for dark themes (for compatibility with existing styles)
     if (isDarkTheme) {
       root.classList.add("dark");
-    } else {
-      root.classList.add("light");
     }
     
     localStorage.setItem("platform-theme", theme);
