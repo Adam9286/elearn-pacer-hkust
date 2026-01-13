@@ -9,14 +9,14 @@ export const darkThemes: Theme[] = ["midnight", "slate", "mocha", "carbon"];
 export const lightThemes: Theme[] = ["sage", "cream", "lavender", "ocean"];
 
 export const themeConfig: Record<Theme, { name: string; bg: string; accent: string; isDark: boolean }> = {
-  // Light themes (soft, comfortable - 86-88% lightness, distinct tints)
-  sage: { name: "Sage", bg: "#d4e0d4", accent: "#4a8066", isDark: false },
-  cream: { name: "Cream", bg: "#e8dcc8", accent: "#8b6b3d", isDark: false },
+  // Light themes (soft, comfortable - distinct tints for eye comfort)
+  sage: { name: "Sage", bg: "#c5d9c5", accent: "#3d7a52", isDark: false },
+  cream: { name: "Cream", bg: "#f0e4c8", accent: "#a67c3d", isDark: false },
   lavender: { name: "Lavender", bg: "#ddd6e8", accent: "#7a5a9e", isDark: false },
-  ocean: { name: "Ocean", bg: "#cddbe8", accent: "#3d7a9e", isDark: true },
+  ocean: { name: "Ocean", bg: "#cddbe8", accent: "#3d7a9e", isDark: false },
   
-  // Dark themes (Material-recommended, desaturated for comfort)
-  midnight: { name: "Midnight", bg: "#121212", accent: "#4db6c9", isDark: true },
+  // Dark themes (desaturated for eye comfort)
+  midnight: { name: "Midnight", bg: "#141a24", accent: "#00ffff", isDark: true },
   slate: { name: "Slate", bg: "#1e2530", accent: "#5a9ec9", isDark: true },
   mocha: { name: "Mocha", bg: "#1a1614", accent: "#c9a05a", isDark: true },
   carbon: { name: "Carbon", bg: "#171717", accent: "#d97a3d", isDark: true },
