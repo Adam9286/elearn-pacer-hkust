@@ -25,7 +25,7 @@ All colors MUST be HSL.
     --cyber-yellow: 60 100% 50%;
     
     /* Semantic Tokens - defaults to Clean theme light grey values */
-    --background: 0 0% 50%;           /* #F0F0F0 - light grey */
+    --background: 0 0% 94%;           /* #F0F0F0 - light grey */
     --foreground: 0 0% 12%;
 
     --card: 0 0% 98%;                 /* #F9F9F9 - slightly lighter for cards */
@@ -115,7 +115,7 @@ All colors MUST be HSL.
   /* All light themes use 84-87% lightness with distinct color tints for eye comfort */
   
   /* Clean - Light grey, minimal, distraction-free */
-  .clean {
+  :root.clean {
     --background: 0 0% 94%;           /* #F0F0F0 - light grey */
     --foreground: 0 0% 12%;
 
@@ -150,7 +150,7 @@ All colors MUST be HSL.
   }
 
   /* Cream - Warmer golden/ivory, cozy, reading-friendly */
-  .cream {
+  :root.cream {
     --background: 45 50% 86%;
     --foreground: 30 45% 12%;
 
@@ -185,7 +185,7 @@ All colors MUST be HSL.
   }
 
   /* Lavender - Distinct purple tint, gentle, relaxing */
-  .lavender {
+  :root.lavender {
     --background: 260 30% 86%;
     --foreground: 270 35% 12%;
 
@@ -220,7 +220,7 @@ All colors MUST be HSL.
   }
 
   /* Ocean - Distinct blue tint, fresh, clean */
-  .ocean {
+  :root.ocean {
     --background: 200 35% 85%;
     --foreground: 210 40% 12%;
 
@@ -255,7 +255,7 @@ All colors MUST be HSL.
   }
 
   /* Light class - fallback, matches Clean theme values */
-  .light {
+  :root.light {
     --background: 0 0% 94%;           /* #F0F0F0 - light grey */
     --foreground: 0 0% 12%;
 
@@ -293,7 +293,7 @@ All colors MUST be HSL.
   /* All dark themes use Material Design recommended #121212 base or similar desaturated greys */
 
   /* Midnight - Deep navy blue with cyan accent */
-  .midnight {
+  :root.midnight {
     --background: 220 25% 10%;
     --foreground: 210 20% 95%;
 
@@ -328,7 +328,7 @@ All colors MUST be HSL.
   }
 
   /* Slate - Calm blue-grey, professional, easy on eyes */
-  .slate {
+  :root.slate {
     --background: 215 20% 14%;
     --foreground: 210 15% 93%;
 
@@ -363,7 +363,7 @@ All colors MUST be HSL.
   }
 
   /* Mocha - Warm brown-grey, cozy and restful */
-  .mocha {
+  :root.mocha {
     --background: 20 12% 10%;
     --foreground: 30 10% 92%;
 
@@ -398,7 +398,7 @@ All colors MUST be HSL.
   }
 
   /* Carbon - True dark gray, minimal, neutral */
-  .carbon {
+  :root.carbon {
     --background: 0 0% 8%;
     --foreground: 0 0% 95%;
 
