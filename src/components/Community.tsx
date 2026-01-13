@@ -91,21 +91,11 @@ const Community = () => {
   const getCleanContent = (content: string) => 
     isAnonymousPost(content) ? content.replace('[ANON]', '') : content;
   
-  const getDisplayName = (
-    email: string | undefined, 
-    content: string, 
-    authorUserId: string
-  ) => {
-    const isAnon = isAnonymousPost(content);
-    const username = email?.split("@")[0] || "User";
-    
-    if (isAnon) {
-      if (authorUserId === user?.id) {
-        return `${username} (anonymous to others)`;
-      }
+  const getDisplayName = (email: string | undefined, content: string) => {
+    if (isAnonymousPost(content)) {
       return "Anonymous";
     }
-    return username;
+    return email?.split("@")[0] || "User";
   };
 
   useEffect(() => {
@@ -462,7 +452,7 @@ const Community = () => {
                       <div>
                         <CardTitle className="text-lg">{d.title}</CardTitle>
                         <CardDescription>
-                          {getDisplayName(d.user_email, d.content, d.user_id)} •{" "}
+                          {getDisplayName(d.user_email, d.content)} •{" "}
                           {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
                         </CardDescription>
                       </div>
@@ -494,7 +484,7 @@ const Community = () => {
                           <div key={r.id} className="bg-muted/30 rounded-lg p-3">
                             <p className="text-sm">{getCleanContent(r.content)}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {getDisplayName(r.user_email, r.content, r.user_id)} •{" "}
+                              {getDisplayName(r.user_email, r.content)} •{" "}
                               {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                             </p>
                           </div>
@@ -609,7 +599,7 @@ const Community = () => {
                           <CardTitle className="text-base">{f.title}</CardTitle>
                         </div>
                         <CardDescription>
-                          {getDisplayName(f.user_email, f.content, f.user_id)} •{" "}
+                          {getDisplayName(f.user_email, f.content)} •{" "}
                           {formatDistanceToNow(new Date(f.created_at), { addSuffix: true })}
                         </CardDescription>
                       </div>
