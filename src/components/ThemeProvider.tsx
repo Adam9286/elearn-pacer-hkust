@@ -10,7 +10,7 @@ export const lightThemes: Theme[] = ["clean", "cream", "lavender", "ocean"];
 
 export const themeConfig: Record<Theme, { name: string; bg: string; accent: string; isDark: boolean }> = {
   // Light themes (soft, comfortable - distinct tints for eye comfort)
-  clean: { name: "Clean", bg: "#f5f5f5", accent: "#3b82f6", isDark: false },
+  clean: { name: "Clean", bg: "#f0f0f0", accent: "#3b82f6", isDark: false },
   cream: { name: "Cream", bg: "#f0e4c8", accent: "#a67c3d", isDark: false },
   lavender: { name: "Lavender", bg: "#ddd6e8", accent: "#7a5a9e", isDark: false },
   ocean: { name: "Ocean", bg: "#cddbe8", accent: "#3d7a9e", isDark: false },
