@@ -24,34 +24,34 @@ All colors MUST be HSL.
     --neon-orange: 30 100% 55%;
     --cyber-yellow: 60 100% 50%;
     
-    /* Semantic Tokens */
-    --background: 0 0% 97%;
-    --foreground: 220 40% 15%;
+    /* Semantic Tokens - defaults to Clean theme light grey values */
+    --background: 0 0% 94%;           /* #F0F0F0 - light grey */
+    --foreground: 0 0% 12%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 40% 15%;
+    --card: 0 0% 98%;                 /* #F9F9F9 - slightly lighter for cards */
+    --card-foreground: 0 0% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 40% 15%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 12%;
 
-    --primary: 210 100% 35%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 220 60% 50%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 210 20% 95%;
-    --secondary-foreground: 220 40% 15%;
+    --secondary: 0 0% 91%;
+    --secondary-foreground: 0 0% 12%;
 
-    --muted: 210 15% 92%;
-    --muted-foreground: 220 15% 45%;
+    --muted: 0 0% 88%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 45 100% 50%;
-    --accent-foreground: 220 40% 15%;
+    --accent: 220 60% 50%;
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 65% 45%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 210 20% 88%;
-    --input: 210 20% 88%;
-    --ring: 210 100% 35%;
+    --border: 0 0% 83%;
+    --input: 0 0% 85%;
+    --ring: 220 60% 50%;
 
     --radius: 0.75rem;
 
@@ -254,12 +254,12 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 20px hsla(200, 55%, 40%, 0.15);
   }
 
-  /* Light class - fallback, uses Clean values */
+  /* Light class - fallback, matches Clean theme values */
   .light {
-    --background: 0 0% 96%;
+    --background: 0 0% 94%;           /* #F0F0F0 - light grey */
     --foreground: 0 0% 12%;
 
-    --card: 0 0% 98%;
+    --card: 0 0% 98%;                 /* #F9F9F9 */
     --card-foreground: 0 0% 12%;
 
     --popover: 0 0% 98%;
@@ -268,10 +268,10 @@ All colors MUST be HSL.
     --primary: 220 60% 50%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 0 0% 92%;
+    --secondary: 0 0% 91%;
     --secondary-foreground: 0 0% 12%;
 
-    --muted: 0 0% 90%;
+    --muted: 0 0% 88%;
     --muted-foreground: 0 0% 40%;
 
     --accent: 220 60% 50%;
@@ -280,8 +280,8 @@ All colors MUST be HSL.
     --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 0 0% 85%;
-    --input: 0 0% 87%;
+    --border: 0 0% 83%;
+    --input: 0 0% 85%;
     --ring: 220 60% 50%;
     
     --glass-bg: hsla(0, 0%, 98%, 0.9);
