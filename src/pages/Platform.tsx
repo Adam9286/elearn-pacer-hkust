@@ -47,7 +47,7 @@ const Index = () => {
   }, []);
 
   return (
-    <ThemeProvider defaultTheme="dark">
+    <ThemeProvider defaultTheme="midnight">
       <div className="min-h-screen bg-background">
       {/* Header with improved contrast */}
       <header className="bg-gradient-to-r from-navy/95 to-dark-void/95 dark:bg-gradient-to-r dark:from-navy/95 dark:to-dark-void/95 light:bg-white/95 light:border-b light:border-gray-200 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-white/10">
