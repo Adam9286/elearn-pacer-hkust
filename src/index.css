@@ -114,39 +114,39 @@ All colors MUST be HSL.
   /* ========== LIGHT THEMES ========== */
   /* All light themes use 84-87% lightness with distinct color tints for eye comfort */
   
-  /* Sage - Stronger green tint, calming, nature-inspired */
-  .sage {
-    --background: 140 35% 82%;
-    --foreground: 150 35% 12%;
+  /* Clean - Neutral off-white, minimal, distraction-free */
+  .clean {
+    --background: 0 0% 96%;
+    --foreground: 0 0% 12%;
 
-    --card: 140 30% 88%;
-    --card-foreground: 150 35% 12%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 12%;
 
-    --popover: 140 30% 88%;
-    --popover-foreground: 150 35% 12%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 12%;
 
-    --primary: 150 50% 35%;
-    --primary-foreground: 140 30% 98%;
+    --primary: 220 60% 50%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 140 28% 78%;
-    --secondary-foreground: 150 35% 12%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 12%;
 
-    --muted: 140 22% 75%;
-    --muted-foreground: 150 25% 35%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 150 55% 38%;
-    --accent-foreground: 140 30% 98%;
+    --accent: 220 60% 50%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 65% 45%;
-    --destructive-foreground: 140 30% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 140 25% 70%;
-    --input: 140 25% 72%;
-    --ring: 150 50% 35%;
+    --border: 0 0% 85%;
+    --input: 0 0% 87%;
+    --ring: 220 60% 50%;
     
-    --glass-bg: hsla(140, 30%, 88%, 0.9);
-    --glass-border: hsla(150, 50%, 35%, 0.2);
-    --shadow-glow: 0 0 20px hsla(150, 50%, 35%, 0.15);
+    --glass-bg: hsla(0, 0%, 98%, 0.9);
+    --glass-border: hsla(220, 60%, 50%, 0.2);
+    --shadow-glow: 0 0 20px hsla(220, 60%, 50%, 0.15);
   }
 
   /* Cream - Warmer golden/ivory, cozy, reading-friendly */
@@ -254,39 +254,39 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 20px hsla(200, 55%, 40%, 0.15);
   }
 
-  /* Light class - fallback, uses Sage values */
+  /* Light class - fallback, uses Clean values */
   .light {
-    --background: 140 25% 84%;
-    --foreground: 150 30% 12%;
+    --background: 0 0% 96%;
+    --foreground: 0 0% 12%;
 
-    --card: 140 22% 89%;
-    --card-foreground: 150 30% 12%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 12%;
 
-    --popover: 140 22% 89%;
-    --popover-foreground: 150 30% 12%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 0 0% 12%;
 
-    --primary: 160 45% 35%;
-    --primary-foreground: 140 25% 98%;
+    --primary: 220 60% 50%;
+    --primary-foreground: 0 0% 98%;
 
-    --secondary: 140 20% 80%;
-    --secondary-foreground: 150 30% 12%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 12%;
 
-    --muted: 140 15% 78%;
-    --muted-foreground: 150 20% 35%;
+    --muted: 0 0% 90%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 160 50% 38%;
-    --accent-foreground: 140 25% 98%;
+    --accent: 220 60% 50%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 65% 45%;
-    --destructive-foreground: 140 25% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 140 18% 72%;
-    --input: 140 18% 75%;
-    --ring: 160 45% 35%;
+    --border: 0 0% 85%;
+    --input: 0 0% 87%;
+    --ring: 220 60% 50%;
     
-    --glass-bg: hsla(140, 22%, 89%, 0.9);
-    --glass-border: hsla(160, 45%, 35%, 0.2);
-    --shadow-glow: 0 0 20px hsla(160, 45%, 35%, 0.15);
+    --glass-bg: hsla(0, 0%, 98%, 0.9);
+    --glass-border: hsla(220, 60%, 50%, 0.2);
+    --shadow-glow: 0 0 20px hsla(220, 60%, 50%, 0.15);
   }
 
   /* ========== DARK THEMES ========== */
@@ -443,7 +443,7 @@ All colors MUST be HSL.
   }
   
   /* Light theme glass cards - use semantic tokens */
-  .sage .glass-card,
+  .clean .glass-card,
   .cream .glass-card,
   .lavender .glass-card,
   .ocean .glass-card {

@@ -3,14 +3,14 @@ import { createContext, useContext, useEffect, useState } from "react";
 // All available themes
 export type Theme =
   | "midnight" | "slate" | "mocha" | "carbon"  // Dark themes
-  | "sage" | "cream" | "lavender" | "ocean";    // Light themes
+  | "clean" | "cream" | "lavender" | "ocean";    // Light themes
 
 export const darkThemes: Theme[] = ["midnight", "slate", "mocha", "carbon"];
-export const lightThemes: Theme[] = ["sage", "cream", "lavender", "ocean"];
+export const lightThemes: Theme[] = ["clean", "cream", "lavender", "ocean"];
 
 export const themeConfig: Record<Theme, { name: string; bg: string; accent: string; isDark: boolean }> = {
   // Light themes (soft, comfortable - distinct tints for eye comfort)
-  sage: { name: "Sage", bg: "#c5d9c5", accent: "#3d7a52", isDark: false },
+  clean: { name: "Clean", bg: "#f5f5f5", accent: "#3b82f6", isDark: false },
   cream: { name: "Cream", bg: "#f0e4c8", accent: "#a67c3d", isDark: false },
   lavender: { name: "Lavender", bg: "#ddd6e8", accent: "#7a5a9e", isDark: false },
   ocean: { name: "Ocean", bg: "#cddbe8", accent: "#3d7a9e", isDark: false },
@@ -43,10 +43,11 @@ export function ThemeProvider({
     const stored = localStorage.getItem("platform-theme");
     // Migrate old theme values
     if (stored === "dark") return "midnight" as Theme;
-    if (stored === "light") return "sage" as Theme;
+    if (stored === "light") return "clean" as Theme;
     // Migrate renamed themes
     if (stored === "forest") return "slate" as Theme;
     if (stored === "dusk") return "mocha" as Theme;
+    if (stored === "sage") return "clean" as Theme;
     // Check if stored value is a valid theme
     if (stored && stored in themeConfig) return stored as Theme;
     return defaultTheme;
