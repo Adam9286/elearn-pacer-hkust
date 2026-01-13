@@ -304,6 +304,16 @@ const Community = () => {
     }
   };
 
+  const deleteFeedback = async (id: string) => {
+    const { error } = await externalSupabase.from("feedback").delete().eq("id", id);
+    if (!error) {
+      toast.success("Feedback deleted");
+      fetchFeedbacks();
+    } else {
+      toast.error("Failed to delete feedback");
+    }
+  };
+
   // Navigation Item Component
   const NavItem = ({ 
     icon: Icon, 
@@ -774,7 +784,7 @@ const Community = () => {
               >
                 <Card className="glass-card h-full transition-all hover:shadow-lg">
                   <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <Badge variant="outline" className={categoryColors[f.category]}>
@@ -787,6 +797,16 @@ const Community = () => {
                           {formatDistanceToNow(new Date(f.created_at), { addSuffix: true })}
                         </CardDescription>
                       </div>
+                      {(f.user_id === user?.id || isAdmin) && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => deleteFeedback(f.id)}
+                          className="shrink-0 h-8 w-8 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent>
