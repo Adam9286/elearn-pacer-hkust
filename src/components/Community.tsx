@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MessageSquare, Send, Megaphone, MessageCircle, Plus, ChevronDown, ChevronUp, Trash2, Pin, Eye, EyeOff } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { NavItem, SectionType } from "@/components/community/NavItem";
 
 interface Announcement {
   id: string;
@@ -61,7 +62,7 @@ const categoryColors: Record<string, string> = {
   other: "bg-gray-500/20 text-gray-400 border-gray-500/30",
 };
 
-type SectionType = 'announcements' | 'discussions' | 'feedback';
+// SectionType is now imported from NavItem component
 
 const Community = () => {
   const { user, isAdmin } = useUserProgress();
@@ -314,55 +315,7 @@ const Community = () => {
     }
   };
 
-  // Navigation Item Component
-  const NavItem = ({ 
-    icon: Icon, 
-    label, 
-    section 
-  }: { 
-    icon: React.ElementType; 
-    label: string; 
-    section: SectionType;
-  }) => {
-    const unreadCount = getUnreadCount(section);
-    
-    return (
-      <button
-        onClick={() => handleSectionClick(section)}
-        className={cn(
-          "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
-          "hover:bg-accent/10 group relative",
-          activeSection === section && "bg-accent/20"
-        )}
-      >
-        {/* Active indicator bar */}
-        <div className={cn(
-          "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full transition-all duration-200",
-          activeSection === section ? "bg-primary opacity-100" : "opacity-0"
-        )} />
-        
-        <div className={cn(
-          "p-2 rounded-lg transition-colors relative",
-          activeSection === section 
-            ? "bg-primary/20 text-primary" 
-            : "bg-muted/50 text-muted-foreground group-hover:bg-muted group-hover:text-foreground"
-        )}>
-          <Icon className="w-5 h-5" />
-          {/* Notification dot */}
-          {unreadCount > 0 && activeSection !== section && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full animate-pulse" />
-          )}
-        </div>
-        
-        <span className={cn(
-          "flex-1 text-left font-medium transition-colors",
-          activeSection === section ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
-        )}>
-          {label}
-        </span>
-      </button>
-    );
-  };
+  // NavItem is now imported from @/components/community/NavItem
 
   // Mobile Tab Navigation
   const MobileNav = () => (
@@ -842,16 +795,25 @@ const Community = () => {
                   icon={Megaphone} 
                   label="Announcements" 
                   section="announcements"
+                  activeSection={activeSection}
+                  unreadCount={getUnreadCount('announcements')}
+                  onSectionClick={handleSectionClick}
                 />
                 <NavItem 
                   icon={MessageCircle} 
                   label="Discussions" 
                   section="discussions"
+                  activeSection={activeSection}
+                  unreadCount={getUnreadCount('discussions')}
+                  onSectionClick={handleSectionClick}
                 />
                 <NavItem 
                   icon={Send} 
                   label="Feedback" 
                   section="feedback"
+                  activeSection={activeSection}
+                  unreadCount={getUnreadCount('feedback')}
+                  onSectionClick={handleSectionClick}
                 />
               </CardContent>
             </Card>
