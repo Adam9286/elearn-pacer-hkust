@@ -73,6 +73,16 @@ const Community = () => {
   const [loading, setLoading] = useState(true);
   const [expandedDiscussion, setExpandedDiscussion] = useState<string | null>(null);
 
+  // Last seen timestamps for notification badges
+  const [lastSeen, setLastSeen] = useState<Record<SectionType, string>>(() => {
+    const saved = localStorage.getItem('community_last_seen');
+    return saved ? JSON.parse(saved) : {
+      announcements: new Date(0).toISOString(),
+      discussions: new Date(0).toISOString(),
+      feedback: new Date(0).toISOString(),
+    };
+  });
+
   // Form states
   const [newDiscussionOpen, setNewDiscussionOpen] = useState(false);
   const [newAnnouncementOpen, setNewAnnouncementOpen] = useState(false);
@@ -90,6 +100,29 @@ const Community = () => {
   const [discussionAnonymous, setDiscussionAnonymous] = useState(false);
   const [feedbackAnonymous, setFeedbackAnonymous] = useState(false);
   const [replyAnonymous, setReplyAnonymous] = useState<Record<string, boolean>>({});
+
+  // Calculate unread count for a section
+  const getUnreadCount = (section: SectionType): number => {
+    const lastSeenDate = new Date(lastSeen[section]);
+    switch (section) {
+      case 'announcements':
+        return announcements.filter(a => new Date(a.created_at) > lastSeenDate).length;
+      case 'discussions':
+        return discussions.filter(d => new Date(d.created_at) > lastSeenDate).length;
+      case 'feedback':
+        return feedbacks.filter(f => new Date(f.created_at) > lastSeenDate).length;
+      default:
+        return 0;
+    }
+  };
+
+  // Handle section click - mark as seen
+  const handleSectionClick = (section: SectionType) => {
+    setActiveSection(section);
+    const updated = { ...lastSeen, [section]: new Date().toISOString() };
+    setLastSeen(updated);
+    localStorage.setItem('community_last_seen', JSON.stringify(updated));
+  };
 
   // Helper functions for anonymous posting
   const isAnonymousPost = (content: string) => content.startsWith('[ANON]');
@@ -275,88 +308,83 @@ const Community = () => {
   const NavItem = ({ 
     icon: Icon, 
     label, 
-    badge, 
     section 
   }: { 
     icon: React.ElementType; 
     label: string; 
-    badge: number; 
     section: SectionType;
-  }) => (
-    <button
-      onClick={() => setActiveSection(section)}
-      className={cn(
-        "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
-        "hover:bg-accent/10 group relative",
-        activeSection === section && "bg-accent/20"
-      )}
-    >
-      {/* Active indicator bar */}
-      <div className={cn(
-        "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full transition-all duration-200",
-        activeSection === section ? "bg-primary opacity-100" : "opacity-0"
-      )} />
-      
-      <div className={cn(
-        "p-2 rounded-lg transition-colors",
-        activeSection === section 
-          ? "bg-primary/20 text-primary" 
-          : "bg-muted/50 text-muted-foreground group-hover:bg-muted group-hover:text-foreground"
-      )}>
-        <Icon className="w-5 h-5" />
-      </div>
-      
-      <span className={cn(
-        "flex-1 text-left font-medium transition-colors",
-        activeSection === section ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
-      )}>
-        {label}
-      </span>
-      
-      {badge > 0 && (
-        <Badge 
-          variant="secondary" 
-          className={cn(
-            "text-xs transition-all",
-            activeSection === section && "bg-primary/20 text-primary"
+  }) => {
+    const unreadCount = getUnreadCount(section);
+    
+    return (
+      <button
+        onClick={() => handleSectionClick(section)}
+        className={cn(
+          "w-full flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
+          "hover:bg-accent/10 group relative",
+          activeSection === section && "bg-accent/20"
+        )}
+      >
+        {/* Active indicator bar */}
+        <div className={cn(
+          "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-r-full transition-all duration-200",
+          activeSection === section ? "bg-primary opacity-100" : "opacity-0"
+        )} />
+        
+        <div className={cn(
+          "p-2 rounded-lg transition-colors relative",
+          activeSection === section 
+            ? "bg-primary/20 text-primary" 
+            : "bg-muted/50 text-muted-foreground group-hover:bg-muted group-hover:text-foreground"
+        )}>
+          <Icon className="w-5 h-5" />
+          {/* Notification dot */}
+          {unreadCount > 0 && activeSection !== section && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-destructive rounded-full animate-pulse" />
           )}
-        >
-          {badge}
-        </Badge>
-      )}
-    </button>
-  );
+        </div>
+        
+        <span className={cn(
+          "flex-1 text-left font-medium transition-colors",
+          activeSection === section ? "text-foreground" : "text-muted-foreground group-hover:text-foreground"
+        )}>
+          {label}
+        </span>
+      </button>
+    );
+  };
 
   // Mobile Tab Navigation
   const MobileNav = () => (
     <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
       {[
-        { section: 'announcements' as SectionType, icon: Megaphone, label: 'Announcements', count: announcements.length },
-        { section: 'discussions' as SectionType, icon: MessageCircle, label: 'Discussions', count: discussions.length },
-        { section: 'feedback' as SectionType, icon: Send, label: 'Feedback', count: feedbacks.length },
-      ].map(({ section, icon: Icon, label, count }) => (
-        <button
-          key={section}
-          onClick={() => setActiveSection(section)}
-          className={cn(
-            "flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all",
-            activeSection === section 
-              ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
-              : "bg-muted/50 text-muted-foreground hover:bg-muted"
-          )}
-        >
-          <Icon className="w-4 h-4" />
-          <span className="font-medium">{label}</span>
-          {count > 0 && (
-            <Badge 
-              variant={activeSection === section ? "secondary" : "outline"} 
-              className="text-xs ml-1"
-            >
-              {count}
-            </Badge>
-          )}
-        </button>
-      ))}
+        { section: 'announcements' as SectionType, icon: Megaphone, label: 'Announcements' },
+        { section: 'discussions' as SectionType, icon: MessageCircle, label: 'Discussions' },
+        { section: 'feedback' as SectionType, icon: Send, label: 'Feedback' },
+      ].map(({ section, icon: Icon, label }) => {
+        const unreadCount = getUnreadCount(section);
+        return (
+          <button
+            key={section}
+            onClick={() => handleSectionClick(section)}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all relative",
+              activeSection === section 
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25" 
+                : "bg-muted/50 text-muted-foreground hover:bg-muted"
+            )}
+          >
+            <div className="relative">
+              <Icon className="w-4 h-4" />
+              {/* Notification dot */}
+              {unreadCount > 0 && activeSection !== section && (
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full animate-pulse" />
+              )}
+            </div>
+            <span className="font-medium">{label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -793,19 +821,16 @@ const Community = () => {
                 <NavItem 
                   icon={Megaphone} 
                   label="Announcements" 
-                  badge={announcements.length}
                   section="announcements"
                 />
                 <NavItem 
                   icon={MessageCircle} 
                   label="Discussions" 
-                  badge={discussions.length}
                   section="discussions"
                 />
                 <NavItem 
                   icon={Send} 
                   label="Feedback" 
-                  badge={feedbacks.length}
                   section="feedback"
                 />
               </CardContent>
