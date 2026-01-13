@@ -65,8 +65,6 @@ const ChatMode = () => {
 
   // Loading state for AI response
   const [isWaitingForAI, setIsWaitingForAI] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingStage, setLoadingStage] = useState('');
 
   // Handle sending a message
   const handleSendMessage = async (content: string, attachments: File[]) => {
@@ -91,8 +89,6 @@ const ChatMode = () => {
 
     // Initialize loading state
     setIsWaitingForAI(true);
-    setLoadingProgress(0);
-    setLoadingStage('Uploading files');
 
     // Upload attachments to Lovable Cloud storage
     const uploadedUrls: string[] = [];
@@ -125,9 +121,6 @@ const ChatMode = () => {
         type: file.type,
       });
     }
-
-    setLoadingProgress(15);
-    setLoadingStage('Understanding question');
 
     // Save user message to database
     const userMessage = await saveMessage(conversationId, {
@@ -165,9 +158,6 @@ const ChatMode = () => {
       created_at: new Date().toISOString(),
     });
 
-    setLoadingProgress(30);
-    setLoadingStage('Searching course materials');
-
     // Call n8n webhook for AI response
     try {
       const response = await fetch(
@@ -185,16 +175,10 @@ const ChatMode = () => {
         }
       );
 
-      setLoadingProgress(70);
-      setLoadingStage('Generating response');
-
       const data = await response.json();
       const payload = data.body ?? data;
       const output = payload.output ?? "I received your question and I'm processing it.";
       const source = payload.source_document ?? payload.source;
-
-      setLoadingProgress(90);
-      setLoadingStage('Finalizing answer');
 
       // Save AI response to database
       const aiMessage = await saveMessage(conversationId, {
@@ -225,8 +209,6 @@ const ChatMode = () => {
       }
     } finally {
       setIsWaitingForAI(false);
-      setLoadingProgress(0);
-      setLoadingStage('');
     }
   };
 
@@ -254,9 +236,7 @@ const ChatMode = () => {
           messages={messages}
           isLoadingMessages={isLoadingMessages}
           isAuthenticated={isAuthenticated}
-          isWaitingForAI={isWaitingForAI}
-          loadingProgress={loadingProgress}
-          loadingStage={loadingStage}
+            isWaitingForAI={isWaitingForAI}
           onSendMessage={handleSendMessage}
         />
       </div>

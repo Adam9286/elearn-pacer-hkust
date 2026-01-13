@@ -1,97 +1,175 @@
-import { motion } from "framer-motion";
-import { Brain, Upload, Search, FileText, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Brain, Search, FileText, Sparkles, Lightbulb } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface AIThinkingIndicatorProps {
-  progress: number;
-  stage: string;
-  estimatedTime: number;
+  isActive: boolean;
 }
 
 const stages = [
-  { icon: Upload, label: "Uploading files", range: [0, 20] },
-  { icon: Brain, label: "Understanding question", range: [20, 40] },
-  { icon: Search, label: "Searching course materials", range: [40, 70] },
-  { icon: FileText, label: "Generating response", range: [70, 90] },
-  { icon: Sparkles, label: "Finalizing answer", range: [90, 100] },
+  { icon: Brain, label: "Thinking..." },
+  { icon: Search, label: "Searching course materials" },
+  { icon: FileText, label: "Reading relevant content" },
+  { icon: Sparkles, label: "Crafting response" },
 ];
 
-export const AIThinkingIndicator = ({ progress, stage, estimatedTime }: AIThinkingIndicatorProps) => {
-  const currentStageIndex = stages.findIndex(s => s.label === stage);
-  const CurrentIcon = stages[currentStageIndex]?.icon || Brain;
+const tips = [
+  "Looking through your course materials...",
+  "Checking lecture notes and slides...",
+  "Finding the most relevant information...",
+  "Almost there, putting it together...",
+];
+
+export const AIThinkingIndicator = ({ isActive }: AIThinkingIndicatorProps) => {
+  const [stageIndex, setStageIndex] = useState(0);
+  const [tipIndex, setTipIndex] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Cycle through stages every 4 seconds
+  useEffect(() => {
+    if (!isActive) {
+      setStageIndex(0);
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const stageInterval = setInterval(() => {
+      setStageIndex((prev) => (prev + 1) % stages.length);
+    }, 4000);
+
+    return () => clearInterval(stageInterval);
+  }, [isActive]);
+
+  // Cycle through tips every 5 seconds
+  useEffect(() => {
+    if (!isActive) {
+      setTipIndex(0);
+      return;
+    }
+
+    const tipInterval = setInterval(() => {
+      setTipIndex((prev) => (prev + 1) % tips.length);
+    }, 5000);
+
+    return () => clearInterval(tipInterval);
+  }, [isActive]);
+
+  // Elapsed time counter
+  useEffect(() => {
+    if (!isActive) {
+      setElapsedSeconds(0);
+      return;
+    }
+
+    const timeInterval = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(timeInterval);
+  }, [isActive]);
+
+  if (!isActive) return null;
+
+  const CurrentIcon = stages[stageIndex].icon;
 
   return (
-    <div className="space-y-3">
-      {/* Animated dots sequence */}
-      <div className="flex items-center gap-2">
-        {stages.map((s, idx) => {
-          const isActive = idx === currentStageIndex;
-          const isComplete = idx < currentStageIndex;
-          
-          return (
+    <div className="space-y-3 py-2">
+      {/* Brain icon with bouncing dots */}
+      <div className="flex items-center gap-3">
+        <motion.div
+          animate={{ 
+            scale: [1, 1.1, 1],
+            rotate: [0, 5, -5, 0]
+          }}
+          transition={{ 
+            duration: 2, 
+            repeat: Infinity, 
+            ease: "easeInOut" 
+          }}
+          className="text-electric-cyan"
+        >
+          <Brain className="w-5 h-5" />
+        </motion.div>
+        
+        {/* Bouncing dots */}
+        <div className="flex items-center gap-1">
+          {[0, 1, 2].map((i) => (
             <motion.div
-              key={idx}
+              key={i}
               animate={{
-                scale: isActive ? [1, 1.3, 1] : 1,
-                opacity: isComplete ? 1 : isActive ? 1 : 0.3,
+                y: [0, -6, 0],
               }}
               transition={{
                 duration: 0.6,
-                repeat: isActive ? Infinity : 0,
+                repeat: Infinity,
+                delay: i * 0.15,
                 ease: "easeInOut",
               }}
-              className={`w-2 h-2 rounded-full ${
-                isComplete
-                  ? "bg-electric-cyan glow-cyan"
-                  : isActive
-                  ? "bg-gradient-to-r from-electric-cyan to-neon-purple"
-                  : "bg-gray-400/30"
-              }`}
+              className="w-2 h-2 rounded-full bg-gradient-to-r from-electric-cyan to-neon-purple"
             />
-          );
-        })}
+          ))}
+        </div>
       </div>
 
-      {/* Progress percentage and stage */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      {/* Animated stage label */}
+      <div className="flex items-center gap-2 min-h-[24px]">
+        <AnimatePresence mode="wait">
           <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            key={stageIndex}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 10 }}
+            transition={{ duration: 0.3 }}
+            className="flex items-center gap-2"
           >
             <CurrentIcon className="w-4 h-4 text-electric-cyan" />
+            <span className="text-sm font-medium text-foreground">
+              {stages[stageIndex].label}
+            </span>
           </motion.div>
-          <span className="text-sm font-medium text-foreground">{stage}...</span>
-        </div>
-        <motion.span
-          key={progress}
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="text-lg font-bold text-electric-cyan tracking-wider"
-        >
-          {progress}%
-        </motion.span>
+        </AnimatePresence>
       </div>
 
-      {/* Progress bar */}
+      {/* Indeterminate shimmer progress bar */}
       <div className="relative h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <motion.div
-          className="absolute inset-y-0 left-0 bg-gradient-to-r from-electric-cyan via-neon-purple to-electric-cyan animate-shimmer"
-          initial={{ width: "0%" }}
-          animate={{ width: `${progress}%` }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-electric-cyan to-transparent"
+          animate={{
+            x: ["-100%", "400%"],
+          }}
+          transition={{
+            duration: 1.5,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
         />
       </div>
 
-      {/* Time estimate */}
-      {estimatedTime > 0 && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-xs text-muted-foreground italic text-center"
-        >
-          ~{estimatedTime} seconds remaining
-        </motion.p>
-      )}
+      {/* Rotating tip */}
+      <div className="flex items-start gap-2 min-h-[20px]">
+        <Lightbulb className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={tipIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-xs text-muted-foreground italic"
+          >
+            {tips[tipIndex]}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      {/* Elapsed time */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-xs text-muted-foreground text-center"
+      >
+        Thinking for {elapsedSeconds}s
+      </motion.p>
     </div>
   );
 };
