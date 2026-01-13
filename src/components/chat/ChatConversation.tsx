@@ -30,8 +30,6 @@ interface ChatConversationProps {
   isLoadingMessages: boolean;
   isAuthenticated: boolean;
   isWaitingForAI?: boolean;
-  loadingProgress?: number;
-  loadingStage?: string;
   onSendMessage: (
     content: string,
     attachments: File[]
@@ -50,8 +48,6 @@ export const ChatConversation = ({
   isLoadingMessages,
   isAuthenticated,
   isWaitingForAI = false,
-  loadingProgress: parentLoadingProgress = 0,
-  loadingStage: parentLoadingStage = '',
   onSendMessage,
 }: ChatConversationProps) => {
   const { toast } = useToast();
@@ -66,9 +62,8 @@ export const ChatConversation = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Use parent loading state for authenticated users, local for non-authenticated
-  const activeLoadingProgress = isAuthenticated ? parentLoadingProgress : localLoadingProgress;
-  const activeLoadingStage = isAuthenticated ? parentLoadingStage : localLoadingStage;
+  // Determine active loading state based on auth
+  const activeIsWaitingForAI = isAuthenticated ? isWaitingForAI : isLoading;
 
   // Local messages for non-authenticated users or during loading
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([WELCOME_MESSAGE]);
@@ -94,7 +89,7 @@ export const ChatConversation = ({
         }, 50);
       }
     }
-  }, [displayMessages, isWaitingForAI, isLoading]);
+  }, [displayMessages, activeIsWaitingForAI]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -437,11 +432,7 @@ export const ChatConversation = ({
                       }`}
                     >
                       {message.content === "I received your question and I'm processing it…" ? (
-                        <AIThinkingIndicator
-                          progress={activeLoadingProgress}
-                          stage={activeLoadingStage}
-                          estimatedTime={estimatedTime}
-                        />
+                        <AIThinkingIndicator isActive={true} />
                       ) : (
                         <div className="text-sm leading-relaxed whitespace-pre-wrap">
                           <RenderMath text={message.content} />
