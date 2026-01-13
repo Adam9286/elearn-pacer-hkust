@@ -56,10 +56,17 @@ const ChatMode = () => {
     deleteMultipleConversations,
     deleteAllConversations,
     saveMessage,
+    addMessageLocally,
+    removeMessageLocally,
     switchConversation,
     startNewChat,
     setActiveConversationId,
   } = useChatHistory(userId);
+
+  // Loading state for AI response
+  const [isWaitingForAI, setIsWaitingForAI] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [loadingStage, setLoadingStage] = useState('');
 
   // Handle sending a message
   const handleSendMessage = async (content: string, attachments: File[]) => {
@@ -81,6 +88,11 @@ const ChatMode = () => {
       }
       setActiveConversationId(conversationId);
     }
+
+    // Initialize loading state
+    setIsWaitingForAI(true);
+    setLoadingProgress(0);
+    setLoadingStage('Uploading files');
 
     // Upload attachments to Lovable Cloud storage
     const uploadedUrls: string[] = [];
@@ -114,6 +126,9 @@ const ChatMode = () => {
       });
     }
 
+    setLoadingProgress(15);
+    setLoadingStage('Understanding question');
+
     // Save user message to database
     const userMessage = await saveMessage(conversationId, {
       role: 'user',
@@ -127,14 +142,31 @@ const ChatMode = () => {
         description: 'Failed to save message',
         variant: 'destructive',
       });
+      setIsWaitingForAI(false);
       return;
     }
+
+    // Show user message immediately in UI
+    addMessageLocally(userMessage);
 
     // Update conversation title from first user message
     if (isFirstMessage && content) {
       const title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
       await updateConversationTitle(conversationId, title);
     }
+
+    // Add loading message placeholder
+    const loadingMessageId = `loading_${Date.now()}`;
+    addMessageLocally({
+      id: loadingMessageId,
+      conversation_id: conversationId,
+      role: 'assistant',
+      content: "I received your question and I'm processing it…",
+      created_at: new Date().toISOString(),
+    });
+
+    setLoadingProgress(30);
+    setLoadingStage('Searching course materials');
 
     // Call n8n webhook for AI response
     try {
@@ -153,31 +185,48 @@ const ChatMode = () => {
         }
       );
 
+      setLoadingProgress(70);
+      setLoadingStage('Generating response');
+
       const data = await response.json();
       const payload = data.body ?? data;
       const output = payload.output ?? "I received your question and I'm processing it.";
       const source = payload.source_document ?? payload.source;
 
+      setLoadingProgress(90);
+      setLoadingStage('Finalizing answer');
+
       // Save AI response to database
-      await saveMessage(conversationId, {
+      const aiMessage = await saveMessage(conversationId, {
         role: 'assistant',
         content: output,
         source: source,
       });
 
-      // Refresh messages
-      await switchConversation(conversationId);
+      // Remove loading message and add real AI response
+      removeMessageLocally(loadingMessageId);
+      if (aiMessage) {
+        addMessageLocally(aiMessage);
+      }
     } catch (error) {
       console.error('Error calling n8n webhook:', error);
       
       // Save error message
-      await saveMessage(conversationId, {
+      const errorMessage = await saveMessage(conversationId, {
         role: 'assistant',
         content:
           "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.",
       });
 
-      await switchConversation(conversationId);
+      // Remove loading message and add error response
+      removeMessageLocally(loadingMessageId);
+      if (errorMessage) {
+        addMessageLocally(errorMessage);
+      }
+    } finally {
+      setIsWaitingForAI(false);
+      setLoadingProgress(0);
+      setLoadingStage('');
     }
   };
 
@@ -205,6 +254,9 @@ const ChatMode = () => {
           messages={messages}
           isLoadingMessages={isLoadingMessages}
           isAuthenticated={isAuthenticated}
+          isWaitingForAI={isWaitingForAI}
+          loadingProgress={loadingProgress}
+          loadingStage={loadingStage}
           onSendMessage={handleSendMessage}
         />
       </div>

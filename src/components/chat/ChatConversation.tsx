@@ -29,6 +29,9 @@ interface ChatConversationProps {
   messages: ChatMessage[];
   isLoadingMessages: boolean;
   isAuthenticated: boolean;
+  isWaitingForAI?: boolean;
+  loadingProgress?: number;
+  loadingStage?: string;
   onSendMessage: (
     content: string,
     attachments: File[]
@@ -46,6 +49,9 @@ export const ChatConversation = ({
   messages,
   isLoadingMessages,
   isAuthenticated,
+  isWaitingForAI = false,
+  loadingProgress: parentLoadingProgress = 0,
+  loadingStage: parentLoadingStage = '',
   onSendMessage,
 }: ChatConversationProps) => {
   const { toast } = useToast();
@@ -53,12 +59,16 @@ export const ChatConversation = ({
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [loadingProgress, setLoadingProgress] = useState(0);
-  const [loadingStage, setLoadingStage] = useState('');
+  const [localLoadingProgress, setLocalLoadingProgress] = useState(0);
+  const [localLoadingStage, setLocalLoadingStage] = useState('');
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [newMessageId, setNewMessageId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Use parent loading state for authenticated users, local for non-authenticated
+  const activeLoadingProgress = isAuthenticated ? parentLoadingProgress : localLoadingProgress;
+  const activeLoadingStage = isAuthenticated ? parentLoadingStage : localLoadingStage;
 
   // Local messages for non-authenticated users or during loading
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([WELCOME_MESSAGE]);
@@ -74,15 +84,17 @@ export const ChatConversation = ({
       }))
     : localMessages;
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change or loading state changes
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        setTimeout(() => {
+          scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        }, 50);
       }
     }
-  }, [displayMessages]);
+  }, [displayMessages, isWaitingForAI, isLoading]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -230,8 +242,8 @@ export const ChatConversation = ({
       setIsLoading(true);
 
       // Initialize progress tracking
-      setLoadingProgress(0);
-      setLoadingStage('Uploading files');
+      setLocalLoadingProgress(0);
+      setLocalLoadingStage('Uploading files');
       setEstimatedTime(15);
 
       const loadingMessage: LocalMessage = {
@@ -268,13 +280,13 @@ export const ChatConversation = ({
           uploadedUrls.push(urlData.publicUrl);
         }
 
-        setLoadingProgress(20);
-        setLoadingStage('Understanding question');
+        setLocalLoadingProgress(20);
+        setLocalLoadingStage('Understanding question');
         setEstimatedTime(12);
 
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        setLoadingProgress(40);
-        setLoadingStage('Searching course materials');
+        setLocalLoadingProgress(40);
+        setLocalLoadingStage('Searching course materials');
         setEstimatedTime(10);
 
         const response = await fetch(
@@ -292,14 +304,14 @@ export const ChatConversation = ({
           }
         );
 
-        setLoadingProgress(70);
-        setLoadingStage('Generating response');
+        setLocalLoadingProgress(70);
+        setLocalLoadingStage('Generating response');
         setEstimatedTime(5);
 
         const data = await response.json();
 
-        setLoadingProgress(90);
-        setLoadingStage('Finalizing answer');
+        setLocalLoadingProgress(90);
+        setLocalLoadingStage('Finalizing answer');
         setEstimatedTime(2);
 
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -426,8 +438,8 @@ export const ChatConversation = ({
                     >
                       {message.content === "I received your question and I'm processing it…" ? (
                         <AIThinkingIndicator
-                          progress={loadingProgress}
-                          stage={loadingStage}
+                          progress={activeLoadingProgress}
+                          stage={activeLoadingStage}
                           estimatedTime={estimatedTime}
                         />
                       ) : (
