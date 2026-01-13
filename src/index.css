@@ -111,39 +111,323 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 20px hsla(221.2, 83.2%, 53.3%, 0.4);
   }
 
+  /* ========== LIGHT THEMES ========== */
+  
+  /* Sage - Warm gray-green, calming, nature-inspired */
+  .sage {
+    --background: 150 12% 91%;
+    --foreground: 160 25% 15%;
+
+    --card: 150 12% 94%;
+    --card-foreground: 160 25% 15%;
+
+    --popover: 150 12% 94%;
+    --popover-foreground: 160 25% 15%;
+
+    --primary: 160 45% 35%;
+    --primary-foreground: 150 12% 98%;
+
+    --secondary: 150 12% 88%;
+    --secondary-foreground: 160 25% 15%;
+
+    --muted: 150 10% 85%;
+    --muted-foreground: 160 15% 40%;
+
+    --accent: 45 65% 50%;
+    --accent-foreground: 160 25% 15%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 150 12% 98%;
+
+    --border: 150 12% 82%;
+    --input: 150 12% 82%;
+    --ring: 160 45% 35%;
+    
+    --glass-bg: hsla(150, 12%, 94%, 0.85);
+    --glass-border: hsla(160, 45%, 35%, 0.15);
+    --shadow-glow: 0 0 20px hsla(160, 45%, 35%, 0.2);
+  }
+
+  /* Cream - Warm ivory, paper-like feel */
+  .cream {
+    --background: 40 35% 93%;
+    --foreground: 30 35% 15%;
+
+    --card: 40 35% 96%;
+    --card-foreground: 30 35% 15%;
+
+    --popover: 40 35% 96%;
+    --popover-foreground: 30 35% 15%;
+
+    --primary: 30 55% 40%;
+    --primary-foreground: 40 35% 98%;
+
+    --secondary: 40 30% 88%;
+    --secondary-foreground: 30 35% 15%;
+
+    --muted: 40 25% 85%;
+    --muted-foreground: 30 20% 40%;
+
+    --accent: 45 70% 50%;
+    --accent-foreground: 30 35% 15%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 40 35% 98%;
+
+    --border: 40 25% 82%;
+    --input: 40 25% 82%;
+    --ring: 30 55% 40%;
+    
+    --glass-bg: hsla(40, 35%, 96%, 0.85);
+    --glass-border: hsla(30, 55%, 40%, 0.15);
+    --shadow-glow: 0 0 20px hsla(30, 55%, 40%, 0.2);
+  }
+
+  /* Lavender - Soft purple-gray, gentle, relaxing */
+  .lavender {
+    --background: 270 18% 93%;
+    --foreground: 280 25% 15%;
+
+    --card: 270 18% 96%;
+    --card-foreground: 280 25% 15%;
+
+    --popover: 270 18% 96%;
+    --popover-foreground: 280 25% 15%;
+
+    --primary: 270 45% 50%;
+    --primary-foreground: 270 18% 98%;
+
+    --secondary: 270 15% 88%;
+    --secondary-foreground: 280 25% 15%;
+
+    --muted: 270 12% 85%;
+    --muted-foreground: 280 15% 40%;
+
+    --accent: 320 50% 55%;
+    --accent-foreground: 280 25% 15%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 270 18% 98%;
+
+    --border: 270 15% 82%;
+    --input: 270 15% 82%;
+    --ring: 270 45% 50%;
+    
+    --glass-bg: hsla(270, 18%, 96%, 0.85);
+    --glass-border: hsla(270, 45%, 50%, 0.15);
+    --shadow-glow: 0 0 20px hsla(270, 45%, 50%, 0.2);
+  }
+
+  /* Ocean - Cool blue-gray, fresh, clean */
+  .ocean {
+    --background: 200 18% 92%;
+    --foreground: 210 30% 15%;
+
+    --card: 200 18% 95%;
+    --card-foreground: 210 30% 15%;
+
+    --popover: 200 18% 95%;
+    --popover-foreground: 210 30% 15%;
+
+    --primary: 200 55% 40%;
+    --primary-foreground: 200 18% 98%;
+
+    --secondary: 200 15% 88%;
+    --secondary-foreground: 210 30% 15%;
+
+    --muted: 200 12% 85%;
+    --muted-foreground: 210 20% 40%;
+
+    --accent: 180 50% 45%;
+    --accent-foreground: 210 30% 15%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 200 18% 98%;
+
+    --border: 200 15% 82%;
+    --input: 200 15% 82%;
+    --ring: 200 55% 40%;
+    
+    --glass-bg: hsla(200, 18%, 95%, 0.85);
+    --glass-border: hsla(200, 55%, 40%, 0.15);
+    --shadow-glow: 0 0 20px hsla(200, 55%, 40%, 0.2);
+  }
+
+  /* Light class - fallback, uses Sage values */
   .light {
-    --background: 210 40% 98%;
-    --foreground: 222.2 47.4% 11.2%;
+    --background: 150 12% 91%;
+    --foreground: 160 25% 15%;
 
-    --card: 210 40% 96%;
-    --card-foreground: 222.2 47.4% 11.2%;
+    --card: 150 12% 94%;
+    --card-foreground: 160 25% 15%;
 
-    --popover: 210 40% 96%;
-    --popover-foreground: 222.2 47.4% 11.2%;
+    --popover: 150 12% 94%;
+    --popover-foreground: 160 25% 15%;
 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 160 45% 35%;
+    --primary-foreground: 150 12% 98%;
 
-    --secondary: 210 40% 94%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 150 12% 88%;
+    --secondary-foreground: 160 25% 15%;
 
-    --muted: 210 40% 92%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 150 10% 85%;
+    --muted-foreground: 160 15% 40%;
 
-    --accent: 45 95% 55%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 65% 50%;
+    --accent-foreground: 160 25% 15%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 150 12% 98%;
 
-    --border: 214.3 31.8% 88%;
-    --input: 214.3 31.8% 88%;
-    --ring: 221.2 83.2% 53.3%;
+    --border: 150 12% 82%;
+    --input: 150 12% 82%;
+    --ring: 160 45% 35%;
     
-    --glass-bg: hsla(210, 40%, 98%, 0.8);
-    --glass-border: hsla(221.2, 83.2%, 53.3%, 0.15);
+    --glass-bg: hsla(150, 12%, 94%, 0.85);
+    --glass-border: hsla(160, 45%, 35%, 0.15);
+    --shadow-glow: 0 0 20px hsla(160, 45%, 35%, 0.2);
+  }
+
+  /* ========== DARK THEMES ========== */
+
+  /* Midnight - Default tech look (existing dark) */
+  .midnight {
+    --background: 220 20% 10%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 20% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 220 20% 12%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 186 100% 50%;
+    --primary-foreground: 220 20% 10%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+
+    --accent: 186 100% 50%;
+    --accent-foreground: 220 20% 10%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 186 100% 50%;
     
-    --shadow-glow: 0 0 20px hsla(221.2, 83.2%, 53.3%, 0.25);
+    --glass-bg: hsla(220, 20%, 12%, 0.8);
+    --glass-border: hsla(186, 100%, 50%, 0.2);
+    --shadow-glow: 0 0 20px hsla(186, 100%, 50%, 0.3);
+  }
+
+  /* Forest - Dark green, nature, earthy */
+  .forest {
+    --background: 160 30% 8%;
+    --foreground: 150 15% 95%;
+
+    --card: 160 28% 11%;
+    --card-foreground: 150 15% 95%;
+
+    --popover: 160 28% 11%;
+    --popover-foreground: 150 15% 95%;
+
+    --primary: 150 60% 45%;
+    --primary-foreground: 160 30% 8%;
+
+    --secondary: 160 25% 15%;
+    --secondary-foreground: 150 15% 95%;
+
+    --muted: 160 20% 15%;
+    --muted-foreground: 150 15% 60%;
+
+    --accent: 45 70% 50%;
+    --accent-foreground: 160 30% 8%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 150 15% 95%;
+
+    --border: 160 25% 15%;
+    --input: 160 25% 15%;
+    --ring: 150 60% 45%;
+    
+    --glass-bg: hsla(160, 28%, 11%, 0.8);
+    --glass-border: hsla(150, 60%, 45%, 0.2);
+    --shadow-glow: 0 0 20px hsla(150, 60%, 45%, 0.3);
+  }
+
+  /* Dusk - Deep purple, evening vibes */
+  .dusk {
+    --background: 280 25% 10%;
+    --foreground: 270 15% 95%;
+
+    --card: 280 23% 13%;
+    --card-foreground: 270 15% 95%;
+
+    --popover: 280 23% 13%;
+    --popover-foreground: 270 15% 95%;
+
+    --primary: 320 70% 55%;
+    --primary-foreground: 280 25% 10%;
+
+    --secondary: 280 20% 17%;
+    --secondary-foreground: 270 15% 95%;
+
+    --muted: 280 18% 17%;
+    --muted-foreground: 270 15% 60%;
+
+    --accent: 270 60% 60%;
+    --accent-foreground: 280 25% 10%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 270 15% 95%;
+
+    --border: 280 20% 17%;
+    --input: 280 20% 17%;
+    --ring: 320 70% 55%;
+    
+    --glass-bg: hsla(280, 23%, 13%, 0.8);
+    --glass-border: hsla(320, 70%, 55%, 0.2);
+    --shadow-glow: 0 0 20px hsla(320, 70%, 55%, 0.3);
+  }
+
+  /* Carbon - True dark gray, minimal, neutral */
+  .carbon {
+    --background: 0 0% 8%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 11%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 11%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 25 80% 50%;
+    --primary-foreground: 0 0% 8%;
+
+    --secondary: 0 0% 15%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 25 80% 50%;
+    --accent-foreground: 0 0% 8%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 95%;
+
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 25 80% 50%;
+    
+    --glass-bg: hsla(0, 0%, 11%, 0.8);
+    --glass-border: hsla(25, 80%, 50%, 0.2);
+    --shadow-glow: 0 0 20px hsla(25, 80%, 50%, 0.3);
   }
 }
 
