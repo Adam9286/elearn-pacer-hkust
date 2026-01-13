@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { MessageSquare, Send, Megaphone, MessageCircle, Plus, ChevronDown, ChevronUp, Trash2, Pin } from "lucide-react";
+import { MessageSquare, Send, Megaphone, MessageCircle, Plus, ChevronDown, ChevronUp, Trash2, Pin, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +43,7 @@ interface Reply {
 
 interface Feedback {
   id: string;
+  user_id: string;
   user_email: string;
   category: string;
   title: string;
@@ -77,6 +79,34 @@ const Community = () => {
   const [feedbackContent, setFeedbackContent] = useState("");
   const [feedbackCategory, setFeedbackCategory] = useState<string>("");
   const [replyContent, setReplyContent] = useState<Record<string, string>>({});
+  
+  // Anonymous posting states
+  const [discussionAnonymous, setDiscussionAnonymous] = useState(false);
+  const [feedbackAnonymous, setFeedbackAnonymous] = useState(false);
+  const [replyAnonymous, setReplyAnonymous] = useState<Record<string, boolean>>({});
+
+  // Helper functions for anonymous posting
+  const isAnonymousPost = (content: string) => content.startsWith('[ANON]');
+  
+  const getCleanContent = (content: string) => 
+    isAnonymousPost(content) ? content.replace('[ANON]', '') : content;
+  
+  const getDisplayName = (
+    email: string | undefined, 
+    content: string, 
+    authorUserId: string
+  ) => {
+    const isAnon = isAnonymousPost(content);
+    const username = email?.split("@")[0] || "User";
+    
+    if (isAnon) {
+      if (authorUserId === user?.id) {
+        return `${username} (anonymous to others)`;
+      }
+      return "Anonymous";
+    }
+    return username;
+  };
 
   useEffect(() => {
     fetchAll();
@@ -131,11 +161,15 @@ const Community = () => {
       toast.error("Please fill in all fields");
       return;
     }
+    const contentToSave = discussionAnonymous 
+      ? `[ANON]${discussionContent}` 
+      : discussionContent;
+      
     const { error } = await externalSupabase.from("discussions").insert({
       user_id: user.id,
       user_email: user.email,
       title: discussionTitle,
-      content: discussionContent,
+      content: contentToSave,
     });
     if (error) {
       toast.error("Failed to post discussion");
@@ -143,6 +177,7 @@ const Community = () => {
       toast.success("Discussion posted!");
       setDiscussionTitle("");
       setDiscussionContent("");
+      setDiscussionAnonymous(false);
       setNewDiscussionOpen(false);
       fetchDiscussions();
     }
@@ -153,17 +188,23 @@ const Community = () => {
       toast.error("Please enter a reply");
       return;
     }
+    const isAnon = replyAnonymous[discussionId] || false;
+    const contentToSave = isAnon 
+      ? `[ANON]${replyContent[discussionId]}` 
+      : replyContent[discussionId];
+      
     const { error } = await externalSupabase.from("discussion_replies").insert({
       discussion_id: discussionId,
       user_id: user.id,
       user_email: user.email,
-      content: replyContent[discussionId],
+      content: contentToSave,
     });
     if (error) {
       toast.error("Failed to post reply");
     } else {
       toast.success("Reply posted!");
       setReplyContent((prev) => ({ ...prev, [discussionId]: "" }));
+      setReplyAnonymous((prev) => ({ ...prev, [discussionId]: false }));
       fetchDiscussions();
     }
   };
@@ -173,12 +214,16 @@ const Community = () => {
       toast.error("Please fill in all fields");
       return;
     }
+    const contentToSave = feedbackAnonymous 
+      ? `[ANON]${feedbackContent}` 
+      : feedbackContent;
+      
     const { error } = await externalSupabase.from("feedback").insert({
       user_id: user.id,
       user_email: user.email,
       category: feedbackCategory,
       title: feedbackTitle,
-      content: feedbackContent,
+      content: contentToSave,
     });
     if (error) {
       toast.error("Failed to submit feedback");
@@ -187,6 +232,7 @@ const Community = () => {
       setFeedbackTitle("");
       setFeedbackContent("");
       setFeedbackCategory("");
+      setFeedbackAnonymous(false);
       fetchFeedbacks();
     }
   };
@@ -377,6 +423,20 @@ const Community = () => {
                   onChange={(e) => setDiscussionContent(e.target.value)}
                   rows={4}
                 />
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="anonymous-discussion"
+                    checked={discussionAnonymous}
+                    onCheckedChange={(checked) => setDiscussionAnonymous(checked === true)}
+                  />
+                  <label 
+                    htmlFor="anonymous-discussion" 
+                    className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer"
+                  >
+                    <EyeOff className="w-4 h-4" />
+                    Post anonymously
+                  </label>
+                </div>
                 <Button onClick={submitDiscussion} className="w-full">
                   Post Discussion
                 </Button>
@@ -402,7 +462,7 @@ const Community = () => {
                       <div>
                         <CardTitle className="text-lg">{d.title}</CardTitle>
                         <CardDescription>
-                          {d.user_email?.split("@")[0]} •{" "}
+                          {getDisplayName(d.user_email, d.content, d.user_id)} •{" "}
                           {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
                         </CardDescription>
                       </div>
@@ -427,19 +487,19 @@ const Community = () => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap mb-4">{d.content}</p>
+                    <p className="text-sm whitespace-pre-wrap mb-4">{getCleanContent(d.content)}</p>
                     <CollapsibleContent className="space-y-4">
                       <div className="border-t pt-4 space-y-3">
                         {d.replies?.map((r) => (
                           <div key={r.id} className="bg-muted/30 rounded-lg p-3">
-                            <p className="text-sm">{r.content}</p>
+                            <p className="text-sm">{getCleanContent(r.content)}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {r.user_email?.split("@")[0]} •{" "}
+                              {getDisplayName(r.user_email, r.content, r.user_id)} •{" "}
                               {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
                             </p>
                           </div>
                         ))}
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 items-center">
                           <Input
                             placeholder="Write a reply..."
                             value={replyContent[d.id] || ""}
@@ -447,7 +507,20 @@ const Community = () => {
                               setReplyContent((prev) => ({ ...prev, [d.id]: e.target.value }))
                             }
                             onKeyDown={(e) => e.key === "Enter" && submitReply(d.id)}
+                            className="flex-1"
                           />
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setReplyAnonymous(prev => ({ 
+                              ...prev, 
+                              [d.id]: !prev[d.id] 
+                            }))}
+                            className={replyAnonymous[d.id] ? "text-primary" : "text-muted-foreground"}
+                            title={replyAnonymous[d.id] ? "Posting anonymously" : "Posting with your name"}
+                          >
+                            {replyAnonymous[d.id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </Button>
                           <Button size="icon" onClick={() => submitReply(d.id)}>
                             <Send className="w-4 h-4" />
                           </Button>
@@ -494,6 +567,20 @@ const Community = () => {
                 onChange={(e) => setFeedbackContent(e.target.value)}
                 rows={4}
               />
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="anonymous-feedback"
+                  checked={feedbackAnonymous}
+                  onCheckedChange={(checked) => setFeedbackAnonymous(checked === true)}
+                />
+                <label 
+                  htmlFor="anonymous-feedback" 
+                  className="flex items-center gap-1.5 text-sm text-muted-foreground cursor-pointer"
+                >
+                  <EyeOff className="w-4 h-4" />
+                  Submit anonymously
+                </label>
+              </div>
               <Button onClick={submitFeedback} className="w-full gradient-primary">
                 <Send className="w-4 h-4 mr-2" />
                 Submit Feedback
@@ -522,14 +609,14 @@ const Community = () => {
                           <CardTitle className="text-base">{f.title}</CardTitle>
                         </div>
                         <CardDescription>
-                          {f.user_email?.split("@")[0]} •{" "}
+                          {getDisplayName(f.user_email, f.content, f.user_id)} •{" "}
                           {formatDistanceToNow(new Date(f.created_at), { addSuffix: true })}
                         </CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm whitespace-pre-wrap">{f.content}</p>
+                    <p className="text-sm whitespace-pre-wrap">{getCleanContent(f.content)}</p>
                   </CardContent>
                 </Card>
               ))
