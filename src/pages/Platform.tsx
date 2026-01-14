@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Users, Lightbulb } from "lucide-react";
+import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Send, Lightbulb } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,7 +8,7 @@ import ChatMode from "@/components/ChatMode";
 import CourseMode from "@/components/CourseMode";
 import MockExamMode from "@/components/MockExamMode";
 import HowItWorks from "@/components/HowItWorks";
-import Community from "@/components/Community";
+import Feedback from "@/components/Feedback";
 import ThemeToggle from "@/components/ThemeToggle";
 import AccountSettings from "@/components/AccountSettings";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -166,11 +166,11 @@ const Index = () => {
               <span className="font-semibold hidden sm:inline">Mock Exam</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="community" 
+              value="feedback" 
               className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
-              <Users className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Community</span>
+              <Send className="w-5 h-5" />
+              <span className="font-semibold hidden sm:inline">Feedback</span>
             </TabsTrigger>
             <TabsTrigger 
               value="info" 
@@ -193,8 +193,8 @@ const Index = () => {
             <MockExamMode />
           </TabsContent>
 
-          <TabsContent value="community" className="mt-6">
-            <Community />
+          <TabsContent value="feedback" className="mt-6">
+            <Feedback />
           </TabsContent>
 
           <TabsContent value="info" className="mt-6">
