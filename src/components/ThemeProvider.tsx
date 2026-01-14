@@ -16,7 +16,7 @@ export const themeConfig: Record<Theme, { name: string; bg: string; accent: stri
   ocean: { name: "Ocean", bg: "#cddbe8", accent: "#3d7a9e", isDark: false },
   
   // Dark themes (desaturated for eye comfort)
-  midnight: { name: "Midnight", bg: "#141a24", accent: "#00ffff", isDark: true },
+  midnight: { name: "Midnight", bg: "#0d1520", accent: "#00ffff", isDark: true },
   slate: { name: "Slate", bg: "#1e2530", accent: "#5a9ec9", isDark: true },
   mocha: { name: "Mocha", bg: "#1a1614", accent: "#c9a05a", isDark: true },
   carbon: { name: "Carbon", bg: "#171717", accent: "#d97a3d", isDark: true },
