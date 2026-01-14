@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn, Brain } from 'lucide-react';
+import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn } from 'lucide-react';
 import { DeepThinkToggle } from './DeepThinkToggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
