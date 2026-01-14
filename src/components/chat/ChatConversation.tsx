@@ -69,6 +69,7 @@ export const ChatConversation = ({
   const [localLoadingStage, setLocalLoadingStage] = useState('');
   const [estimatedTime, setEstimatedTime] = useState(0);
   const [newMessageId, setNewMessageId] = useState<string | null>(null);
+  const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
@@ -90,8 +91,26 @@ export const ChatConversation = ({
       }))
     : localMessages;
 
-  // Auto-scroll to bottom when messages change or loading state changes
+  // Track if user is at bottom of scroll area
   useEffect(() => {
+    const scrollContainer = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!scrollContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      // Consider "at bottom" if within 100px of the bottom
+      const atBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setIsUserAtBottom(atBottom);
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll);
+    return () => scrollContainer.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-scroll to bottom only when user is already at bottom
+  useEffect(() => {
+    if (!isUserAtBottom) return;
+
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (scrollContainer) {
@@ -100,7 +119,7 @@ export const ChatConversation = ({
         }, 50);
       }
     }
-  }, [displayMessages, activeIsWaitingForAI]);
+  }, [displayMessages, activeIsWaitingForAI, isUserAtBottom]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
