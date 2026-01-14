@@ -83,12 +83,12 @@ const ModesShowcase = () => {
     {
       icon: FileText,
       title: "Mock Exam Mode",
-      description: "Practice with adaptive difficulty testing",
+      description: "Generate course-aligned practice exams by topic",
       features: [
-        "Real exam simulation",
-        "Adaptive difficulty",
-        "Detailed analytics",
-        "Performance insights"
+        "Topic-based exam generation",
+        "Course-aligned questions",
+        "PDF export for offline practice",
+        "MCQ and short answer formats"
       ],
       gradient: "from-electric-cyan to-neon-blue",
       mockup: (
