@@ -183,13 +183,13 @@ const HowItWorks = () => {
     },
     {
       icon: Target,
-      title: "Adaptive Mock Exams",
-      description: "Practice tests that adapt to your weak areas, providing focused preparation where you need it most.",
+      title: "Topic-Based Mock Exams",
+      description: "Generate practice exams from selected lecture topics, with questions aligned to how concepts are taught in ELEC3120.",
       details: [
-        "Questions weighted by your performance",
-        "Immediate feedback on all answers",
-        "Detailed explanations for learning",
-        "Track improvement over time",
+        "Select specific lectures to include",
+        "Course-aligned MCQ and short answers",
+        "Export to PDF for offline practice",
+        "Questions grounded in lecture materials",
       ],
       color: "primary",
     },
@@ -198,7 +198,7 @@ const HowItWorks = () => {
   const techStack = [
     { name: "RAG Architecture", detail: "Retrieval-Augmented Generation prevents AI hallucinations" },
     { name: "Vector Search", detail: "Supabase pgvector for semantic course material retrieval" },
-    { name: "Adaptive Learning", detail: "Dynamic difficulty adjustment based on performance" },
+    { name: "Gated Progression", detail: "Structured learning paths with mastery-based unlocking" },
     { name: "n8n Integration", detail: "Seamless workflow automation for AI responses" },
   ];
 

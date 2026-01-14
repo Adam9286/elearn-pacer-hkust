@@ -69,7 +69,7 @@ const Hero = () => {
           transition={{ delay: 0.4, duration: 0.6 }}
           className="text-lg md:text-2xl text-white/70 mb-10 max-w-2xl font-medium"
         >
-          Master Network Protocols Through Interactive Visualization
+          Your AI-Powered Virtual TA for ELEC3120
         </motion.p>
 
         {/* TCP Handshake Animation - Centerpiece */}

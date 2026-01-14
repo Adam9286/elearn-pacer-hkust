@@ -12,7 +12,7 @@ const PlatformIntro = () => {
     { icon: Brain, text: "RAG Architecture prevents hallucinations" },
     { icon: Zap, text: "Real-time semantic search with vector embeddings" },
     { icon: Lock, text: "Source-cited answers from verified materials" },
-    { icon: Target, text: "Adaptive learning paths tailored to you" },
+    { icon: Target, text: "Gated learning paths for structured progression" },
   ];
 
   return (
