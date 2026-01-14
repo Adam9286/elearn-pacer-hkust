@@ -15,6 +15,7 @@ import { Link } from 'react-router-dom';
 import { WEBHOOKS } from '@/constants/api';
 import { validateFiles, validateImageFile } from '@/utils/fileValidation';
 import { UPLOAD_CONFIG, ALLOWED_TYPES_DISPLAY } from '@/constants/upload';
+import { formatSource } from '@/utils/sourceFormatter';
 
 interface LocalMessage {
   id: string;
@@ -427,10 +428,18 @@ export const ChatConversation = ({
                         </div>
                       )}
                       {message.source && (
-                        <Badge variant="outline" className="mt-2 text-xs animate-sparkle">
-                          <BookOpen className="w-3 h-3 mr-1" />
-                          {message.source}
-                        </Badge>
+                        <div className="mt-3 pt-2 border-t border-border/30">
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            <span className="font-medium">Source:</span>
+                            <Badge 
+                              variant="secondary" 
+                              className="text-xs px-2 py-0.5 bg-primary/10 text-primary border-0 font-medium"
+                            >
+                              {formatSource(message.source).label}
+                            </Badge>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>
