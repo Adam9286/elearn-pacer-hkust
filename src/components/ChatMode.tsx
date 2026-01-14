@@ -217,7 +217,7 @@ const ChatMode = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] min-h-[600px]">
+    <div className="flex h-[calc(100vh-12rem)] min-h-[600px] w-full">
       {/* Sidebar - only show when authenticated */}
       {isAuthenticated && (
         <ChatSidebar

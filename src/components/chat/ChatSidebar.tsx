@@ -226,7 +226,7 @@ export const ChatSidebar = ({
 
   return (
     <>
-      <div className="w-64 h-full border-r bg-card flex flex-col">
+      <div className="w-1/2 h-full border-r bg-card flex flex-col">
         {/* Header */}
         <div className="p-3 border-b flex items-center justify-between gap-2">
           {isSelectionMode ? (
@@ -373,7 +373,7 @@ export const ChatSidebar = ({
                         <div
                           key={conv.id}
                           className={cn(
-                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors min-w-0",
+                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors min-w-0 overflow-hidden",
                             activeConversationId === conv.id && !isSelectionMode
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-muted",
@@ -406,7 +406,7 @@ export const ChatSidebar = ({
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
-                                  className="h-6 w-6 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                                  className="h-6 w-6 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
