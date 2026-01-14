@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { externalSupabase } from '@/lib/externalSupabase';
 import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMath } from '@/components/RenderMath';
 import { ChatMessage } from '@/hooks/useChatHistory';
@@ -17,6 +17,7 @@ import { WEBHOOKS } from '@/constants/api';
 import { validateFiles, validateImageFile } from '@/utils/fileValidation';
 import { UPLOAD_CONFIG, ALLOWED_TYPES_DISPLAY } from '@/constants/upload';
 import { formatSource } from '@/utils/sourceFormatter';
+import { computeFileHash } from '@/utils/fileHash';
 
 interface LocalMessage {
   id: string;
@@ -247,14 +248,33 @@ export const ChatConversation = ({
       const startTime = Date.now();
 
       try {
-        // Upload attachments to Supabase Storage (Lovable Cloud)
+        // Upload attachments to external Supabase with duplicate detection
         const uploadedUrls: string[] = [];
 
         for (const file of currentAttachments) {
-          const fileName = `${Date.now()}_${file.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const fileHash = await computeFileHash(file);
+          const hashedFileName = `${fileHash}_${file.name}`;
+          const filePath = `guest/${hashedFileName}`;
+
+          // Check for existing duplicate
+          const { data: existingFile } = await externalSupabase.storage
             .from('chat-attachments')
-            .upload(fileName, file, {
+            .list('guest', { search: hashedFileName });
+
+          if (existingFile && existingFile.length > 0) {
+            // Reuse existing file
+            const { data: urlData } = externalSupabase.storage
+              .from('chat-attachments')
+              .getPublicUrl(filePath);
+            uploadedUrls.push(urlData.publicUrl);
+            console.log(`♻️ Guest duplicate reused: ${file.name}`);
+            continue;
+          }
+
+          // Upload new file
+          const { data: uploadData, error: uploadError } = await externalSupabase.storage
+            .from('chat-attachments')
+            .upload(filePath, file, {
               cacheControl: '3600',
               upsert: false,
             });
@@ -269,8 +289,11 @@ export const ChatConversation = ({
             continue;
           }
 
-          const { data: urlData } = supabase.storage.from('chat-attachments').getPublicUrl(uploadData.path);
+          const { data: urlData } = externalSupabase.storage
+            .from('chat-attachments')
+            .getPublicUrl(uploadData.path);
           uploadedUrls.push(urlData.publicUrl);
+          console.log(`✅ Guest uploaded: ${file.name}`);
         }
 
         setLocalLoadingProgress(20);
