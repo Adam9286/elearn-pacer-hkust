@@ -160,6 +160,8 @@ const ChatMode = () => {
     });
 
     // Call n8n webhook for AI response
+    const startTime = Date.now();
+
     try {
       const response = await fetch(WEBHOOKS.CHAT, {
         method: 'POST',
@@ -174,6 +176,8 @@ const ChatMode = () => {
       });
 
       const data = await response.json();
+      const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
+      
       const payload = data.body ?? data;
       const output = payload.output ?? "I received your question and I'm processing it.";
       const source = payload.source_document ?? payload.source;
@@ -185,10 +189,10 @@ const ChatMode = () => {
         source: source,
       });
 
-      // Remove loading message and add real AI response
+      // Remove loading message and add real AI response with response time
       removeMessageLocally(loadingMessageId);
       if (aiMessage) {
-        addMessageLocally(aiMessage);
+        addMessageLocally({ ...aiMessage, responseTime });
       }
     } catch (error) {
       console.error('Error calling n8n webhook:', error);

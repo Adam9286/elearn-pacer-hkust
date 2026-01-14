@@ -15,6 +15,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
   source?: string;
+  responseTime?: string; // Debug timer - local only, not persisted
   attachments?: Array<{
     name: string;
     url: string;
