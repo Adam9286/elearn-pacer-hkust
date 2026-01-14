@@ -9,12 +9,14 @@ import {
   CheckSquare,
   Square,
   X,
-  Trash
+  Trash,
+  Pencil
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,6 +34,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { ChatConversation } from '@/hooks/useChatHistory';
 import { cn } from '@/lib/utils';
 
@@ -44,6 +54,7 @@ interface ChatSidebarProps {
   onSelectConversation: (id: string) => void;
   onNewChat: () => void;
   onDeleteConversation: (id: string) => void;
+  onRenameConversation: (id: string, newTitle: string) => void;
   onDeleteMultiple?: (ids: string[]) => void;
   onDeleteAll?: () => void;
 }
@@ -92,6 +103,7 @@ export const ChatSidebar = ({
   onSelectConversation,
   onNewChat,
   onDeleteConversation,
+  onRenameConversation,
   onDeleteMultiple,
   onDeleteAll,
 }: ChatSidebarProps) => {
@@ -99,6 +111,11 @@ export const ChatSidebar = ({
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
+  
+  // Rename state
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [conversationToRename, setConversationToRename] = useState<string | null>(null);
+  const [newTitle, setNewTitle] = useState('');
   
   // Selection mode state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -109,6 +126,21 @@ export const ChatSidebar = ({
   const handleDeleteClick = (conversationId: string) => {
     setConversationToDelete(conversationId);
     setDeleteDialogOpen(true);
+  };
+
+  const handleRenameClick = (conversationId: string, currentTitle: string) => {
+    setConversationToRename(conversationId);
+    setNewTitle(currentTitle);
+    setRenameDialogOpen(true);
+  };
+
+  const handleConfirmRename = () => {
+    if (conversationToRename && newTitle.trim()) {
+      onRenameConversation(conversationToRename, newTitle.trim());
+    }
+    setRenameDialogOpen(false);
+    setConversationToRename(null);
+    setNewTitle('');
   };
 
   const handleConfirmDelete = () => {
@@ -331,34 +363,46 @@ export const ChatSidebar = ({
                           ) : (
                             <MessageSquare className="h-4 w-4 flex-shrink-0" />
                           )}
-                          <span className="flex-1 text-sm truncate">
+                          <span className="flex-1 min-w-0 text-sm truncate">
                             {conv.title}
                           </span>
                           {!isSelectionMode && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreHorizontal className="h-3 w-3" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteClick(conv.id);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <div className="flex-shrink-0">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreHorizontal className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="z-50 bg-popover">
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRenameClick(conv.id, conv.title);
+                                    }}
+                                  >
+                                    <Pencil className="h-4 w-4 mr-2" />
+                                    Rename
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="text-destructive focus:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteClick(conv.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           )}
                         </div>
                       ))}
@@ -436,6 +480,35 @@ export const ChatSidebar = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Rename Dialog */}
+      <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename conversation</DialogTitle>
+            <DialogDescription>
+              Enter a new name for this conversation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Input
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Conversation name"
+              onKeyDown={(e) => e.key === 'Enter' && handleConfirmRename()}
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmRename} disabled={!newTitle.trim()}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
