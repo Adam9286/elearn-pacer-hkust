@@ -45,7 +45,7 @@ export const DeepThinkToggle = ({
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-[200px]">
             <p className="text-xs">
-              Enable for exam prep, derivations, and step-by-step explanations
+              Enable for comprehensive answers using textbook and lecture materials
             </p>
           </TooltipContent>
         </Tooltip>
@@ -53,7 +53,7 @@ export const DeepThinkToggle = ({
       
       {enabled && (
         <span className="text-xs text-primary/80 animate-fade-in">
-          Exam-level reasoning enabled
+          Extended knowledge enabled
         </span>
       )}
     </div>
