@@ -373,7 +373,7 @@ export const ChatSidebar = ({
                         <div
                           key={conv.id}
                           className={cn(
-                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors min-w-0 overflow-hidden",
+                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors min-w-0",
                             activeConversationId === conv.id && !isSelectionMode
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-muted",
@@ -396,17 +396,14 @@ export const ChatSidebar = ({
                           ) : (
                             <MessageSquare className="h-4 w-4 shrink-0" />
                           )}
-                          <span 
-                            className="text-sm truncate"
-                            style={{ flex: '1 1 0%', minWidth: 0 }}
-                          >
-                            {conv.title}
-                          </span>
+                    <span className="text-sm truncate flex-1 min-w-0 overflow-hidden">
+                      {conv.title}
+                    </span>
                           {!isSelectionMode && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <button
-                                  className="h-6 w-6 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="h-6 w-6 flex-shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/80 opacity-0 group-hover:opacity-100 transition-opacity"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
