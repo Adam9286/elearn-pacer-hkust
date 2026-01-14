@@ -306,8 +306,8 @@ export const ChatSidebar = ({
         )}
 
         {/* Conversations List */}
-        <ScrollArea className="flex-1 w-full">
-          <div className="p-2">
+        <div className="flex-1 w-full overflow-y-auto">
+          <div className="p-2 min-w-0">
             {isLoading ? (
               <div className="space-y-2">
                 {[...Array(5)].map((_, i) => (
