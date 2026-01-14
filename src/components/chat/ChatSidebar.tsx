@@ -373,7 +373,7 @@ export const ChatSidebar = ({
                         <div
                           key={conv.id}
                           className={cn(
-                            "group relative flex items-center gap-2 pl-2 pr-2 py-2 rounded-lg cursor-pointer transition-colors",
+                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors",
                             activeConversationId === conv.id && !isSelectionMode
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-muted",
@@ -400,52 +400,40 @@ export const ChatSidebar = ({
                             {conv.title}
                           </span>
                           {!isSelectionMode && (
-                            <div className="absolute right-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              {/* Gradient fade */}
-                              <div className={cn(
-                                "w-8 h-full bg-gradient-to-l to-transparent",
-                                activeConversationId === conv.id ? "from-primary/10" : "from-muted"
-                              )} />
-                              <div className={cn(
-                                "pr-1 h-full flex items-center",
-                                activeConversationId === conv.id ? "bg-primary/10" : "bg-muted"
-                              )}>
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-muted-foreground/10"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" side="bottom" sideOffset={5} className="z-[100] bg-popover">
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRenameClick(conv.id, conv.title);
-                                      }}
-                                    >
-                                      <Pencil className="h-4 w-4 mr-2" />
-                                      Rename
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      className="text-destructive focus:text-destructive"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteClick(conv.id);
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" side="bottom" sideOffset={5} className="z-[100] bg-popover">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRenameClick(conv.id, conv.title);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteClick(conv.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                         </div>
                       ))}
