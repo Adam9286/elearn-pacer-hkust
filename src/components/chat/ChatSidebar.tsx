@@ -360,57 +360,63 @@ export const ChatSidebar = ({
                             <MessageSquare className="h-4 w-4 shrink-0" />
                           )}
 
-                          {/* Title */}
-                          <span className="flex-1 min-w-0 text-sm truncate">{conv.title}</span>
-
-                          {/* Hover actions */}
-                          {!isSelectionMode && (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <button
-                                  className="
-                                    h-6 w-6 shrink-0
-                                    flex items-center justify-center
-                                    rounded
-                                    text-muted-foreground
-                                    opacity-0
-                                    group-hover:opacity-100
-                                    transition-opacity
-                                    hover:text-foreground
-                                    hover:bg-muted/80
-                                  "
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </button>
-                              </DropdownMenuTrigger>
-
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRenameClick(conv.id, conv.title);
-                                  }}
-                                >
-                                  <Pencil className="h-4 w-4 mr-2" />
-                                  Rename
-                                </DropdownMenuItem>
-
-                                <DropdownMenuSeparator />
-
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteClick(conv.id);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
+                          {/* Container for text + overlapping button */}
+                          <div className="flex-1 min-w-0 relative">
+                            <span className="text-sm block truncate pr-2">
+                              {conv.title}
+                            </span>
+                            
+                            {/* Overlapping button with gradient fade */}
+                            {!isSelectionMode && (
+                              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                {/* Gradient fade overlay */}
+                                <div className={cn(
+                                  "w-6 h-6 bg-gradient-to-r to-transparent",
+                                  activeConversationId === conv.id 
+                                    ? "from-primary/10" 
+                                    : "from-card group-hover:from-muted"
+                                )} />
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <button
+                                      className={cn(
+                                        "h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground",
+                                        activeConversationId === conv.id 
+                                          ? "bg-primary/10 hover:bg-primary/20" 
+                                          : "bg-card group-hover:bg-muted hover:bg-muted/80"
+                                      )}
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" side="bottom" sideOffset={5} className="z-[100] bg-popover">
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRenameClick(conv.id, conv.title);
+                                      }}
+                                    >
+                                      <Pencil className="h-4 w-4 mr-2" />
+                                      Rename
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteClick(conv.id);
+                                      }}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -419,7 +425,7 @@ export const ChatSidebar = ({
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </div>
 
       {/* Delete Single Confirmation Dialog */}
