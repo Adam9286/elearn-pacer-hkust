@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn } from 'lucide-react';
+import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn, Brain } from 'lucide-react';
+import { DeepThinkToggle } from './DeepThinkToggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -35,6 +36,8 @@ interface ChatConversationProps {
   isLoadingMessages: boolean;
   isAuthenticated: boolean;
   isWaitingForAI?: boolean;
+  deepThinkMode?: boolean;
+  onToggleDeepThink?: (enabled: boolean) => void;
   onSendMessage: (
     content: string,
     attachments: File[]
@@ -53,6 +56,8 @@ export const ChatConversation = ({
   isLoadingMessages,
   isAuthenticated,
   isWaitingForAI = false,
+  deepThinkMode = false,
+  onToggleDeepThink,
   onSendMessage,
 }: ChatConversationProps) => {
   const { toast } = useToast();
@@ -267,6 +272,7 @@ export const ChatConversation = ({
             query: userInput,
             sessionId: `session_${Date.now()}`,
             attachments: uploadedUrls,
+            mode: deepThinkMode ? 'deepthink' : 'auto',
           }),
         });
 
@@ -462,9 +468,18 @@ export const ChatConversation = ({
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="p-4 border-t bg-background/50">
+          <div className="p-4 border-t bg-background/50 space-y-3">
+            {/* DeepThink Toggle */}
+            {onToggleDeepThink && (
+              <DeepThinkToggle
+                enabled={deepThinkMode}
+                onToggle={onToggleDeepThink}
+                disabled={activeIsWaitingForAI}
+              />
+            )}
+
             {attachments.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-3">
+              <div className="flex flex-wrap gap-2">
                 {attachments.map((file, index) => (
                   <Badge key={index} variant="secondary" className="flex items-center gap-1 px-2 py-1">
                     <Paperclip className="w-3 h-3" />

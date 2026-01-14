@@ -12,6 +12,7 @@ const ChatMode = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [deepThinkMode, setDeepThinkMode] = useState(false);
   
   const sessionId = useMemo(
     () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -172,6 +173,7 @@ const ChatMode = () => {
           query: content,
           sessionId,
           attachments: uploadedUrls,
+          mode: deepThinkMode ? 'deepthink' : 'auto',
         }),
       });
 
@@ -238,7 +240,9 @@ const ChatMode = () => {
           messages={messages}
           isLoadingMessages={isLoadingMessages}
           isAuthenticated={isAuthenticated}
-            isWaitingForAI={isWaitingForAI}
+          isWaitingForAI={isWaitingForAI}
+          deepThinkMode={deepThinkMode}
+          onToggleDeepThink={setDeepThinkMode}
           onSendMessage={handleSendMessage}
         />
       </div>
