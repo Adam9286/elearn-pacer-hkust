@@ -229,6 +229,7 @@ const ChatMode = () => {
           onSelectConversation={switchConversation}
           onNewChat={startNewChat}
           onDeleteConversation={deleteConversation}
+          onRenameConversation={updateConversationTitle}
           onDeleteMultiple={deleteMultipleConversations}
           onDeleteAll={deleteAllConversations}
         />
