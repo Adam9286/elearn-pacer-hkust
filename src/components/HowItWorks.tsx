@@ -199,7 +199,7 @@ const HowItWorks = () => {
     { name: "RAG Architecture", detail: "Retrieval-Augmented Generation prevents AI hallucinations" },
     { name: "Vector Search", detail: "Supabase pgvector for semantic course material retrieval" },
     { name: "Gated Progression", detail: "Structured learning paths with mastery-based unlocking" },
-    { name: "n8n Integration", detail: "Seamless workflow automation for AI responses" },
+    { name: "AI Orchestration", detail: "Intelligent response routing for accurate, contextual answers" },
   ];
 
   return (
