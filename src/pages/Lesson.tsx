@@ -1,6 +1,8 @@
+// Lesson Page - Main lesson display with Overview and AI Tutor tabs
+
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Circle, Clock, FileText, LogIn, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle, Circle, Clock, LogIn, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -14,12 +16,13 @@ import { useUserProgress } from "@/contexts/UserProgressContext";
 import { toast } from "sonner";
 import { chapters, findLesson } from "@/data/courseContent";
 import GuidedLearning from "@/components/lesson/GuidedLearning";
+import PdfViewer from "@/components/lesson/PdfViewer";
 
 const Lesson = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const [lessonProgress, setLessonProgress] = useState(0);
-  const { user, loading, markLessonComplete, getChapterProgress, isChapterUnlocked, isSectionComplete, getLessonsCompleted, getTotalLessons } = useUserProgress();
+  const { user, loading, markLessonComplete, getChapterProgress, isChapterUnlocked, getLessonsCompleted, getTotalLessons } = useUserProgress();
 
   // Find current lesson and chapter using helper
   const lessonData = lessonId ? findLesson(lessonId) : null;
@@ -39,7 +42,7 @@ const Lesson = () => {
 
   if (!currentLesson || !currentChapter) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Card>
           <CardHeader>
             <CardTitle>Lesson Not Found</CardTitle>
@@ -55,7 +58,6 @@ const Lesson = () => {
 
   const previousLesson = lessonIndex > 0 ? currentChapter.lessons[lessonIndex - 1] : null;
   const nextLesson = lessonIndex < currentChapter.lessons.length - 1 ? currentChapter.lessons[lessonIndex + 1] : null;
-  const isLastLesson = lessonIndex === currentChapter.lessons.length - 1;
 
   const handleMarkComplete = async () => {
     if (user && currentChapter && currentLesson) {
@@ -67,7 +69,7 @@ const Lesson = () => {
     if (nextLesson) {
       navigate(`/platform/lesson/${nextLesson.id}`);
     } else {
-      // Last lesson in section - check if section is now complete
+      // Last lesson in section
       if (user) {
         toast.success(`Section ${currentChapter.id} completed! Next section unlocked!`);
       }
@@ -93,7 +95,7 @@ const Lesson = () => {
               </Button>
               <Separator orientation="vertical" className="h-6" />
               <div>
-                <h1 className="text-sm font-semibold">Section {currentChapter.id}</h1>
+                <h1 className="text-sm font-semibold text-foreground">Section {currentChapter.id}</h1>
                 <p className="text-xs text-muted-foreground">{currentChapter.title}</p>
               </div>
             </div>
@@ -114,14 +116,14 @@ const Lesson = () => {
           <aside className="lg:col-span-1">
             <Card className="glass-card sticky top-20">
               <CardHeader>
-                <CardTitle className="text-lg">Section {currentChapter.id} Lessons</CardTitle>
+                <CardTitle className="text-lg text-foreground">Section {currentChapter.id} Lessons</CardTitle>
                 {currentChapter.textbookPages && (
                   <CardDescription>Textbook: p.{currentChapter.textbookPages}</CardDescription>
                 )}
                 <div className="mt-2">
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span>Progress</span>
-                    <span className="font-medium">{lessonsCompleted}/{totalLessons}</span>
+                    <span className="text-muted-foreground">Progress</span>
+                    <span className="font-medium text-foreground">{lessonsCompleted}/{totalLessons}</span>
                   </div>
                   <Progress value={sectionProgressPercent} className="h-2" />
                 </div>
@@ -141,10 +143,10 @@ const Lesson = () => {
                           {isCompleted ? (
                             <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                           ) : (
-                            <Circle className="mr-2 h-4 w-4" />
+                            <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
                           )}
                           <div className="text-left flex-1">
-                            <div className="text-sm font-medium">{lesson.number}</div>
+                            <div className="text-sm font-medium text-foreground">{lesson.number}</div>
                             <div className="text-xs text-muted-foreground truncate">{lesson.title}</div>
                           </div>
                         </Button>
@@ -166,7 +168,7 @@ const Lesson = () => {
                     <div className="flex items-center gap-2 mb-2">
                       <Badge variant="outline">{currentLesson.number}</Badge>
                     </div>
-                    <CardTitle className="text-2xl mb-2">{currentLesson.title}</CardTitle>
+                    <CardTitle className="text-2xl mb-2 text-foreground">{currentLesson.title}</CardTitle>
                     <CardDescription className="flex items-center gap-4">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
@@ -180,7 +182,7 @@ const Lesson = () => {
                 </div>
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Your Progress</span>
+                    <span className="text-sm font-medium text-foreground">Your Progress</span>
                     <span className="text-sm font-bold text-primary">{lessonProgress}%</span>
                   </div>
                   <Progress value={lessonProgress} className="h-2" />
@@ -190,7 +192,7 @@ const Lesson = () => {
 
             {/* Lesson Content Tabs */}
             <Card className="glass-card">
-              <Tabs defaultValue="overview" className="w-full">
+              <Tabs defaultValue="ai-tutor" className="w-full">
                 <CardHeader className="pb-4">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -204,38 +206,32 @@ const Lesson = () => {
                 <CardContent className="pt-0">
                   <TabsContent value="overview" className="mt-0">
                     <div className="space-y-6">
+                      {/* Topics covered in this lesson */}
                       <div>
-                        <h3 className="text-lg font-semibold mb-3">Learning Objectives</h3>
+                        <h3 className="text-lg font-semibold mb-3 text-foreground">Topics Covered</h3>
                         <ul className="space-y-2">
-                          <li className="flex items-start gap-2">
-                            <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                            <span>Understand the core concepts of {currentLesson.title}</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Circle className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <span>Apply knowledge to practical scenarios</span>
-                          </li>
-                          <li className="flex items-start gap-2">
-                            <Circle className="h-5 w-5 text-muted-foreground mt-0.5" />
-                            <span>Prepare for the next lecture</span>
-                          </li>
+                          {currentChapter.topics.slice(0, 4).map((topic, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+                              <span className="text-foreground">{topic}</span>
+                            </li>
+                          ))}
                         </ul>
                       </div>
 
+                      {/* PDF Viewer using abstracted component */}
                       {currentLesson.pdfUrl && (
                         <div>
-                          <h3 className="text-lg font-semibold mb-3">Lecture Slides</h3>
-                          <div className="aspect-video rounded-lg overflow-hidden border">
-                            <iframe
-                              src={currentLesson.pdfUrl}
-                              className="w-full h-full"
-                              title={`${currentLesson.title} Lecture Slides`}
-                              allow="autoplay"
-                            />
-                          </div>
+                          <h3 className="text-lg font-semibold mb-3 text-foreground">Lecture Slides</h3>
+                          <PdfViewer
+                            pdfUrl={currentLesson.pdfUrl}
+                            currentPage={1}
+                            title={`${currentLesson.title} Lecture Slides`}
+                          />
                         </div>
                       )}
 
+                      {/* Navigation */}
                       <div className="flex justify-between pt-4">
                         {previousLesson ? (
                           <Button variant="outline" onClick={() => navigate(`/platform/lesson/${previousLesson.id}`)}>
@@ -264,7 +260,6 @@ const Lesson = () => {
                       onComplete={handleMarkComplete}
                     />
                   </TabsContent>
-
                 </CardContent>
               </Tabs>
             </Card>

@@ -1,15 +1,24 @@
-import { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Sparkles, Loader2, AlertCircle, SkipForward } from "lucide-react";
+// GuidedLearning - Main orchestrator for slide-by-slide learning
+// currentSlide is the single source of truth for all dependent UI
+
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import SlideProgress from "./SlideProgress";
-import ComprehensionCheck, { ComprehensionQuestion } from "./ComprehensionCheck";
 import { toast } from "sonner";
 import type { Lesson, Chapter } from "@/data/courseContent";
+import type { CourseSlide, SlideExplanationResponse } from "@/types/courseTypes";
+import { 
+  fetchSlideExplanation, 
+  estimateTotalSlides, 
+  shouldGenerateQuestion 
+} from "@/services/courseApi";
+
+// Sub-components
+import PdfViewer from "./PdfViewer";
+import ExplanationPanel from "./ExplanationPanel";
+import SlideNavigation from "./SlideNavigation";
+import SlideProgressTracker from "./SlideProgressTracker";
+import ComprehensionCheck, { type ComprehensionQuestion } from "./ComprehensionCheck";
 
 interface GuidedLearningProps {
   lesson: Lesson;
@@ -17,93 +26,104 @@ interface GuidedLearningProps {
   onComplete?: () => void;
 }
 
-interface SlideExplanation {
-  explanation: string;
-  keyPoints: string[];
-  comprehensionQuestion?: ComprehensionQuestion;
-}
-
-// Estimate total slides based on lesson duration (roughly 1 slide per 2-3 minutes)
-const estimateTotalSlides = (estimatedMinutes: number): number => {
-  return Math.max(5, Math.ceil(estimatedMinutes / 2.5));
-};
-
 const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) => {
-  const totalSlides = estimateTotalSlides(lesson.estimatedMinutes);
+  // Calculate total slides from lesson duration
+  const totalSlides = useMemo(
+    () => estimateTotalSlides(lesson.estimatedMinutes), 
+    [lesson.estimatedMinutes]
+  );
   
+  // ============ Core State ============
+  // currentSlide is the SINGLE SOURCE OF TRUTH
   const [currentSlide, setCurrentSlide] = useState(1);
-  const [explanation, setExplanation] = useState<SlideExplanation | null>(null);
+  
+  // Slide data array (indexed by slideNumber - 1)
+  const [slides, setSlides] = useState<CourseSlide[]>(() => 
+    Array.from({ length: totalSlides }, (_, i) => ({
+      slideNumber: i + 1,
+      status: i === 0 ? 'unlocked' : 'locked',
+    }))
+  );
+  
+  // ============ Loading State ============
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // ============ Context for AI ============
   const [previousContext, setPreviousContext] = useState<string>("");
   
-  // Comprehension tracking
+  // ============ Questions State ============
   const [questionsEnabled, setQuestionsEnabled] = useState(true);
+  const [questionsMode] = useState<'blocking' | 'dismissible'>('dismissible');
   const [questionsShown, setQuestionsShown] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [questionsCorrect, setQuestionsCorrect] = useState(0);
   const [showQuestionDialog, setShowQuestionDialog] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<ComprehensionQuestion | null>(null);
-
-  // Determine if we should show a question (every 3-5 slides)
-  const shouldGenerateQuestion = useCallback((slideNum: number): boolean => {
-    // Show question every 4 slides on average
-    const questionInterval = 4;
-    return slideNum > 1 && slideNum % questionInterval === 0;
-  }, []);
-
-  // PDF URL (no synchronization - users navigate independently)
-
-  const fetchExplanation = useCallback(async (slideNum: number) => {
+  
+  // ============ Derived State ============
+  const currentSlideData = slides[currentSlide - 1];
+  const slidesViewed = useMemo(
+    () => slides
+      .filter(s => s.status === 'completed' || s.status === 'unlocked')
+      .map(s => s.slideNumber),
+    [slides]
+  );
+  
+  // Navigation control
+  const canGoPrevious = currentSlide > 1;
+  const canGoNext = currentSlide < totalSlides && !isLoading;
+  
+  // ============ API Call ============
+  const fetchExplanationForSlide = useCallback(async (slideNum: number) => {
     setIsLoading(true);
     setError(null);
-    setExplanation(null);
 
     try {
       const generateQuestion = questionsEnabled && shouldGenerateQuestion(slideNum);
       
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/explain-slide`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            lessonId: lesson.id,
-            slideNumber: slideNum,
-            totalSlides,
-            lessonTitle: lesson.title,
-            chapterTitle: chapter.title,
-            chapterTopics: chapter.topics,
-            textbookSections: lesson.textbookSections,
-            previousContext: previousContext.slice(-500), // Keep context short
-            generateQuestion,
-          }),
+      const response: SlideExplanationResponse = await fetchSlideExplanation({
+        lessonId: lesson.id,
+        slideNumber: slideNum,
+        totalSlides,
+        lessonTitle: lesson.title,
+        chapterTitle: chapter.title,
+        chapterTopics: chapter.topics,
+        textbookSections: lesson.textbookSections,
+        previousContext: previousContext.slice(-500),
+        generateQuestion,
+        pdfUrl: lesson.pdfUrl,
+      });
+      
+      // Update slide data
+      setSlides(prev => prev.map((slide, idx) => {
+        if (idx === slideNum - 1) {
+          return {
+            ...slide,
+            status: 'unlocked' as const,
+            explanation: response.explanation,
+            keyPoints: response.keyPoints,
+            comprehensionQuestion: response.comprehensionQuestion,
+          };
         }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Failed to fetch explanation (${response.status})`);
-      }
-
-      const data: SlideExplanation = await response.json();
-      setExplanation(data);
+        // Unlock next slide
+        if (idx === slideNum && slide.status === 'locked') {
+          return { ...slide, status: 'unlocked' as const };
+        }
+        return slide;
+      }));
       
       // Update context for next slide
-      if (data.keyPoints?.length > 0) {
+      if (response.keyPoints?.length > 0) {
         setPreviousContext(prev => 
-          `${prev} Slide ${slideNum}: ${data.keyPoints.join('. ')}.`.slice(-1000)
+          `${prev} Slide ${slideNum}: ${response.keyPoints.join('. ')}.`.slice(-1000)
         );
       }
 
       // Show comprehension question if generated
-      if (data.comprehensionQuestion) {
+      if (response.comprehensionQuestion) {
         setQuestionsShown(prev => prev + 1);
-        setCurrentQuestion(data.comprehensionQuestion);
-        // Small delay before showing question
+        setCurrentQuestion(response.comprehensionQuestion);
         setTimeout(() => setShowQuestionDialog(true), 500);
       }
 
@@ -120,189 +140,122 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     } finally {
       setIsLoading(false);
     }
-  }, [lesson, chapter, totalSlides, previousContext, shouldGenerateQuestion, questionsEnabled]);
+  }, [lesson, chapter, totalSlides, previousContext, questionsEnabled]);
 
+  // ============ Effects ============
   // Fetch explanation when slide changes
   useEffect(() => {
-    fetchExplanation(currentSlide);
+    // Only fetch if we don't already have an explanation for this slide
+    if (!currentSlideData?.explanation) {
+      fetchExplanationForSlide(currentSlide);
+    }
   }, [currentSlide]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handlePreviousSlide = () => {
-    if (currentSlide > 1) {
+  // ============ Navigation Handlers ============
+  const handlePreviousSlide = useCallback(() => {
+    if (canGoPrevious) {
       setCurrentSlide(prev => prev - 1);
     }
-  };
+  }, [canGoPrevious]);
 
-  const handleNextSlide = () => {
+  const handleNextSlide = useCallback(() => {
     if (currentSlide < totalSlides) {
+      // Mark current slide as completed
+      setSlides(prev => prev.map((slide, idx) => 
+        idx === currentSlide - 1 
+          ? { ...slide, status: 'completed' as const }
+          : slide
+      ));
       setCurrentSlide(prev => prev + 1);
     } else {
       // Completed all slides
-      toast.success('You\'ve completed all slides for this lesson!');
+      toast.success("You've completed all sections for this lesson!");
       onComplete?.();
     }
-  };
+  }, [currentSlide, totalSlides, onComplete]);
 
-  const handleQuestionAnswer = (correct: boolean) => {
+  const handleSkipToEnd = useCallback(() => {
+    setCurrentSlide(totalSlides);
+  }, [totalSlides]);
+
+  // ============ Question Handlers ============
+  const handleQuestionAnswer = useCallback((correct: boolean) => {
     setQuestionsAnswered(prev => prev + 1);
     if (correct) {
       setQuestionsCorrect(prev => prev + 1);
     }
     setCurrentQuestion(null);
-  };
+  }, []);
 
-  const handleQuestionSkip = () => {
+  const handleQuestionSkip = useCallback(() => {
     setCurrentQuestion(null);
-  };
+  }, []);
 
-  const handleSkipToEnd = () => {
-    setCurrentSlide(totalSlides);
-  };
+  const handleRetry = useCallback(() => {
+    fetchExplanationForSlide(currentSlide);
+  }, [fetchExplanationForSlide, currentSlide]);
 
+  // ============ Render ============
   return (
     <div className="space-y-6">
-      {/* Slide Navigation Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handlePreviousSlide}
-            disabled={currentSlide === 1 || isLoading}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm font-medium px-3">
-            Section {currentSlide} of {totalSlides}
-          </span>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleNextSlide}
-            disabled={isLoading}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <Switch 
-              id="questions-toggle"
-              checked={questionsEnabled}
-              onCheckedChange={setQuestionsEnabled}
-            />
-            <Label htmlFor="questions-toggle" className="text-sm cursor-pointer">
-              Questions
-            </Label>
-          </div>
-          
-          <Button variant="ghost" size="sm" onClick={handleSkipToEnd} disabled={isLoading}>
-            <SkipForward className="mr-2 h-4 w-4" />
-            Skip to End
-          </Button>
-        </div>
-      </div>
+      {/* Top Navigation */}
+      <SlideNavigation
+        currentSlide={currentSlide}
+        totalSlides={totalSlides}
+        onPrevious={handlePreviousSlide}
+        onNext={handleNextSlide}
+        onSkipToEnd={handleSkipToEnd}
+        canGoNext={canGoNext}
+        canGoPrevious={canGoPrevious}
+        isLoading={isLoading}
+        questionsEnabled={questionsEnabled}
+        onQuestionsToggle={setQuestionsEnabled}
+      />
 
-      {/* PDF Viewer - independent navigation */}
+      {/* PDF Viewer - Abstracted */}
       {lesson.pdfUrl && (
-        <div className="aspect-video rounded-lg overflow-hidden border bg-muted">
-          <iframe
-            src={lesson.pdfUrl}
-            className="w-full h-full"
-            title={lesson.title}
-            allow="autoplay"
-          />
-        </div>
+        <PdfViewer
+          pdfUrl={lesson.pdfUrl}
+          currentPage={currentSlide}
+          totalPages={totalSlides}
+          title={lesson.title}
+        />
       )}
 
-      {/* AI Explanation Card */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
-        <CardContent className="pt-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <span className="font-semibold text-primary">AI Tutor</span>
-            <Badge variant="secondary" className="text-xs">
-              Section {currentSlide}
-            </Badge>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-3">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-[90%]" />
-              <Skeleton className="h-4 w-[80%]" />
-              <div className="flex items-center gap-2 mt-4 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating explanation...
-              </div>
-            </div>
-          ) : error ? (
-            <div className="flex items-start gap-3 text-destructive">
-              <AlertCircle className="h-5 w-5 mt-0.5" />
-              <div>
-                <p className="font-medium">Failed to load explanation</p>
-                <p className="text-sm text-muted-foreground">{error}</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={() => fetchExplanation(currentSlide)}
-                >
-                  Try Again
-                </Button>
-              </div>
-            </div>
-          ) : explanation ? (
-            <div className="space-y-4">
-              <p className="text-foreground leading-relaxed whitespace-pre-wrap">
-                {explanation.explanation}
-              </p>
-
-              {explanation.keyPoints && explanation.keyPoints.length > 0 && (
-                <div className="mt-4 pt-4 border-t">
-                  <h4 className="text-sm font-semibold mb-2 text-muted-foreground">
-                    Key Points
-                  </h4>
-                  <ul className="space-y-1.5">
-                    {explanation.keyPoints.map((point, index) => (
-                      <li key={index} className="flex items-start gap-2 text-sm">
-                        <span className="text-primary font-bold">•</span>
-                        <span>{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+      {/* AI Explanation Panel */}
+      <ExplanationPanel
+        slideNumber={currentSlide}
+        explanation={currentSlideData?.explanation}
+        keyPoints={currentSlideData?.keyPoints}
+        isLoading={isLoading}
+        error={error || undefined}
+        onRetry={handleRetry}
+      />
 
       {/* Progress Tracker */}
-      <Card>
-        <CardContent className="pt-6">
-          <SlideProgress
-            currentSlide={currentSlide}
-            totalSlides={totalSlides}
-            questionsAnswered={questionsAnswered}
-            questionsCorrect={questionsCorrect}
-            questionsShown={questionsShown}
-          />
-        </CardContent>
-      </Card>
+      <SlideProgressTracker
+        currentSlide={currentSlide}
+        totalSlides={totalSlides}
+        slidesViewed={slidesViewed}
+        questionsShown={questionsShown}
+        questionsAnswered={questionsAnswered}
+        questionsCorrect={questionsCorrect}
+      />
 
-      {/* Navigation Buttons */}
+      {/* Bottom Navigation */}
       <div className="flex justify-between pt-4">
         <Button
           variant="outline"
           onClick={handlePreviousSlide}
-          disabled={currentSlide === 1 || isLoading}
+          disabled={!canGoPrevious || isLoading}
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
           Previous Section
         </Button>
-        <Button onClick={handleNextSlide} disabled={isLoading}>
+        <Button 
+          onClick={handleNextSlide} 
+          disabled={isLoading}
+        >
           {currentSlide === totalSlides ? 'Complete Lesson' : 'Next Section'}
           {currentSlide < totalSlides && <ChevronRight className="ml-2 h-4 w-4" />}
         </Button>
@@ -316,6 +269,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
           question={currentQuestion}
           onAnswer={handleQuestionAnswer}
           onSkip={handleQuestionSkip}
+          mode={questionsMode}
         />
       )}
     </div>

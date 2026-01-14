@@ -1,3 +1,6 @@
+// Comprehension Check Component
+// MCQ modal/card with support for blocking and dismissible modes
+
 import { useState } from "react";
 import {
   Dialog,
@@ -25,18 +28,29 @@ interface ComprehensionCheckProps {
   question: ComprehensionQuestion;
   onAnswer: (correct: boolean) => void;
   onSkip: () => void;
+  mode?: 'blocking' | 'dismissible';
 }
 
+/**
+ * ComprehensionCheck - MCQ comprehension question modal
+ * 
+ * Modes:
+ * - blocking: Must answer to proceed (no skip button)
+ * - dismissible: Can skip the question (default)
+ */
 const ComprehensionCheck = ({
   open,
   onOpenChange,
   question,
   onAnswer,
   onSkip,
+  mode = 'dismissible',
 }: ComprehensionCheckProps) => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+
+  const isBlocking = mode === 'blocking';
 
   const handleSubmit = () => {
     if (selectedOption === null) return;
@@ -63,13 +77,31 @@ const ComprehensionCheck = ({
     onOpenChange(false);
   };
 
+  // Prevent closing dialog in blocking mode before answering
+  const handleOpenChange = (newOpen: boolean) => {
+    if (isBlocking && !hasSubmitted && !newOpen) {
+      // Don't allow closing in blocking mode before submitting
+      return;
+    }
+    onOpenChange(newOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent 
+        className="sm:max-w-lg"
+        onPointerDownOutside={isBlocking && !hasSubmitted ? (e) => e.preventDefault() : undefined}
+        onEscapeKeyDown={isBlocking && !hasSubmitted ? (e) => e.preventDefault() : undefined}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-yellow-500" />
             Quick Comprehension Check
+            {isBlocking && !hasSubmitted && (
+              <span className="text-xs font-normal text-muted-foreground ml-2">
+                (Required)
+              </span>
+            )}
           </DialogTitle>
           <DialogDescription>
             Test your understanding of the material so far
@@ -112,15 +144,15 @@ const ComprehensionCheck = ({
                   <RadioGroupItem value={index.toString()} id={`option-${index}`} />
                   <Label 
                     htmlFor={`option-${index}`} 
-                    className="flex-1 cursor-pointer"
+                    className="flex-1 cursor-pointer text-foreground"
                   >
                     {option}
                   </Label>
                   {hasSubmitted && isCorrectOption && (
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
                   )}
                   {hasSubmitted && isSelected && !isCorrectOption && (
-                    <XCircle className="h-5 w-5 text-red-500" />
+                    <XCircle className="h-5 w-5 text-red-500 shrink-0" />
                   )}
                 </div>
               );
@@ -131,18 +163,22 @@ const ComprehensionCheck = ({
           {hasSubmitted && (
             <div className={cn(
               "rounded-lg p-4",
-              isCorrect ? "bg-green-500/10 border border-green-500/30" : "bg-amber-500/10 border border-amber-500/30"
+              isCorrect 
+                ? "bg-green-500/10 border border-green-500/30" 
+                : "bg-amber-500/10 border border-amber-500/30"
             )}>
               <div className="flex items-start gap-3">
                 {isCorrect ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5" />
+                  <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
                 ) : (
-                  <Lightbulb className="h-5 w-5 text-amber-500 mt-0.5" />
+                  <Lightbulb className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
                 )}
                 <div>
                   <p className={cn(
                     "font-medium mb-1",
-                    isCorrect ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400"
+                    isCorrect 
+                      ? "text-green-600 dark:text-green-400" 
+                      : "text-amber-600 dark:text-amber-400"
                   )}>
                     {isCorrect ? "Correct!" : "Not quite!"}
                   </p>
@@ -158,11 +194,18 @@ const ComprehensionCheck = ({
         <div className="flex justify-between">
           {!hasSubmitted ? (
             <>
-              <Button variant="ghost" onClick={handleSkip}>
-                <SkipForward className="mr-2 h-4 w-4" />
-                Skip for now
-              </Button>
-              <Button onClick={handleSubmit} disabled={selectedOption === null}>
+              {!isBlocking && (
+                <Button variant="ghost" onClick={handleSkip}>
+                  <SkipForward className="mr-2 h-4 w-4" />
+                  Skip for now
+                </Button>
+              )}
+              {isBlocking && <div />}
+              <Button 
+                onClick={handleSubmit} 
+                disabled={selectedOption === null}
+                className={isBlocking ? "ml-auto" : ""}
+              >
                 Check Answer
               </Button>
             </>
