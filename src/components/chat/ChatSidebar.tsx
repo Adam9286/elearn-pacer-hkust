@@ -315,7 +315,7 @@ export const ChatSidebar = ({
 
         {/* Conversations List */}
         <ScrollArea className="flex-1">
-          <div className="p-2">
+          <div className="p-2 pr-3">
             {isLoading ? (
               <div className="space-y-2">
                 {[...Array(5)].map((_, i) => (
@@ -340,7 +340,7 @@ export const ChatSidebar = ({
                         <div
                           key={conv.id}
                           className={cn(
-                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors",
+                            "group flex items-center gap-2 pl-2 pr-1 py-2 rounded-lg cursor-pointer transition-colors",
                             activeConversationId === conv.id && !isSelectionMode
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-muted",
@@ -367,7 +367,7 @@ export const ChatSidebar = ({
                             {conv.title}
                           </span>
                           {!isSelectionMode && (
-                            <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 w-6 h-6">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
