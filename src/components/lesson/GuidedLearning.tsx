@@ -52,10 +52,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     return slideNum > 1 && slideNum % questionInterval === 0;
   }, []);
 
-  // Build PDF URL with page number for synchronization
-  const pdfUrlWithPage = lesson.pdfUrl 
-    ? `${lesson.pdfUrl.replace(/#.*$/, '')}#page=${currentSlide}` 
-    : null;
+  // PDF URL (no synchronization - users navigate independently)
 
   const fetchExplanation = useCallback(async (slideNum: number) => {
     setIsLoading(true);
@@ -176,7 +173,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm font-medium px-3">
-            Slide {currentSlide} of {totalSlides}
+            Section {currentSlide} of {totalSlides}
           </span>
           <Button
             variant="outline"
@@ -207,14 +204,13 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         </div>
       </div>
 
-      {/* PDF Viewer - synchronized with current slide */}
-      {pdfUrlWithPage && (
+      {/* PDF Viewer - independent navigation */}
+      {lesson.pdfUrl && (
         <div className="aspect-video rounded-lg overflow-hidden border bg-muted">
           <iframe
-            key={currentSlide}
-            src={pdfUrlWithPage}
+            src={lesson.pdfUrl}
             className="w-full h-full"
-            title={`${lesson.title} - Slide ${currentSlide}`}
+            title={lesson.title}
             allow="autoplay"
           />
         </div>
@@ -227,7 +223,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
             <Sparkles className="h-5 w-5 text-primary" />
             <span className="font-semibold text-primary">AI Tutor</span>
             <Badge variant="secondary" className="text-xs">
-              Slide {currentSlide}
+              Section {currentSlide}
             </Badge>
           </div>
 
@@ -304,10 +300,10 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
           disabled={currentSlide === 1 || isLoading}
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
-          Previous Slide
+          Previous Section
         </Button>
         <Button onClick={handleNextSlide} disabled={isLoading}>
-          {currentSlide === totalSlides ? 'Complete Lesson' : 'Next Slide'}
+          {currentSlide === totalSlides ? 'Complete Lesson' : 'Next Section'}
           {currentSlide < totalSlides && <ChevronRight className="ml-2 h-4 w-4" />}
         </Button>
       </div>
