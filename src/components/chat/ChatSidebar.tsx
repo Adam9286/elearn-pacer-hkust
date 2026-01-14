@@ -10,7 +10,8 @@ import {
   Square,
   X,
   Trash,
-  Pencil
+  Pencil,
+  Search
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -120,8 +121,18 @@ export const ChatSidebar = ({
   // Selection mode state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const groupedConversations = groupConversationsByDate(conversations);
+  // Filter conversations by search query
+  const filteredConversations = searchQuery.trim()
+    ? conversations.filter(conv => 
+        conv.title.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : conversations;
+
+  const groupedConversations = groupConversationsByDate(filteredConversations);
 
   const handleDeleteClick = (conversationId: string) => {
     setConversationToDelete(conversationId);
@@ -313,6 +324,22 @@ export const ChatSidebar = ({
           </div>
         )}
 
+        {/* Search Input */}
+        {!isSelectionMode && conversations.length > 0 && (
+          <div className="p-2 border-b">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="text"
+                placeholder="Search chats..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-8 text-sm"
+              />
+            </div>
+          </div>
+        )}
+
         {/* Conversations List */}
         <ScrollArea className="flex-1">
           <div className="p-2 pr-4">
@@ -327,6 +354,12 @@ export const ChatSidebar = ({
                 <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No conversations yet</p>
                 <p className="text-xs mt-1">Start a new chat to begin</p>
+              </div>
+            ) : filteredConversations.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No matching chats</p>
+                <p className="text-xs mt-1">Try a different search term</p>
               </div>
             ) : (
               <div className="space-y-4">
