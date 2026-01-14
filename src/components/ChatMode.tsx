@@ -1,11 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import { externalSupabase } from '@/lib/externalSupabase';
 import { useChatHistory, ChatMessage } from '@/hooks/useChatHistory';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
 import { WEBHOOKS } from '@/constants/api';
+import { uploadAttachments } from '@/services/attachmentService';
 
 const ChatMode = () => {
   const { toast } = useToast();
@@ -92,35 +92,23 @@ const ChatMode = () => {
     // Initialize loading state
     setIsWaitingForAI(true);
 
-    // Upload attachments to Lovable Cloud storage
-    const uploadedUrls: string[] = [];
-    const attachmentData: Array<{ name: string; url: string; type: string }> = [];
+    // Upload attachments to external Supabase with duplicate detection
+    const uploadResults = await uploadAttachments(attachments, userId);
+    
+    const uploadedUrls = uploadResults.map(r => r.url);
+    const attachmentData = uploadResults.map(r => ({
+      name: r.name,
+      url: r.url,
+      type: r.type,
+    }));
 
-    for (const file of attachments) {
-      const fileName = `${Date.now()}_${file.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('chat-attachments')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        toast({
-          title: 'Upload failed',
-          description: `Failed to upload ${file.name}`,
-          variant: 'destructive',
-        });
-        continue;
-      }
-
-      const { data: urlData } = supabase.storage.from('chat-attachments').getPublicUrl(uploadData.path);
-      uploadedUrls.push(urlData.publicUrl);
-      attachmentData.push({
-        name: file.name,
-        url: urlData.publicUrl,
-        type: file.type,
+    // Log any upload failures
+    if (uploadResults.length < attachments.length) {
+      const failedCount = attachments.length - uploadResults.length;
+      toast({
+        title: 'Some uploads failed',
+        description: `${failedCount} file(s) could not be uploaded`,
+        variant: 'destructive',
       });
     }
 
