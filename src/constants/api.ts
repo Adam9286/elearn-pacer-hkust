@@ -3,7 +3,7 @@
 
 export const WEBHOOKS = {
   // Chat AI webhook for processing messages
-  CHAT: 'https://smellycat9286.app.n8n.cloud/webhook-test/638fa33f-5871-43b3-a34e-d318a2147001',
+  CHAT: 'https://smellycat9286.app.n8n.cloud/webhook-test/f038d86c-db00-4e07-b2d9-19f906a75b01',
   
   // Mock exam generator webhook
   EXAM_GENERATOR: 'https://smellycat9286.app.n8n.cloud/webhook-test/mock-exam-generator',
