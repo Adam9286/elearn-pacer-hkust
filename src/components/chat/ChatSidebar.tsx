@@ -1,30 +1,30 @@
-import { useState } from 'react';
-import { 
-  Plus, 
-  MessageSquare, 
-  Trash2, 
-  MoreHorizontal, 
-  ChevronLeft, 
+import { useState } from "react";
+import {
+  Plus,
+  MessageSquare,
+  Trash2,
+  MoreHorizontal,
+  ChevronLeft,
   ChevronRight,
   CheckSquare,
   Square,
   X,
   Trash,
   Pencil,
-  Search
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
+  Search,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,7 +34,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -42,9 +42,9 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { ChatConversation } from '@/hooks/useChatHistory';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dialog";
+import { ChatConversation } from "@/hooks/useChatHistory";
+import { cn } from "@/lib/utils";
 
 interface ChatSidebarProps {
   conversations: ChatConversation[];
@@ -69,16 +69,16 @@ const groupConversationsByDate = (conversations: ChatConversation[]) => {
   const lastMonth = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   const groups: { label: string; conversations: ChatConversation[] }[] = [
-    { label: 'Today', conversations: [] },
-    { label: 'Yesterday', conversations: [] },
-    { label: 'Previous 7 Days', conversations: [] },
-    { label: 'Previous 30 Days', conversations: [] },
-    { label: 'Older', conversations: [] },
+    { label: "Today", conversations: [] },
+    { label: "Yesterday", conversations: [] },
+    { label: "Previous 7 Days", conversations: [] },
+    { label: "Previous 30 Days", conversations: [] },
+    { label: "Older", conversations: [] },
   ];
 
-  conversations.forEach(conv => {
+  conversations.forEach((conv) => {
     const date = new Date(conv.updated_at);
-    
+
     if (date >= today) {
       groups[0].conversations.push(conv);
     } else if (date >= yesterday) {
@@ -92,7 +92,7 @@ const groupConversationsByDate = (conversations: ChatConversation[]) => {
     }
   });
 
-  return groups.filter(group => group.conversations.length > 0);
+  return groups.filter((group) => group.conversations.length > 0);
 };
 
 export const ChatSidebar = ({
@@ -112,24 +112,22 @@ export const ChatSidebar = ({
   const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
-  
+
   // Rename state
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [conversationToRename, setConversationToRename] = useState<string | null>(null);
-  const [newTitle, setNewTitle] = useState('');
-  
+  const [newTitle, setNewTitle] = useState("");
+
   // Selection mode state
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  
+
   // Search state
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Filter conversations by search query
   const filteredConversations = searchQuery.trim()
-    ? conversations.filter(conv => 
-        conv.title.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? conversations.filter((conv) => conv.title.toLowerCase().includes(searchQuery.toLowerCase()))
     : conversations;
 
   const groupedConversations = groupConversationsByDate(filteredConversations);
@@ -151,7 +149,7 @@ export const ChatSidebar = ({
     }
     setRenameDialogOpen(false);
     setConversationToRename(null);
-    setNewTitle('');
+    setNewTitle("");
   };
 
   const handleConfirmDelete = () => {
@@ -177,7 +175,7 @@ export const ChatSidebar = ({
   };
 
   const toggleSelection = (id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(id)) {
         newSet.delete(id);
@@ -192,7 +190,7 @@ export const ChatSidebar = ({
     if (selectedIds.size === conversations.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(conversations.map(c => c.id)));
+      setSelectedIds(new Set(conversations.map((c) => c.id)));
     }
   };
 
@@ -204,20 +202,10 @@ export const ChatSidebar = ({
   if (isCollapsed) {
     return (
       <div className="w-12 h-full border-r bg-card flex flex-col items-center py-3 gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onToggleCollapse}
-          className="mb-2"
-        >
+        <Button variant="ghost" size="icon" onClick={onToggleCollapse} className="mb-2">
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onNewChat}
-          className="text-primary"
-        >
+        <Button variant="ghost" size="icon" onClick={onNewChat} className="text-primary">
           <Plus className="h-4 w-4" />
         </Button>
       </div>
@@ -231,26 +219,15 @@ export const ChatSidebar = ({
         <div className="p-3 border-b flex items-center justify-between gap-2">
           {isSelectionMode ? (
             <>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={exitSelectionMode}
-                className="gap-1"
-              >
+              <Button variant="ghost" size="sm" onClick={exitSelectionMode} className="gap-1">
                 <X className="h-4 w-4" />
                 Cancel
               </Button>
-              <span className="text-sm text-muted-foreground">
-                {selectedIds.size} selected
-              </span>
+              <span className="text-sm text-muted-foreground">{selectedIds.size} selected</span>
             </>
           ) : (
             <>
-              <Button
-                onClick={onNewChat}
-                className="flex-1 gap-2"
-                variant="outline"
-              >
+              <Button onClick={onNewChat} className="flex-1 gap-2" variant="outline">
                 <Plus className="h-4 w-4" />
                 New Chat
               </Button>
@@ -261,10 +238,7 @@ export const ChatSidebar = ({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
-                    onClick={() => setIsSelectionMode(true)}
-                    disabled={conversations.length === 0}
-                  >
+                  <DropdownMenuItem onClick={() => setIsSelectionMode(true)} disabled={conversations.length === 0}>
                     <CheckSquare className="h-4 w-4 mr-2" />
                     Select chats
                   </DropdownMenuItem>
@@ -279,11 +253,7 @@ export const ChatSidebar = ({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onToggleCollapse}
-              >
+              <Button variant="ghost" size="icon" onClick={onToggleCollapse}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
             </>
@@ -293,12 +263,7 @@ export const ChatSidebar = ({
         {/* Selection Mode Actions */}
         {isSelectionMode && (
           <div className="p-2 border-b bg-muted/50 flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleSelectAll}
-              className="text-xs"
-            >
+            <Button variant="ghost" size="sm" onClick={toggleSelectAll} className="text-xs">
               {selectedIds.size === conversations.length ? (
                 <>
                   <Square className="h-3 w-3 mr-1" />
@@ -363,21 +328,19 @@ export const ChatSidebar = ({
               </div>
             ) : (
               <div className="space-y-4">
-                {groupedConversations.map(group => (
+                {groupedConversations.map((group) => (
                   <div key={group.label}>
-                    <p className="text-xs font-medium text-muted-foreground px-2 mb-1">
-                      {group.label}
-                    </p>
+                    <p className="text-xs font-medium text-muted-foreground px-2 mb-1">{group.label}</p>
                     <div className="space-y-1">
-                      {group.conversations.map(conv => (
+                      {group.conversations.map((conv) => (
                         <div
                           key={conv.id}
                           className={cn(
-                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors",
+                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors min-w-0",
                             activeConversationId === conv.id && !isSelectionMode
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-muted",
-                            isSelectionMode && selectedIds.has(conv.id) && "bg-primary/10"
+                            isSelectionMode && selectedIds.has(conv.id) && "bg-primary/10",
                           )}
                           onClick={() => {
                             if (isSelectionMode) {
@@ -396,64 +359,58 @@ export const ChatSidebar = ({
                           ) : (
                             <MessageSquare className="h-4 w-4 shrink-0" />
                           )}
-                          
-                          {/* Container for text + overlapping button */}
-                          <div className="flex-1 min-w-0 relative">
-                            <span className="text-sm block truncate pr-2">
-                              {conv.title}
-                            </span>
-                            
-                            {/* Overlapping button with gradient fade */}
-                            {!isSelectionMode && (
-                              <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                {/* Gradient fade overlay */}
-                                <div className={cn(
-                                  "w-6 h-6 bg-gradient-to-r to-transparent",
-                                  activeConversationId === conv.id 
-                                    ? "from-primary/10" 
-                                    : "from-card group-hover:from-muted"
-                                )} />
-                                
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <button
-                                      className={cn(
-                                        "h-6 w-6 flex items-center justify-center rounded text-muted-foreground hover:text-foreground",
-                                        activeConversationId === conv.id 
-                                          ? "bg-primary/10 hover:bg-primary/20" 
-                                          : "bg-card group-hover:bg-muted hover:bg-muted/80"
-                                      )}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MoreHorizontal className="h-4 w-4" />
-                                    </button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end" side="bottom" sideOffset={5} className="z-[100] bg-popover">
-                                    <DropdownMenuItem
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleRenameClick(conv.id, conv.title);
-                                      }}
-                                    >
-                                      <Pencil className="h-4 w-4 mr-2" />
-                                      Rename
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem
-                                      className="text-destructive focus:text-destructive"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteClick(conv.id);
-                                      }}
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              </div>
-                            )}
-                          </div>
+
+                          {/* Title */}
+                          <span className="flex-1 min-w-0 text-sm truncate">{conv.title}</span>
+
+                          {/* Hover actions */}
+                          {!isSelectionMode && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  className="
+                                    h-6 w-6 shrink-0
+                                    flex items-center justify-center
+                                    rounded
+                                    text-muted-foreground
+                                    opacity-0
+                                    group-hover:opacity-100
+                                    transition-opacity
+                                    hover:text-foreground
+                                    hover:bg-muted/80
+                                  "
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </button>
+                              </DropdownMenuTrigger>
+
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRenameClick(conv.id, conv.title);
+                                  }}
+                                >
+                                  <Pencil className="h-4 w-4 mr-2" />
+                                  Rename
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteClick(conv.id);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 mr-2" />
+                                  Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -471,8 +428,7 @@ export const ChatSidebar = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete conversation?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete this conversation and all its messages.
-              This action cannot be undone.
+              This will permanently delete this conversation and all its messages. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -493,8 +449,8 @@ export const ChatSidebar = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Clear all chats?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete ALL {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} and their messages.
-              This action cannot be undone.
+              This will permanently delete ALL {conversations.length} conversation
+              {conversations.length !== 1 ? "s" : ""} and their messages. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -513,10 +469,12 @@ export const ChatSidebar = ({
       <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete {selectedIds.size} conversation{selectedIds.size !== 1 ? 's' : ''}?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete {selectedIds.size} conversation{selectedIds.size !== 1 ? "s" : ""}?
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the selected conversations and all their messages.
-              This action cannot be undone.
+              This will permanently delete the selected conversations and all their messages. This action cannot be
+              undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -536,16 +494,14 @@ export const ChatSidebar = ({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rename conversation</DialogTitle>
-            <DialogDescription>
-              Enter a new name for this conversation.
-            </DialogDescription>
+            <DialogDescription>Enter a new name for this conversation.</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <Input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
               placeholder="Conversation name"
-              onKeyDown={(e) => e.key === 'Enter' && handleConfirmRename()}
+              onKeyDown={(e) => e.key === "Enter" && handleConfirmRename()}
               autoFocus
             />
           </div>
