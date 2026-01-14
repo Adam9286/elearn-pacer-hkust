@@ -292,39 +292,39 @@ All colors MUST be HSL.
   /* ========== DARK THEMES ========== */
   /* All dark themes use Material Design recommended #121212 base or similar desaturated greys */
 
-  /* Midnight - Deep navy blue with cyan accent */
+  /* Midnight - Deep navy blue with cyan accent (restored rich navy) */
   :root.midnight {
-    --background: 220 25% 10%;
+    --background: 215 40% 7%;
     --foreground: 210 20% 95%;
 
-    --card: 220 22% 12%;
+    --card: 215 35% 10%;
     --card-foreground: 210 20% 95%;
 
-    --popover: 220 22% 12%;
+    --popover: 215 35% 10%;
     --popover-foreground: 210 20% 95%;
 
     --primary: 186 100% 50%;
-    --primary-foreground: 220 25% 8%;
+    --primary-foreground: 215 40% 7%;
 
-    --secondary: 220 20% 16%;
+    --secondary: 215 30% 14%;
     --secondary-foreground: 210 20% 95%;
 
-    --muted: 220 18% 16%;
-    --muted-foreground: 210 15% 60%;
+    --muted: 215 25% 14%;
+    --muted-foreground: 210 15% 55%;
 
     --accent: 186 100% 50%;
-    --accent-foreground: 220 25% 8%;
+    --accent-foreground: 215 40% 7%;
 
     --destructive: 0 55% 40%;
     --destructive-foreground: 210 20% 95%;
 
-    --border: 220 18% 18%;
-    --input: 220 18% 18%;
+    --border: 215 25% 16%;
+    --input: 215 25% 16%;
     --ring: 186 100% 50%;
     
-    --glass-bg: hsla(220, 22%, 12%, 0.85);
+    --glass-bg: hsla(215, 35%, 10%, 0.85);
     --glass-border: hsla(186, 100%, 50%, 0.2);
-    --shadow-glow: 0 0 20px hsla(186, 100%, 50%, 0.25);
+    --shadow-glow: 0 0 25px hsla(186, 100%, 50%, 0.3);
   }
 
   /* Slate - Calm blue-grey, professional, easy on eyes */
