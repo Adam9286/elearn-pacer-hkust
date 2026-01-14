@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import SlideProgress from "./SlideProgress";
 import ComprehensionCheck, { ComprehensionQuestion } from "./ComprehensionCheck";
 import { toast } from "sonner";
@@ -36,6 +38,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   const [previousContext, setPreviousContext] = useState<string>("");
   
   // Comprehension tracking
+  const [questionsEnabled, setQuestionsEnabled] = useState(true);
   const [questionsShown, setQuestionsShown] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [questionsCorrect, setQuestionsCorrect] = useState(0);
@@ -44,10 +47,15 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
 
   // Determine if we should show a question (every 3-5 slides)
   const shouldGenerateQuestion = useCallback((slideNum: number): boolean => {
-    // Show question every 4 slides on average, with some randomness
+    // Show question every 4 slides on average
     const questionInterval = 4;
     return slideNum > 1 && slideNum % questionInterval === 0;
   }, []);
+
+  // Build PDF URL with page number for synchronization
+  const pdfUrlWithPage = lesson.pdfUrl 
+    ? `${lesson.pdfUrl.replace(/#.*$/, '')}#page=${currentSlide}` 
+    : null;
 
   const fetchExplanation = useCallback(async (slideNum: number) => {
     setIsLoading(true);
@@ -55,7 +63,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     setExplanation(null);
 
     try {
-      const generateQuestion = shouldGenerateQuestion(slideNum);
+      const generateQuestion = questionsEnabled && shouldGenerateQuestion(slideNum);
       
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/explain-slide`,
@@ -115,7 +123,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     } finally {
       setIsLoading(false);
     }
-  }, [lesson, chapter, totalSlides, previousContext, shouldGenerateQuestion]);
+  }, [lesson, chapter, totalSlides, previousContext, shouldGenerateQuestion, questionsEnabled]);
 
   // Fetch explanation when slide changes
   useEffect(() => {
@@ -157,7 +165,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   return (
     <div className="space-y-6">
       {/* Slide Navigation Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -179,17 +187,32 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <Button variant="ghost" size="sm" onClick={handleSkipToEnd} disabled={isLoading}>
-          <SkipForward className="mr-2 h-4 w-4" />
-          Skip to End
-        </Button>
+        
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Switch 
+              id="questions-toggle"
+              checked={questionsEnabled}
+              onCheckedChange={setQuestionsEnabled}
+            />
+            <Label htmlFor="questions-toggle" className="text-sm cursor-pointer">
+              Questions
+            </Label>
+          </div>
+          
+          <Button variant="ghost" size="sm" onClick={handleSkipToEnd} disabled={isLoading}>
+            <SkipForward className="mr-2 h-4 w-4" />
+            Skip to End
+          </Button>
+        </div>
       </div>
 
-      {/* PDF Viewer */}
-      {lesson.pdfUrl && (
+      {/* PDF Viewer - synchronized with current slide */}
+      {pdfUrlWithPage && (
         <div className="aspect-video rounded-lg overflow-hidden border bg-muted">
           <iframe
-            src={lesson.pdfUrl}
+            key={currentSlide}
+            src={pdfUrlWithPage}
             className="w-full h-full"
             title={`${lesson.title} - Slide ${currentSlide}`}
             allow="autoplay"
