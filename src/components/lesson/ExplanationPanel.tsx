@@ -1,5 +1,5 @@
 // AI Explanation Panel Component
-// Displays AI-generated explanations with loading, error, and empty states
+// Displays AI-generated explanations with explicit contentState handling
 
 import { Sparkles, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,13 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import type { ContentState } from "@/types/courseTypes";
 
 interface ExplanationPanelProps {
   slideNumber: number;
-  explanation?: string;      // undefined = not loaded yet
+  contentState: ContentState;   // Explicit state: idle | loading | ready | error
+  explanation?: string;
   keyPoints?: string[];
-  isLoading: boolean;
-  error?: string;
+  errorMessage?: string;        // Per-slide error message
   onRetry: () => void;
   className?: string;
 }
@@ -21,18 +22,18 @@ interface ExplanationPanelProps {
 /**
  * ExplanationPanel - Displays AI-generated slide explanations
  * 
- * States:
- * 1. Loading - Skeleton with "Generating explanation..."
- * 2. Error - Error message + Retry button
- * 3. Empty - "Explanation will appear here" placeholder
- * 4. Loaded - Full explanation + key points
+ * Uses explicit contentState for deterministic rendering:
+ * - idle: Placeholder waiting for fetch
+ * - loading: Skeleton with spinner
+ * - error: Error message + Retry button
+ * - ready: Full explanation + key points
  */
 const ExplanationPanel = ({
   slideNumber,
+  contentState,
   explanation,
   keyPoints,
-  isLoading,
-  error,
+  errorMessage,
   onRetry,
   className
 }: ExplanationPanelProps) => {
@@ -52,7 +53,7 @@ const ExplanationPanel = ({
         </div>
 
         {/* Loading State */}
-        {isLoading && (
+        {contentState === 'loading' && (
           <div className="space-y-3">
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-[90%]" />
@@ -66,12 +67,14 @@ const ExplanationPanel = ({
         )}
 
         {/* Error State */}
-        {!isLoading && error && (
+        {contentState === 'error' && (
           <div className="flex items-start gap-3 text-destructive">
             <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
             <div className="flex-1">
               <p className="font-medium">Failed to load explanation</p>
-              <p className="text-sm text-muted-foreground mt-1">{error}</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {errorMessage || 'An unexpected error occurred'}
+              </p>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -85,8 +88,8 @@ const ExplanationPanel = ({
           </div>
         )}
 
-        {/* Empty State */}
-        {!isLoading && !error && !explanation && (
+        {/* Idle State - Placeholder */}
+        {contentState === 'idle' && (
           <div className="text-center py-8 text-muted-foreground">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>AI explanation will appear here</p>
@@ -94,8 +97,8 @@ const ExplanationPanel = ({
           </div>
         )}
 
-        {/* Loaded State - Explanation + Key Points */}
-        {!isLoading && !error && explanation && (
+        {/* Ready State - Explanation + Key Points */}
+        {contentState === 'ready' && explanation && (
           <div className="space-y-4">
             <p className="text-foreground leading-relaxed whitespace-pre-wrap">
               {explanation}
