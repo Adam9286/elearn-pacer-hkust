@@ -1,5 +1,6 @@
 // GuidedLearning - Main orchestrator for slide-by-slide learning
 // currentSlide is the single source of truth for all dependent UI
+// Uses explicit contentState for deterministic loading behavior
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -37,17 +38,14 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   // currentSlide is the SINGLE SOURCE OF TRUTH
   const [currentSlide, setCurrentSlide] = useState(1);
   
-  // Slide data array (indexed by slideNumber - 1)
+  // Slide data array - each slide has explicit contentState
   const [slides, setSlides] = useState<CourseSlide[]>(() => 
     Array.from({ length: totalSlides }, (_, i) => ({
       slideNumber: i + 1,
       status: i === 0 ? 'unlocked' : 'locked',
+      contentState: 'idle',  // Explicit: not yet fetched
     }))
   );
-  
-  // ============ Loading State ============
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   
   // ============ Context for AI ============
   const [previousContext, setPreviousContext] = useState<string>("");
@@ -61,8 +59,17 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   const [showQuestionDialog, setShowQuestionDialog] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<ComprehensionQuestion | null>(null);
   
+  // ============ Slide Lookup Map ============
+  // Use slideNumber as key for safe lookup (not array index)
+  const slideMap = useMemo(
+    () => Object.fromEntries(slides.map(s => [s.slideNumber, s])),
+    [slides]
+  );
+  
+  // Current slide data via map lookup (authoritative)
+  const currentSlideData = slideMap[currentSlide];
+  
   // ============ Derived State ============
-  const currentSlideData = slides[currentSlide - 1];
   const slidesViewed = useMemo(
     () => slides
       .filter(s => s.status === 'completed' || s.status === 'unlocked')
@@ -70,14 +77,19 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     [slides]
   );
   
-  // Navigation control
+  // Navigation control based on contentState
+  const isCurrentSlideLoading = currentSlideData?.contentState === 'loading';
   const canGoPrevious = currentSlide > 1;
-  const canGoNext = currentSlide < totalSlides && !isLoading;
+  const canGoNext = currentSlide < totalSlides && !isCurrentSlideLoading;
   
   // ============ API Call ============
   const fetchExplanationForSlide = useCallback(async (slideNum: number) => {
-    setIsLoading(true);
-    setError(null);
+    // Set loading state for this specific slide
+    setSlides(prev => prev.map(slide => 
+      slide.slideNumber === slideNum 
+        ? { ...slide, contentState: 'loading' as const }
+        : slide
+    ));
 
     try {
       const generateQuestion = questionsEnabled && shouldGenerateQuestion(slideNum);
@@ -95,19 +107,19 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         pdfUrl: lesson.pdfUrl,
       });
       
-      // Update slide data
-      setSlides(prev => prev.map((slide, idx) => {
-        if (idx === slideNum - 1) {
+      // Set ready state with content for this slide
+      setSlides(prev => prev.map(slide => {
+        if (slide.slideNumber === slideNum) {
           return {
             ...slide,
-            status: 'unlocked' as const,
+            contentState: 'ready' as const,
             explanation: response.explanation,
             keyPoints: response.keyPoints,
             comprehensionQuestion: response.comprehensionQuestion,
           };
         }
         // Unlock next slide
-        if (idx === slideNum && slide.status === 'locked') {
+        if (slide.slideNumber === slideNum + 1 && slide.status === 'locked') {
           return { ...slide, status: 'unlocked' as const };
         }
         return slide;
@@ -130,26 +142,29 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     } catch (err) {
       console.error('Error fetching slide explanation:', err);
       const message = err instanceof Error ? err.message : 'Failed to load explanation';
-      setError(message);
+      
+      // Set error state for this specific slide
+      setSlides(prev => prev.map(slide => 
+        slide.slideNumber === slideNum 
+          ? { ...slide, contentState: 'error' as const, errorMessage: message }
+          : slide
+      ));
       
       if (message.includes('Rate limit')) {
         toast.error('Rate limit exceeded. Please wait a moment before continuing.');
       } else if (message.includes('credits')) {
         toast.error('AI credits depleted. Please add credits to continue learning.');
       }
-    } finally {
-      setIsLoading(false);
     }
   }, [lesson, chapter, totalSlides, previousContext, questionsEnabled]);
 
   // ============ Effects ============
-  // Fetch explanation when slide changes
+  // Fetch explanation when slide changes - only if contentState is 'idle'
   useEffect(() => {
-    // Only fetch if we don't already have an explanation for this slide
-    if (!currentSlideData?.explanation) {
+    if (currentSlideData?.contentState === 'idle') {
       fetchExplanationForSlide(currentSlide);
     }
-  }, [currentSlide]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentSlide, currentSlideData?.contentState, fetchExplanationForSlide]);
 
   // ============ Navigation Handlers ============
   const handlePreviousSlide = useCallback(() => {
@@ -161,8 +176,8 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   const handleNextSlide = useCallback(() => {
     if (currentSlide < totalSlides) {
       // Mark current slide as completed
-      setSlides(prev => prev.map((slide, idx) => 
-        idx === currentSlide - 1 
+      setSlides(prev => prev.map(slide => 
+        slide.slideNumber === currentSlide 
           ? { ...slide, status: 'completed' as const }
           : slide
       ));
@@ -191,9 +206,14 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     setCurrentQuestion(null);
   }, []);
 
+  // Retry resets contentState to 'idle', triggering re-fetch
   const handleRetry = useCallback(() => {
-    fetchExplanationForSlide(currentSlide);
-  }, [fetchExplanationForSlide, currentSlide]);
+    setSlides(prev => prev.map(slide => 
+      slide.slideNumber === currentSlide 
+        ? { ...slide, contentState: 'idle' as const, errorMessage: undefined }
+        : slide
+    ));
+  }, [currentSlide]);
 
   // ============ Render ============
   return (
@@ -207,7 +227,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         onSkipToEnd={handleSkipToEnd}
         canGoNext={canGoNext}
         canGoPrevious={canGoPrevious}
-        isLoading={isLoading}
+        isLoading={isCurrentSlideLoading}
         questionsEnabled={questionsEnabled}
         onQuestionsToggle={setQuestionsEnabled}
       />
@@ -222,13 +242,13 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         />
       )}
 
-      {/* AI Explanation Panel */}
+      {/* AI Explanation Panel - uses explicit contentState */}
       <ExplanationPanel
         slideNumber={currentSlide}
+        contentState={currentSlideData?.contentState ?? 'idle'}
         explanation={currentSlideData?.explanation}
         keyPoints={currentSlideData?.keyPoints}
-        isLoading={isLoading}
-        error={error || undefined}
+        errorMessage={currentSlideData?.errorMessage}
         onRetry={handleRetry}
       />
 
@@ -247,14 +267,14 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         <Button
           variant="outline"
           onClick={handlePreviousSlide}
-          disabled={!canGoPrevious || isLoading}
+          disabled={!canGoPrevious || isCurrentSlideLoading}
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
           Previous Section
         </Button>
         <Button 
           onClick={handleNextSlide} 
-          disabled={isLoading}
+          disabled={isCurrentSlideLoading}
         >
           {currentSlide === totalSlides ? 'Complete Lesson' : 'Next Section'}
           {currentSlide < totalSlides && <ChevronRight className="ml-2 h-4 w-4" />}

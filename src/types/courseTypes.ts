@@ -4,6 +4,9 @@
 // Slide status for navigation control
 export type SlideStatus = 'locked' | 'unlocked' | 'completed';
 
+// Explicit content state (replaces ambiguous undefined checks)
+export type ContentState = 'idle' | 'loading' | 'ready' | 'error';
+
 // Comprehension question structure (matches backend response)
 export interface ComprehensionQuestion {
   question: string;
@@ -17,8 +20,10 @@ export interface ComprehensionQuestion {
 export interface CourseSlide {
   slideNumber: number;
   status: SlideStatus;
+  contentState: ContentState;     // Explicit loading state
   explanation?: string;           // AI-generated (undefined = not loaded)
   keyPoints?: string[];           // AI-generated
+  errorMessage?: string;          // Per-slide error message
   comprehensionQuestion?: ComprehensionQuestion;
 }
 
