@@ -341,8 +341,8 @@ export const ChatSidebar = ({
         )}
 
         {/* Conversations List */}
-        <ScrollArea className="flex-1">
-          <div className="p-2 pr-4">
+        <ScrollArea className="flex-1 w-full">
+          <div className="p-2">
             {isLoading ? (
               <div className="space-y-2">
                 {[...Array(5)].map((_, i) => (
@@ -373,7 +373,7 @@ export const ChatSidebar = ({
                         <div
                           key={conv.id}
                           className={cn(
-                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors",
+                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors w-full",
                             activeConversationId === conv.id && !isSelectionMode
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-muted",
@@ -391,25 +391,26 @@ export const ChatSidebar = ({
                             <Checkbox
                               checked={selectedIds.has(conv.id)}
                               onCheckedChange={() => toggleSelection(conv.id)}
-                              className="flex-shrink-0"
+                              className="shrink-0"
                             />
                           ) : (
-                            <MessageSquare className="h-4 w-4 flex-shrink-0" />
+                            <MessageSquare className="h-4 w-4 shrink-0" />
                           )}
-                          <span className="flex-1 min-w-0 text-sm truncate">
+                          <span 
+                            className="text-sm truncate"
+                            style={{ flex: '1 1 0%', minWidth: 0 }}
+                          >
                             {conv.title}
                           </span>
                           {!isSelectionMode && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                                <button
+                                  className="h-6 w-6 shrink-0 flex items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/80"
                                   onClick={(e) => e.stopPropagation()}
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
-                                </Button>
+                                </button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" side="bottom" sideOffset={5} className="z-[100] bg-popover">
                                 <DropdownMenuItem
