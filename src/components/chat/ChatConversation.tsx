@@ -22,6 +22,7 @@ interface LocalMessage {
   role: 'user' | 'assistant';
   content: string;
   source?: string;
+  responseTime?: string;
   attachments?: Array<{
     name: string;
     url: string;
@@ -79,6 +80,7 @@ export const ChatConversation = ({
         role: m.role,
         content: m.content,
         source: m.source,
+        responseTime: m.responseTime,
         attachments: m.attachments,
       }))
     : localMessages;
@@ -217,6 +219,9 @@ export const ChatConversation = ({
       };
       setLocalMessages((prev) => [...prev, loadingMessage]);
 
+      // Track response time
+      const startTime = Date.now();
+
       try {
         // Upload attachments to Supabase Storage (Lovable Cloud)
         const uploadedUrls: string[] = [];
@@ -281,6 +286,8 @@ export const ChatConversation = ({
         const output = payload.output ?? "I received your question and I'm processing it.";
         const source = payload.source_document ?? payload.source;
 
+        const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
+
         setLocalMessages((prev) => {
           const withoutLoading = prev.filter((msg) => msg.id !== loadingMessage.id);
           const aiMessage: LocalMessage = {
@@ -288,6 +295,7 @@ export const ChatConversation = ({
             role: 'assistant',
             content: output,
             source: source,
+            responseTime: responseTime,
           };
           setNewMessageId(aiMessage.id);
           setTimeout(() => setNewMessageId(null), 400);
@@ -439,6 +447,11 @@ export const ChatConversation = ({
                               {formatSource(message.source).label}
                             </Badge>
                           </div>
+                        </div>
+                      )}
+                      {message.role === 'assistant' && message.responseTime && (
+                        <div className="mt-2 text-[10px] text-muted-foreground/70 font-mono">
+                          ⏱ {message.responseTime}s
                         </div>
                       )}
                     </div>
