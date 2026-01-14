@@ -373,7 +373,7 @@ export const ChatSidebar = ({
                         <div
                           key={conv.id}
                           className={cn(
-                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors w-full",
+                            "group flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer transition-colors min-w-0",
                             activeConversationId === conv.id && !isSelectionMode
                               ? "bg-primary/10 text-primary"
                               : "hover:bg-muted",
