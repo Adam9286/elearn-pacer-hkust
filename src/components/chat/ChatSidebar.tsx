@@ -226,7 +226,7 @@ export const ChatSidebar = ({
 
   return (
     <>
-      <div className="w-1/2 h-full border-r bg-card flex flex-col">
+      <div className="w-64 h-full border-r bg-card flex flex-col">
         {/* Header */}
         <div className="p-3 border-b flex items-center justify-between gap-2">
           {isSelectionMode ? (
