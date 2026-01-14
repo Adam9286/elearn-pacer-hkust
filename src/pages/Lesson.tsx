@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Circle, Clock, FileText, LogIn } from "lucide-react";
+import { ArrowLeft, CheckCircle, Circle, Clock, FileText, LogIn, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +13,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { useUserProgress } from "@/contexts/UserProgressContext";
 import { toast } from "sonner";
 import { chapters, findLesson } from "@/data/courseContent";
+import GuidedLearning from "@/components/lesson/GuidedLearning";
 
 const Lesson = () => {
   const { lessonId } = useParams();
@@ -193,7 +194,10 @@ const Lesson = () => {
                 <CardHeader className="pb-4">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="lecture">Lecture Notes</TabsTrigger>
+                    <TabsTrigger value="ai-tutor" className="flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      AI Tutor
+                    </TabsTrigger>
                   </TabsList>
                 </CardHeader>
 
@@ -253,24 +257,12 @@ const Lesson = () => {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="lecture" className="mt-0">
-                    <div className="space-y-6">
-                      {currentLesson.pdfUrl ? (
-                        <div className="aspect-video rounded-lg overflow-hidden border">
-                          <iframe
-                            src={currentLesson.pdfUrl}
-                            className="w-full h-full"
-                            title={`${currentLesson.title} Lecture Slides`}
-                            allow="autoplay"
-                          />
-                        </div>
-                      ) : (
-                        <div className="text-center py-12 text-muted-foreground">
-                          <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                          <p>Lecture notes for this section will be available soon.</p>
-                        </div>
-                      )}
-                    </div>
+                  <TabsContent value="ai-tutor" className="mt-0">
+                    <GuidedLearning 
+                      lesson={currentLesson} 
+                      chapter={currentChapter}
+                      onComplete={handleMarkComplete}
+                    />
                   </TabsContent>
 
                 </CardContent>
