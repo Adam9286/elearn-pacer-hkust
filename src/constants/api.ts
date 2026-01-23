@@ -3,10 +3,10 @@
 
 export const WEBHOOKS = {
   // Chat AI webhook for processing messages
-  CHAT: 'https://smellycat9286.app.n8n.cloud/webhook-test/6f2a40a0-765a-44f0-a012-b24f418869bb',
+  CHAT: 'https://smellycat9286.app.n8n.cloud/webhook/6f2a40a0-765a-44f0-a012-b24f418869bb',
   
   // Mock exam generator webhook
-  EXAM_GENERATOR: 'https://smellycat9286.app.n8n.cloud/webhook-test/mock-exam-generator',
+  EXAM_GENERATOR: 'https://smellycat9286.app.n8n.cloud/webhook/mock-exam-generator',
 } as const;
 
 // Request timeouts in milliseconds
