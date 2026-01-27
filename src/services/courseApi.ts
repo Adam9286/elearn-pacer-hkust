@@ -1,18 +1,15 @@
 // Centralized API for Course Mode
 // All slide explanations and course-related API calls go through here
-// This makes it easy to swap backends (edge function → n8n OCR workflow)
+// Connected to n8n backend workflow for AI-powered slide explanations
 
 import type { 
   SlideExplanationRequest, 
   SlideExplanationResponse 
 } from '@/types/courseTypes';
+import { WEBHOOKS, TIMEOUTS } from '@/constants/api';
 
-// Configuration for API calls
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-// Feature flag for mock mode - set to false for real backend
-const USE_MOCK_BACKEND = true;
+// Feature flag for mock mode - set to false for real n8n backend
+const USE_MOCK_BACKEND = false;
 
 // Future: n8n OCR workflow endpoint
 // const N8N_OCR_ENDPOINT = 'https://your-n8n-instance/webhook/slide-explainer';
@@ -55,26 +52,24 @@ async function mockSlideExplanation(
 
 /**
  * Fetch AI-generated explanation for a specific slide
- * Currently uses mock backend for development
- * Future: Will switch to n8n OCR workflow
+ * Calls n8n workflow which uses pre-cached slide text from LectureSlides table
  */
 export async function fetchSlideExplanation(
   request: SlideExplanationRequest
 ): Promise<SlideExplanationResponse> {
-  // Use mock backend for development
+  // Use mock backend for development/testing
   if (USE_MOCK_BACKEND) {
     return mockSlideExplanation(request);
   }
 
-  // Real API call (used when USE_MOCK_BACKEND = false)
-  const response = await fetch(
-    `${SUPABASE_URL}/functions/v1/explain-slide`,
-    {
+  // Real n8n API call
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.SLIDE_EXPLANATION);
+
+  try {
+    const response = await fetch(WEBHOOKS.COURSE_SLIDE_EXPLAIN, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         lessonId: request.lessonId,
         slideNumber: request.slideNumber,
@@ -85,17 +80,35 @@ export async function fetchSlideExplanation(
         textbookSections: request.textbookSections,
         previousContext: request.previousContext,
         generateQuestion: request.generateQuestion,
-        // pdfUrl: request.pdfUrl, // Uncomment when n8n OCR is ready
+        pdfUrl: request.pdfUrl,
       }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to fetch explanation (${response.status})`);
     }
-  );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `Failed to fetch explanation (${response.status})`);
+    const data = await response.json();
+    
+    // Ensure keyPoints is an array (handle n8n serialization edge case)
+    return {
+      explanation: data.explanation || '',
+      keyPoints: Array.isArray(data.keyPoints) 
+        ? data.keyPoints 
+        : JSON.parse(data.keyPoints || '[]'),
+      comprehensionQuestion: data.comprehensionQuestion || undefined,
+    };
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('Request timed out. Please try again.');
+    }
+    throw err;
   }
-
-  return response.json();
 }
 
 /**
