@@ -7,10 +7,14 @@ export const WEBHOOKS = {
   
   // Mock exam generator webhook - PRODUCTION
   EXAM_GENERATOR: 'https://smellycat9286.app.n8n.cloud/webhook/bfdb1a10-c848-4bd1-8f50-5dbca106ccdb',
+  
+  // Course Mode AI Tutor - slide explanations
+  COURSE_SLIDE_EXPLAIN: 'https://smellycat9286.app.n8n.cloud/webhook/56bcc2db-cee9-4158-a0b2-1675ecdd2423/course/slide-explain',
 } as const;
 
 // Request timeouts in milliseconds
 export const TIMEOUTS = {
-  CHAT: 120000,        // 2 minutes for chat responses
+  CHAT: 120000,           // 2 minutes for chat responses
   EXAM_GENERATION: 180000, // 3 minutes for exam generation
+  SLIDE_EXPLANATION: 60000, // 60 seconds for slide explanations
 } as const;
