@@ -12,9 +12,9 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// ModelScope Inference API
-const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
-const MODELSCOPE_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
+// BigModel (ZhipuAI) API
+const BIGMODEL_API_URL = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
+const BIGMODEL_MODEL = "glm-4";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
@@ -216,14 +216,14 @@ Return a JSON object with:
 
 Respond ONLY with valid JSON, no markdown or extra text.`;
 
-  const response = await fetch(MODELSCOPE_API_URL, {
+  const response = await fetch(BIGMODEL_API_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: MODELSCOPE_MODEL,
+      model: BIGMODEL_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -234,14 +234,14 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("ModelScope API error:", response.status, errorText);
+    console.error("BigModel API error:", response.status, errorText);
     if (response.status === 429) {
       throw new Error("Rate limit exceeded. Please try again in a moment.");
     }
     if (response.status === 401) {
-      throw new Error("Invalid ModelScope API token.");
+      throw new Error("Invalid BigModel API token.");
     }
-    throw new Error(`ModelScope API error: ${response.status}`);
+    throw new Error(`BigModel API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -287,10 +287,10 @@ serve(async (req) => {
       );
     }
 
-    const MODELSCOPE_TOKEN = Deno.env.get("MODELSCOPE_TOKEN");
-    if (!MODELSCOPE_TOKEN) {
+    const BIGMODEL_API_KEY = Deno.env.get("BIGMODEL_API_KEY");
+    if (!BIGMODEL_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "MODELSCOPE_TOKEN not configured" }),
+        JSON.stringify({ error: "BIGMODEL_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -334,7 +334,7 @@ serve(async (req) => {
       targetSlide.slide_text,
       totalSlides,
       lectureOutline,
-      MODELSCOPE_TOKEN
+      BIGMODEL_API_KEY
     );
 
     console.log(`[generate-single-slide] Generated content, saving as draft...`);
