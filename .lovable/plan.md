@@ -1,88 +1,104 @@
 
 
-# Simpler Slide Generation: One at a Time
+# Course Mode Width Optimization Plan
 
-## Problem
-The current batch function times out because generating 61 slides takes 6+ minutes, but Edge Functions have a 60-second limit. The logs show it IS working - it generated 36 slides before the connection dropped.
+## Problem Analysis
 
-## Solution: Single-Slide Generation
-Replace batch generation with a simpler "Generate" button per slide that creates content instantly (~3 seconds per slide).
+The current layout has **three levels of nesting** that reduce available content width:
 
-## How It Will Work
+1. **Page container**: `container` class with max-width constraints
+2. **Sidebar + Main**: `grid-cols-4` (sidebar 1, main 3) = main gets 75% of container
+3. **PDF + Explanation**: `grid-cols-2` inside main = each gets 37.5% of container
 
-```text
-+------------------------------------------+
-| Select Lecture: [01-Introduction ▼]      |
-+------------------------------------------+
-| Slides         | Editor                  |
-|----------------|-------------------------|
-| ○ Slide 1      | [Generate] ← Click this |
-| ○ Slide 2      |                         |
-| ● Slide 3 ✓    | Explanation: _______    |
-| ...            | Key Points: • ___       |
-|                |                         |
-|                | [Save] [Approve]        |
-+------------------------------------------+
+Result: Each panel ends up ~300-400px wide, causing excessive vertical scrolling.
+
+## Proposed Solution: Collapsible Sidebar + Full-Width Layout
+
+### Option A: Hide sidebar by default in AI Tutor tab
+When user switches to "AI Tutor" tab, automatically collapse the sidebar to maximize horizontal space. Keep sidebar visible in "Overview" tab.
+
+### Option B: Floating/overlay sidebar
+Convert sidebar to a slide-out drawer that overlays content when opened, giving AI Tutor the full 4/4 grid width.
+
+### Option C: Remove sidebar entirely in AI Tutor mode
+The sidebar shows section lessons, but once in AI Tutor, users focus on single-lesson learning. Remove sidebar completely when in AI Tutor tab.
+
+**Recommended: Option A** - Conditional sidebar visibility based on active tab
+
+---
+
+## Implementation Details
+
+### Changes to Lesson.tsx
+
+1. Track the active tab state at page level (currently `defaultValue="ai-tutor"`)
+2. Conditionally render sidebar based on active tab
+3. Adjust grid columns: 
+   - Overview tab: `lg:grid-cols-4` (with sidebar)
+   - AI Tutor tab: single column, full width (no sidebar)
+
+```
+Before:  [Sidebar 1/4] | [Main 3/4 → PDF 50% | Explanation 50%]
+After:   [Full Width → PDF 50% | Explanation 50%]
 ```
 
-## Changes
+### Changes to GuidedLearning.tsx
 
-### 1. New Edge Function: `generate-single-slide`
-A lightweight function that generates content for ONE slide only:
-- Accepts: `lecture_id`, `slide_number`
-- Generates explanation via Gemini 3 Flash
-- Saves directly to database with `status = 'draft'`
-- Returns the generated content immediately (~3 seconds)
+Increase the grid gap and adjust sticky positioning for better spacing.
 
-### 2. Update Admin UI
-- Add "Generate" button to SlideEditor (visible when slide has no content)
-- Add "Generate Next" button to quickly move through slides
-- Show progress indicator during generation
+---
 
-### 3. Keep Batch Function (Background)
-The existing batch function still works - it just times out before finishing. But the content IS being saved (36 slides were generated). You can:
-- Run it multiple times (it skips already-generated slides)
-- Or use single-slide generation for remaining slides
+## Technical Changes
 
-## File Changes
+### File: src/pages/Lesson.tsx
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/functions/generate-single-slide/index.ts` | Create | New lightweight function |
-| `supabase/config.toml` | Edit | Add function config |
-| `src/services/adminApi.ts` | Edit | Add `generateSingleSlide()` |
-| `src/components/admin/SlideEditor.tsx` | Edit | Add Generate button |
-| `src/pages/AdminReviewSlides.tsx` | Edit | Handle missing slides + generation |
+| Change | Description |
+|--------|-------------|
+| Add `activeTab` state | Track which tab is selected |
+| Conditional sidebar | Hide sidebar when `activeTab === "ai-tutor"` |
+| Dynamic grid | `lg:grid-cols-1` for AI Tutor, `lg:grid-cols-4` for Overview |
+| Full-width main | When sidebar hidden, main content gets 100% width |
 
-## Technical Details
+### File: src/components/lesson/GuidedLearning.tsx
 
-### New Edge Function (`generate-single-slide`)
-```typescript
-// Input: { lecture_id: "01-Introduction", slide_number: 5 }
-// Output: { success: true, data: { explanation, key_points, comprehension_question } }
+| Change | Description |
+|--------|-------------|
+| Optional: Increase gap | Change `gap-6` to `gap-8` for more breathing room |
+| Sticky top adjustment | Update `lg:top-4` to account for new layout |
 
-1. Fetch single slide text from lecture_slides_course
-2. Call Lovable AI (Gemini 3 Flash) - ~2-3 seconds
-3. Save to slide_explanations with status = 'draft'
-4. Return generated content
+---
+
+## Visual Comparison
+
+### Current Layout (cramped)
+```
++------------------+----------------------------------------+
+| Sidebar (25%)    | Main Content (75%)                     |
+| Section Lessons  | +----------------+--------------------+ |
+|                  | | PDF (37.5%)    | Explanation (37.5%)| |
+|                  | |                |                    | |
+|                  | +----------------+--------------------+ |
++------------------+----------------------------------------+
 ```
 
-### UI Changes
-- SlideEditor shows "Generate Content" button if `explanation` is empty
-- After generation, content populates editor for review
-- One-click workflow: Generate → Review → Approve
+### Proposed Layout (AI Tutor tab)
+```
++----------------------------------------------------------------+
+| Full Width Main Content (100%)                                  |
+| +-----------------------------+-------------------------------+ |
+| | PDF (50%)                   | Explanation (50%)             | |
+| |                             |                               | |
+| +-----------------------------+-------------------------------+ |
++----------------------------------------------------------------+
+```
 
-## Workflow After Implementation
+---
 
-1. Go to `/admin/review-slides`
-2. Select lecture (e.g., 01-Introduction)
-3. See list of slides (some generated, some empty)
-4. Click on empty slide → Click "Generate"
-5. Review content → Edit if needed → Approve
-6. Move to next slide, repeat
+## Summary
 
-## Benefits
-- No timeouts (single API call completes in 3 seconds)
-- Immediate feedback
-- Control over which slides to generate
-- Can still use batch function for background generation
+- **Sidebar hidden in AI Tutor tab** - Gives 33% more horizontal space
+- **Full-width grid** - PDF and explanation each get 50% of screen width
+- **Sidebar remains for Overview tab** - Navigation still available when browsing lesson summaries
+
+This is a minimal-change approach: only Lesson.tsx needs modification, GuidedLearning.tsx stays mostly the same.
+
