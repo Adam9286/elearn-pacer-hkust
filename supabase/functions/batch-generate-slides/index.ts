@@ -17,9 +17,9 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// Hugging Face Inference API
-const HUGGINGFACE_API_URL = "https://router.huggingface.co/v1/chat/completions";
-const HUGGINGFACE_MODEL = "Qwen/Qwen2.5-72B-Instruct";
+// ModelScope Inference API
+const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
+const MODELSCOPE_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
@@ -227,14 +227,14 @@ Return a JSON object with:
 
 Respond ONLY with valid JSON, no markdown or extra text.`;
 
-  const response = await fetch(HUGGINGFACE_API_URL, {
+  const response = await fetch(MODELSCOPE_API_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: HUGGINGFACE_MODEL,
+      model: MODELSCOPE_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -245,14 +245,14 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Hugging Face API error:", response.status, errorText);
+    console.error("ModelScope API error:", response.status, errorText);
     if (response.status === 429) {
       throw new Error("Rate limit exceeded. Please try again in a moment.");
     }
     if (response.status === 401) {
-      throw new Error("Invalid Hugging Face API key.");
+      throw new Error("Invalid ModelScope API token.");
     }
-    throw new Error(`Hugging Face API error: ${response.status}`);
+    throw new Error(`ModelScope API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -361,10 +361,10 @@ serve(async (req) => {
       );
     }
 
-    const HF_API_KEY = Deno.env.get("HUGGINGFACE_API_KEY");
-    if (!HF_API_KEY) {
+    const MODELSCOPE_TOKEN = Deno.env.get("MODELSCOPE_TOKEN");
+    if (!MODELSCOPE_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "HUGGINGFACE_API_KEY not configured" }),
+        JSON.stringify({ error: "MODELSCOPE_TOKEN not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -457,7 +457,7 @@ serve(async (req) => {
         slidesToProcess,
         fullSlideList,
         lecture_id,
-        HF_API_KEY,
+        MODELSCOPE_TOKEN,
         EXAM_SUPABASE_URL,
         EXAM_SUPABASE_ANON_KEY
       )
