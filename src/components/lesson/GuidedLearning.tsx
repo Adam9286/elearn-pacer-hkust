@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Lesson, Chapter } from "@/data/courseContent";
+import { findLesson } from "@/data/courseContent";
 import type { CourseSlide, SlideExplanationResponse } from "@/types/courseTypes";
 import { 
   fetchSlideExplanation, 
@@ -19,6 +20,7 @@ import PdfViewer from "./PdfViewer";
 import ExplanationPanel from "./ExplanationPanel";
 import SlideNavigation from "./SlideNavigation";
 import SlideProgressTracker from "./SlideProgressTracker";
+import SlideChat from "./SlideChat";
 import ComprehensionCheck, { type ComprehensionQuestion } from "./ComprehensionCheck";
 
 interface GuidedLearningProps {
@@ -33,6 +35,12 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     () => estimateTotalSlides(lesson.estimatedMinutes), 
     [lesson.estimatedMinutes]
   );
+  
+  // Get lectureId for slide chat
+  const lectureId = useMemo(() => {
+    const found = findLesson(lesson.id);
+    return found?.lesson.lectureFile || undefined;
+  }, [lesson.id]);
   
   // ============ Core State ============
   // currentSlide is the SINGLE SOURCE OF TRUTH
@@ -250,6 +258,15 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         keyPoints={currentSlideData?.keyPoints}
         errorMessage={currentSlideData?.errorMessage}
         onRetry={handleRetry}
+      />
+
+      {/* Follow-up Chat */}
+      <SlideChat
+        lessonId={lesson.id}
+        lessonTitle={lesson.title}
+        slideNumber={currentSlide}
+        slideContext={currentSlideData?.explanation}
+        lectureId={lectureId}
       />
 
       {/* Progress Tracker */}
