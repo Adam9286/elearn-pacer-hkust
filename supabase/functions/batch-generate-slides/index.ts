@@ -19,7 +19,7 @@ const EXAM_SUPABASE_ANON_KEY =
 
 // ModelScope API
 const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
-const MODELSCOPE_MODEL = "Qwen/Qwen2.5-72B-Instruct";
+const MODELSCOPE_MODEL = "ZhipuAI/GLM-4.7";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
