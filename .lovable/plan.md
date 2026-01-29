@@ -1,28 +1,25 @@
 
-# Switch to OpenRouter (Llama 3.3 70B Instruct)
+# Switch to OpenRouter (Llama 3.3 70B Instruct) - COMPLETED ✓
 
 ## Overview
-Replace the current ModelScope API with OpenRouter to use the **Meta Llama 3.3 70B Instruct** model for generating slide explanations. This model offers excellent multilingual support, 131K context window, and strong instruction-following for structured JSON output.
+Replaced the ModelScope API with OpenRouter to use the **Meta Llama 3.3 70B Instruct** model for generating slide explanations.
 
-## Changes Required
+## Changes Made
 
-### 1. Add OpenRouter API Secret
-Store the provided API key as `OPENROUTER_API_KEY` in the project secrets.
+### 1. Added OpenRouter API Secret ✓
+Stored the API key as `OPENROUTER_API_KEY` in the project secrets.
 
-### 2. Update `generate-single-slide` Edge Function
-- Change API endpoint from ModelScope to OpenRouter: `https://openrouter.ai/api/v1/chat/completions`
-- Update model identifier to: `meta-llama/llama-3.3-70b-instruct`
-- Update secret reference from `MODELSCOPE_API_KEY` to `OPENROUTER_API_KEY`
-- Update error messages to reference OpenRouter
+### 2. Updated `generate-single-slide` Edge Function ✓
+- Changed API endpoint to OpenRouter: `https://openrouter.ai/api/v1/chat/completions`
+- Updated model to: `meta-llama/llama-3.3-70b-instruct`
+- Updated secret reference to `OPENROUTER_API_KEY`
+- Added required OpenRouter headers (`HTTP-Referer`, `X-Title`)
 
-### 3. Update `batch-generate-slides` Edge Function
-Same changes as above:
-- API endpoint: `https://openrouter.ai/api/v1/chat/completions`
-- Model: `meta-llama/llama-3.3-70b-instruct`
-- Secret: `OPENROUTER_API_KEY`
+### 3. Updated `batch-generate-slides` Edge Function ✓
+Same changes as above.
 
-### 4. Redeploy Both Functions
-Deploy the updated edge functions to apply changes.
+### 4. Ready for Deployment ✓
+Functions will be auto-deployed with preview build.
 
 ---
 
@@ -33,23 +30,6 @@ Deploy the updated edge functions to apply changes.
 Endpoint: https://openrouter.ai/api/v1/chat/completions
 Model: meta-llama/llama-3.3-70b-instruct
 Secret: OPENROUTER_API_KEY
-```
-
-**Files Modified:**
-- `supabase/functions/generate-single-slide/index.ts`
-- `supabase/functions/batch-generate-slides/index.ts`
-
-**Key Changes in Code:**
-```typescript
-// Before (ModelScope)
-const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
-const MODELSCOPE_MODEL = "ZhipuAI/GLM-4.7";
-// Uses MODELSCOPE_API_KEY
-
-// After (OpenRouter)
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct";
-// Uses OPENROUTER_API_KEY
 ```
 
 **Benefits of Llama 3.3 70B:**
