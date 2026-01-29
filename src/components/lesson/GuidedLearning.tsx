@@ -191,6 +191,21 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     }
   }, [currentPage, totalPages, onComplete]);
 
+  // ============ Page Jump Handler ============
+  const handlePageJump = useCallback((targetPage: number) => {
+    if (targetPage >= 1 && targetPage <= totalPages && targetPage !== currentPage) {
+      // Mark current page as completed if moving forward
+      if (targetPage > currentPage) {
+        setSlides(prev => prev.map(slide => 
+          slide.slideNumber === currentPage 
+            ? { ...slide, status: 'completed' as const }
+            : slide
+        ));
+      }
+      setCurrentPage(targetPage);
+    }
+  }, [currentPage, totalPages]);
+
   // ============ Question Handler ============
   const handleQuestionAnswer = useCallback((correct: boolean) => {
     setQuestionsAnswered(prev => prev + 1);
@@ -217,6 +232,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         totalPages={totalPages}
         onPrevious={handlePreviousPage}
         onNext={handleNextPage}
+        onPageJump={handlePageJump}
         canGoNext={canGoNext}
         canGoPrevious={canGoPrevious}
         isLoading={isCurrentPageLoading}
