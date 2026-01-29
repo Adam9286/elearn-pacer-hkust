@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { CheckCircle2, XCircle, Lightbulb, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,8 @@ interface ComprehensionCheckProps {
   onAnswer: (correct: boolean) => void;
   onSkip: () => void;
   mode?: 'blocking' | 'dismissible';
+  questionsEnabled?: boolean;
+  onQuestionsToggle?: (enabled: boolean) => void;
 }
 
 /**
@@ -45,6 +48,8 @@ const ComprehensionCheck = ({
   onAnswer,
   onSkip,
   mode = 'dismissible',
+  questionsEnabled = true,
+  onQuestionsToggle,
 }: ComprehensionCheckProps) => {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
@@ -94,15 +99,29 @@ const ComprehensionCheck = ({
         onEscapeKeyDown={isBlocking && !hasSubmitted ? (e) => e.preventDefault() : undefined}
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-yellow-500" />
-            Quick Comprehension Check
-            {isBlocking && !hasSubmitted && (
-              <span className="text-xs font-normal text-muted-foreground ml-2">
-                (Required)
-              </span>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Lightbulb className="h-5 w-5 text-yellow-500" />
+              Quick Comprehension Check
+              {isBlocking && !hasSubmitted && (
+                <span className="text-xs font-normal text-muted-foreground ml-2">
+                  (Required)
+                </span>
+              )}
+            </DialogTitle>
+            {onQuestionsToggle && (
+              <div className="flex items-center gap-2">
+                <Switch 
+                  id="popup-questions-toggle"
+                  checked={questionsEnabled}
+                  onCheckedChange={onQuestionsToggle}
+                />
+                <Label htmlFor="popup-questions-toggle" className="text-xs cursor-pointer text-muted-foreground">
+                  Popup Questions
+                </Label>
+              </div>
             )}
-          </DialogTitle>
+          </div>
           <DialogDescription>
             Test your understanding of the material so far
           </DialogDescription>

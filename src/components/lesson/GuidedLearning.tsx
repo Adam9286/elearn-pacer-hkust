@@ -307,6 +307,8 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
           onAnswer={handleQuestionAnswer}
           onSkip={handleQuestionSkip}
           mode={questionsMode}
+          questionsEnabled={questionsEnabled}
+          onQuestionsToggle={setQuestionsEnabled}
         />
       )}
     </div>
