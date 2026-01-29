@@ -58,7 +58,7 @@ const PdfViewer = ({
       </div>
       
       {/* PDF iframe */}
-      <div className="aspect-[4/3] lg:aspect-auto lg:h-[500px] rounded-b-lg overflow-hidden border bg-muted">
+      <div className="aspect-[4/3] lg:aspect-auto lg:h-[650px] rounded-b-lg overflow-hidden border bg-muted">
         <iframe
           src={pdfUrl}
           className="w-full h-full"
