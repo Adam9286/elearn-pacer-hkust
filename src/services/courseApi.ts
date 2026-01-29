@@ -101,12 +101,13 @@ export async function fetchSlideExplanation(
     slideNumber: request.slideNumber 
   });
 
-  // Query pre-generated explanation from examSupabase
+  // Query pre-generated explanation from examSupabase (only approved content)
   const { data, error } = await examSupabase
     .from('slide_explanations')
     .select('explanation, key_points, comprehension_question')
     .eq('lecture_id', lectureId)
     .eq('slide_number', request.slideNumber)
+    .eq('status', 'approved')
     .maybeSingle();
 
   if (error) {
