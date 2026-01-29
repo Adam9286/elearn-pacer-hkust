@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Check, X, Save, RefreshCw, Plus, Trash2 } from 'lucide-react';
+import { Check, X, Save, RefreshCw, Plus, Trash2, Sparkles } from 'lucide-react';
 import type { SlideExplanation, SlideStatus } from '@/services/adminApi';
 
 interface SlideEditorProps {
@@ -23,7 +23,9 @@ interface SlideEditorProps {
   onApprove: () => Promise<void>;
   onReject: () => Promise<void>;
   onRegenerate: () => Promise<void>;
+  onGenerate?: () => Promise<void>;
   isLoading: boolean;
+  isGenerating?: boolean;
 }
 
 export function SlideEditor({
@@ -32,7 +34,9 @@ export function SlideEditor({
   onApprove,
   onReject,
   onRegenerate,
+  onGenerate,
   isLoading,
+  isGenerating = false,
 }: SlideEditorProps) {
   // Local state for editing
   const [explanation, setExplanation] = useState(slide.explanation);
@@ -113,6 +117,8 @@ export function SlideEditor({
     rejected: 'bg-red-500',
   };
 
+  const hasContent = slide.explanation && slide.explanation.trim().length > 0;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -122,165 +128,200 @@ export function SlideEditor({
           <Badge className={statusColor[slide.status]}>{slide.status}</Badge>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRegenerate}
-            disabled={isLoading}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Regenerate
-          </Button>
+          {hasContent && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onRegenerate}
+              disabled={isLoading || isGenerating}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isGenerating ? 'animate-spin' : ''}`} />
+              Regenerate
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Explanation */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm font-medium">Explanation</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={explanation}
-            onChange={(e) => setExplanation(e.target.value)}
-            rows={8}
-            className="resize-y"
-            placeholder="Enter slide explanation..."
-          />
-        </CardContent>
-      </Card>
+      {/* No content state - show Generate button */}
+      {!hasContent && (
+        <div className="flex flex-col items-center justify-center py-12 border-2 border-dashed rounded-lg bg-muted/30">
+          <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
+          <h3 className="text-lg font-medium mb-2">No content generated yet</h3>
+          <p className="text-sm text-muted-foreground mb-6">
+            Click below to generate an AI explanation for this slide
+          </p>
+          <Button
+            onClick={onGenerate}
+            disabled={isLoading || isGenerating || !onGenerate}
+            className="gap-2"
+          >
+            {isGenerating ? (
+              <>
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Generate Content
+              </>
+            )}
+          </Button>
+        </div>
+      )}
 
-      {/* Key Points */}
-      <Card>
-        <CardHeader className="py-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium">Key Points</CardTitle>
-            <Button variant="ghost" size="sm" onClick={addKeyPoint}>
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {keyPoints.map((point, index) => (
-            <div key={index} className="flex gap-2">
-              <Input
-                value={point}
-                onChange={(e) => updateKeyPoint(index, e.target.value)}
-                placeholder={`Key point ${index + 1}`}
+      {/* Content editing sections - only show if has content */}
+      {hasContent && (
+        <>
+          {/* Explanation */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm font-medium">Explanation</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea
+                value={explanation}
+                onChange={(e) => setExplanation(e.target.value)}
+                rows={8}
+                className="resize-y"
+                placeholder="Enter slide explanation..."
               />
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeKeyPoint(index)}
-              >
-                <Trash2 className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </div>
-          ))}
-          {keyPoints.length === 0 && (
-            <p className="text-sm text-muted-foreground">No key points yet</p>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Comprehension Question */}
-      <Card>
-        <CardHeader className="py-3">
-          <CardTitle className="text-sm font-medium">Comprehension Question</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="question">Question</Label>
-            <Textarea
-              id="question"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              rows={2}
-              placeholder="Enter question..."
-            />
-          </div>
+          {/* Key Points */}
+          <Card>
+            <CardHeader className="py-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">Key Points</CardTitle>
+                <Button variant="ghost" size="sm" onClick={addKeyPoint}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {keyPoints.map((point, index) => (
+                <div key={index} className="flex gap-2">
+                  <Input
+                    value={point}
+                    onChange={(e) => updateKeyPoint(index, e.target.value)}
+                    placeholder={`Key point ${index + 1}`}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeKeyPoint(index)}
+                  >
+                    <Trash2 className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                </div>
+              ))}
+              {keyPoints.length === 0 && (
+                <p className="text-sm text-muted-foreground">No key points yet</p>
+              )}
+            </CardContent>
+          </Card>
 
-          <div className="grid grid-cols-2 gap-3">
-            {options.map((option, index) => (
-              <div key={index}>
-                <Label htmlFor={`option-${index}`}>
-                  Option {String.fromCharCode(65 + index)}
-                  {correctIndex === index && (
-                    <Badge className="ml-2 bg-green-600 text-xs">Correct</Badge>
-                  )}
-                </Label>
-                <Input
-                  id={`option-${index}`}
-                  value={option}
-                  onChange={(e) => updateOption(index, e.target.value)}
-                  placeholder={`Option ${String.fromCharCode(65 + index)}`}
+          {/* Comprehension Question */}
+          <Card>
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm font-medium">Comprehension Question</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="question">Question</Label>
+                <Textarea
+                  id="question"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  rows={2}
+                  placeholder="Enter question..."
                 />
               </div>
-            ))}
-          </div>
 
-          <div>
-            <Label htmlFor="correct-answer">Correct Answer</Label>
-            <Select
-              value={correctIndex.toString()}
-              onValueChange={(v) => setCorrectIndex(parseInt(v))}
+              <div className="grid grid-cols-2 gap-3">
+                {options.map((option, index) => (
+                  <div key={index}>
+                    <Label htmlFor={`option-${index}`}>
+                      Option {String.fromCharCode(65 + index)}
+                      {correctIndex === index && (
+                        <Badge className="ml-2 bg-green-600 text-xs">Correct</Badge>
+                      )}
+                    </Label>
+                    <Input
+                      id={`option-${index}`}
+                      value={option}
+                      onChange={(e) => updateOption(index, e.target.value)}
+                      placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <Label htmlFor="correct-answer">Correct Answer</Label>
+                <Select
+                  value={correctIndex.toString()}
+                  onValueChange={(v) => setCorrectIndex(parseInt(v))}
+                >
+                  <SelectTrigger id="correct-answer">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">A</SelectItem>
+                    <SelectItem value="1">B</SelectItem>
+                    <SelectItem value="2">C</SelectItem>
+                    <SelectItem value="3">D</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="q-explanation">Answer Explanation</Label>
+                <Textarea
+                  id="q-explanation"
+                  value={questionExplanation}
+                  onChange={(e) => setQuestionExplanation(e.target.value)}
+                  rows={2}
+                  placeholder="Explain why this answer is correct..."
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={onReject}
+              disabled={isLoading || slide.status === 'rejected'}
             >
-              <SelectTrigger id="correct-answer">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">A</SelectItem>
-                <SelectItem value="1">B</SelectItem>
-                <SelectItem value="2">C</SelectItem>
-                <SelectItem value="3">D</SelectItem>
-              </SelectContent>
-            </Select>
+              <X className="h-4 w-4 mr-1" />
+              Reject
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleSave}
+              disabled={isLoading || !hasChanges}
+            >
+              <Save className="h-4 w-4 mr-1" />
+              Save Draft
+            </Button>
+            <Button
+              onClick={async () => {
+                if (hasChanges) await handleSave();
+                await onApprove();
+              }}
+              disabled={isLoading}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Check className="h-4 w-4 mr-1" />
+              Approve
+            </Button>
           </div>
-
-          <div>
-            <Label htmlFor="q-explanation">Answer Explanation</Label>
-            <Textarea
-              id="q-explanation"
-              value={questionExplanation}
-              onChange={(e) => setQuestionExplanation(e.target.value)}
-              rows={2}
-              placeholder="Explain why this answer is correct..."
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button
-          variant="outline"
-          onClick={onReject}
-          disabled={isLoading || slide.status === 'rejected'}
-        >
-          <X className="h-4 w-4 mr-1" />
-          Reject
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleSave}
-          disabled={isLoading || !hasChanges}
-        >
-          <Save className="h-4 w-4 mr-1" />
-          Save Draft
-        </Button>
-        <Button
-          onClick={async () => {
-            if (hasChanges) await handleSave();
-            await onApprove();
-          }}
-          disabled={isLoading}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Check className="h-4 w-4 mr-1" />
-          Approve
-        </Button>
-      </div>
+        </>
+      )}
     </div>
   );
 }

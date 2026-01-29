@@ -191,3 +191,50 @@ export async function triggerBatchGeneration(
 
   return response.json();
 }
+
+/**
+ * Generate a single slide explanation
+ */
+export async function generateSingleSlide(
+  lectureId: string,
+  slideNumber: number
+): Promise<SlideExplanation> {
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-single-slide`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      },
+      body: JSON.stringify({
+        lecture_id: lectureId,
+        slide_number: slideNumber,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || `Failed to generate slide: ${response.status}`);
+  }
+
+  const result = await response.json();
+  
+  if (!result.success || !result.data) {
+    throw new Error('Invalid response from generation');
+  }
+
+  // Map to SlideExplanation type
+  const row = result.data;
+  return {
+    id: row.id,
+    lecture_id: row.lecture_id,
+    slide_number: row.slide_number,
+    explanation: row.explanation,
+    key_points: row.key_points as string[],
+    comprehension_question: row.comprehension_question as SlideExplanation['comprehension_question'],
+    status: (row.status || 'draft') as SlideStatus,
+    created_at: row.created_at,
+  };
+}
