@@ -1,164 +1,108 @@
 
-# Course Mode: AI Explanation Review & Approval System
 
-## Overview
-Create a two-phase generation workflow where AI explanations are generated into a "draft" state, allowing you to review, edit, and approve each explanation before it becomes visible to students. This ensures quality control over all pre-generated content.
+# Fix Admin Review Access & Course Mode Fallback Error
 
-## How It Will Work
+## Problems Identified
+
+Based on the screenshot and error logs, there are two issues:
+
+1. **No visible link to Admin Review page** - The `/admin/review-slides` page exists but there's no way to navigate to it from the UI
+2. **"Failed to load explanation" error** - When no pre-generated (approved) content exists, the system tries to call the old n8n webhook which is failing
+
+## Solution Overview
 
 ```text
-+-------------------+     +---------------------+     +-------------------+
-| Generate Drafts   | --> | Admin Review UI     | --> | Approved Content  |
-| (Edge Function)   |     | Edit + Approve      |     | (Cached for users)|
-+-------------------+     +---------------------+     +-------------------+
-        |                         |                          |
-        v                         v                          v
-  slide_explanations       You review/edit             Students see
-  status = 'draft'         in admin panel              status = 'approved'
++----------------------------------+     +-----------------------------------+
+| Issue 1: Add Admin Link          |     | Issue 2: Fix Fallback Error       |
++----------------------------------+     +-----------------------------------+
+| Add "Admin" button in Platform   |     | Remove broken n8n fallback OR     |
+| header (visible only for admin   |     | show user-friendly message when   |
+| user: adambaby2004@gmail.com)    |     | no approved content exists        |
++----------------------------------+     +-----------------------------------+
 ```
 
-## Phase 1: Database Schema Update
+## Changes Required
 
-Add a `status` column to the existing `slide_explanations` table:
+### 1. Add Admin Link to Platform Header
 
-```sql
--- Add status column to track draft vs approved
-ALTER TABLE slide_explanations 
-ADD COLUMN status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'approved', 'rejected'));
+Add an admin-only button to the Platform header that links to `/admin/review-slides`.
 
--- Add index for faster admin queries
-CREATE INDEX idx_slide_explanations_status ON slide_explanations(status);
-```
+**File:** `src/pages/Platform.tsx`
 
-## Phase 2: Admin Review Page
+Add after the Account Settings button (around line 81):
+- Check if the logged-in user's email matches the admin email
+- Show a "Admin" button linking to `/admin/review-slides`
+- Use a subtle icon like `Shield` or `Settings2`
 
-Create a new protected admin route at `/admin/review-slides`:
-
-### Features
-- **Lecture Selector**: Dropdown to pick which lecture to review (01-Introduction, 02-Web, etc.)
-- **Slide List**: Shows all slides for selected lecture with status badges (Draft/Approved)
-- **Preview Panel**: Shows current explanation, key points, and comprehension question
-- **Edit Mode**: Textarea editors for:
-  - Explanation text
-  - Key points (add/remove/reorder)
-  - Comprehension question + options + correct answer
-- **Action Buttons**: 
-  - **Save Draft**: Save edits without approving
-  - **Approve**: Mark as approved (visible to students)
-  - **Reject**: Mark as rejected (needs regeneration)
-  - **Regenerate**: Call AI to create new draft
-
-### UI Layout
-```text
-+------------------------------------------+
-| Lecture: [Dropdown: 01-Introduction ▼]   |
-+------------------------------------------+
-| Slides (45 total) | Preview & Edit       |
-|-------------------|----------------------|
-| ● Slide 1 ✓      | [Explanation Text]   |
-| ○ Slide 2 Draft  | ____________________  |
-| ○ Slide 3 Draft  |                      |
-| ○ Slide 4 ✓      | Key Points:          |
-| ...              | • Point 1 [x]        |
-|                  | • Point 2 [x]        |
-|                  | [+ Add Point]        |
-|                  |                      |
-|                  | Question: _________  |
-|                  | Options: A/B/C/D     |
-|                  | Correct: [Dropdown]  |
-|                  |                      |
-|                  | [Save] [Approve] [↻] |
-+------------------------------------------+
-```
-
-## Phase 3: Edge Function for Generation
-
-Create `batch-generate-slides` that:
-1. Accepts `lecture_id` parameter
-2. Fetches all slides from `lecture_slides_course`
-3. Generates explanation via Lovable AI (Gemini 3 Flash)
-4. Saves to `slide_explanations` with `status = 'draft'`
-5. Returns summary of generated slides
-
-## Phase 4: Update Frontend Query
-
-Modify `courseApi.ts` to only fetch **approved** explanations:
 ```typescript
-.eq('status', 'approved')
+// Add near the imports
+import { Shield } from 'lucide-react';
+
+// Add in the header section (after AccountSettings)
+{user?.email === 'adambaby2004@gmail.com' && (
+  <Button
+    asChild
+    variant="outline"
+    size="sm"
+    className="flex items-center gap-2"
+  >
+    <Link to="/admin/review-slides">
+      <Shield className="w-4 h-4" />
+      <span className="hidden sm:inline">Admin</span>
+    </Link>
+  </Button>
+)}
 ```
 
-This ensures students only see content you've reviewed and approved.
+### 2. Fix Fallback Error in courseApi.ts
 
-## File Changes Summary
+Since the n8n webhook is no longer available, the fallback is causing errors. We have two options:
 
-| File | Action | Description |
-|------|--------|-------------|
-| `supabase/config.toml` | Edit | Add `batch-generate-slides` function |
-| `supabase/functions/batch-generate-slides/index.ts` | Create | Edge function to generate drafts |
-| `src/pages/AdminReviewSlides.tsx` | Create | Admin review UI page |
-| `src/components/admin/SlideEditor.tsx` | Create | Slide editing form component |
-| `src/components/admin/LectureSelector.tsx` | Create | Lecture dropdown component |
-| `src/App.tsx` | Edit | Add `/admin/review-slides` route |
-| `src/services/courseApi.ts` | Edit | Filter by `status = 'approved'` |
-| `src/services/adminApi.ts` | Create | API functions for admin operations |
+**Option A (Recommended)**: Remove the n8n fallback entirely and show a clear message that content is "pending review"
 
-## Technical Details
+**Option B**: Disable the fallback temporarily until you generate and approve content
 
-### Admin API Functions (`src/services/adminApi.ts`)
+**File:** `src/services/courseApi.ts`
+
+Replace the `fallbackToRealTimeGeneration` function with a graceful error that explains the content is pending:
+
 ```typescript
-// Fetch all slides for a lecture (any status)
-export async function fetchLectureDrafts(lectureId: string)
-
-// Update a slide explanation
-export async function updateSlideExplanation(id: string, data: Partial<SlideExplanation>)
-
-// Approve a slide
-export async function approveSlide(id: string)
-
-// Regenerate a slide (call AI again)
-export async function regenerateSlide(lectureId: string, slideNumber: number)
+async function fallbackToRealTimeGeneration(
+  request: SlideExplanationRequest
+): Promise<SlideExplanationResponse> {
+  // No longer calling n8n - return a placeholder message
+  console.log('[CourseAPI] No approved content found for slide', request.slideNumber);
+  
+  throw new Error(
+    'This slide explanation is pending admin review. Please check back later or try another slide.'
+  );
+}
 ```
 
-### Security
-- Admin page will check for your specific user ID or an admin role
-- Edge function for batch generation is public (no sensitive data)
-- All edit/approve operations validate user session
+This will show users a meaningful message instead of "Failed to fetch".
 
-### Lecture IDs (22 total)
-The review UI will include these lectures:
-1. 01-Introduction
-2. 02-Web
-3. 04-Video
-4. 05-Transport_Model
-5. 06-TCP_Basics
-6. 07-Congestion_Control
-7. 08-AdvancedCC
-8. 09-Queue
-9. 10-IP
-10. 11-BGP
-11. 12-BGP2
-12. 13-Internet
-13. 14-Local_Area_Network
-14. 15-LAN_Routing
-15. 16-Link_Layer_Challenge
-16. 17-Wireless_Network_updated
-17. 18-CDN
-18. 19-Datacenter
-19. 20-Security
-20. 21-Security2
-21. 22-Real_Time_Video
+---
 
-## Workflow After Implementation
+## Alternative: Better UI Handling in GuidedLearning.tsx
 
-1. **Generate**: I'll call the edge function for each lecture to create drafts
-2. **Review**: You access `/admin/review-slides`, select a lecture
-3. **Edit**: Read each explanation, fix errors, improve clarity
-4. **Approve**: Click approve when satisfied
-5. **Repeat**: Work through all 22 lectures at your pace
-6. **Students**: Only see approved explanations (drafts are hidden)
+Instead of showing an error, we could display a "pending" state:
 
-## Benefits
-- Full quality control before students see content
-- Easy batch regeneration if AI output is poor
-- Edit without regenerating (save AI credits)
-- Progress tracking (see how many slides approved per lecture)
+**File:** `src/components/lesson/GuidedLearning.tsx`
+
+Update the error handling to show a more user-friendly message when content is pending review.
+
+---
+
+## Summary of File Changes
+
+| File | Change |
+|------|--------|
+| `src/pages/Platform.tsx` | Add admin link in header (visible only for admin) |
+| `src/services/courseApi.ts` | Remove broken n8n fallback, throw user-friendly error |
+
+## After These Changes
+
+1. **Admin Access**: You'll see an "Admin" button in the Platform header when logged in as `adambaby2004@gmail.com`
+2. **No More Errors**: Users will see "pending admin review" instead of cryptic fetch errors
+3. **Workflow**: Go to Admin → Select lecture → Generate Missing → Review & Approve → Content becomes visible to students
+
