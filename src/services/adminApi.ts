@@ -162,13 +162,23 @@ export async function deleteSlideExplanation(id: string): Promise<void> {
   }
 }
 
+// Response type for batch generation
+export interface BatchGenerationResponse {
+  status: 'processing' | 'complete';
+  message: string;
+  total_slides: number;
+  to_generate: number;
+  skipped: number;
+}
+
 /**
  * Trigger batch generation for a lecture
+ * Returns immediately with "processing" status while slides generate in background
  */
 export async function triggerBatchGeneration(
   lectureId: string,
   forceRegenerate: boolean = false
-): Promise<{ generated: number; skipped: number; errors: { slide_number: number; error: string }[] }> {
+): Promise<BatchGenerationResponse> {
   const response = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/batch-generate-slides`,
     {

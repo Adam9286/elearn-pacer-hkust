@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// Declare EdgeRuntime for background tasks (Supabase Edge Functions)
+declare const EdgeRuntime: {
+  waitUntil: (promise: Promise<unknown>) => void;
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -30,6 +35,12 @@ interface GeneratedContent {
     explanation: string;
   };
 }
+
+// Shutdown handler to log progress when function terminates
+addEventListener('beforeunload', (ev: Event) => {
+  const detail = (ev as CustomEvent).detail;
+  console.log('[batch-generate-slides] Shutting down:', detail?.reason);
+});
 
 async function generateSlideExplanation(
   lectureId: string,
@@ -110,6 +121,65 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
   }
 }
 
+// Background processing function
+async function processSlides(
+  slides: SlideContent[],
+  lectureId: string,
+  totalSlides: number,
+  apiKey: string,
+  examSupabaseUrl: string,
+  examSupabaseKey: string
+): Promise<void> {
+  const examSupabase = createClient(examSupabaseUrl, examSupabaseKey);
+  let generated = 0;
+  let errors = 0;
+
+  for (const slide of slides) {
+    try {
+      console.log(`[background] Generating slide ${slide.slide_number}...`);
+
+      const content = await generateSlideExplanation(
+        lectureId,
+        slide.slide_number,
+        slide.slide_text,
+        totalSlides,
+        apiKey
+      );
+
+      // Upsert to slide_explanations with status = 'draft'
+      const { error: upsertError } = await examSupabase
+        .from("slide_explanations")
+        .upsert(
+          {
+            lecture_id: lectureId,
+            slide_number: slide.slide_number,
+            explanation: content.explanation,
+            key_points: content.keyPoints,
+            comprehension_question: content.comprehensionQuestion || null,
+            status: "draft",
+          },
+          { onConflict: "lecture_id,slide_number" }
+        );
+
+      if (upsertError) {
+        console.error(`[background] Error upserting slide ${slide.slide_number}:`, upsertError);
+        errors++;
+      } else {
+        generated++;
+        console.log(`[background] Slide ${slide.slide_number} done (${generated}/${slides.length})`);
+      }
+
+      // Rate limiting: wait 1.5 seconds between API calls
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    } catch (err) {
+      console.error(`[background] Error generating slide ${slide.slide_number}:`, err);
+      errors++;
+    }
+  }
+
+  console.log(`[background] Complete: ${generated} generated, ${errors} errors out of ${slides.length} slides`);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -180,76 +250,57 @@ serve(async (req) => {
       existingExplanations?.map((e) => e.slide_number) || []
     );
 
-    const results = {
-      lecture_id,
-      total_slides: slides.length,
-      generated: 0,
-      skipped: 0,
-      errors: [] as { slide_number: number; error: string }[],
-    };
-
-    // Process each slide
-    for (const slide of slides as SlideContent[]) {
-      // Skip if already exists and not force regenerating
+    // Filter slides that need generation
+    const slidesToProcess = (slides as SlideContent[]).filter(slide => {
       if (existingSlideNumbers.has(slide.slide_number) && !force_regenerate) {
         console.log(`[batch-generate-slides] Skipping slide ${slide.slide_number} (already exists)`);
-        results.skipped++;
-        continue;
+        return false;
       }
+      return true;
+    });
 
-      try {
-        console.log(`[batch-generate-slides] Generating slide ${slide.slide_number}...`);
+    const skippedCount = slides.length - slidesToProcess.length;
 
-        const generated = await generateSlideExplanation(
-          lecture_id,
-          slide.slide_number,
-          slide.slide_text,
-          slides.length,
-          LOVABLE_API_KEY
-        );
-
-        // Upsert to slide_explanations with status = 'draft'
-        const { error: upsertError } = await examSupabase
-          .from("slide_explanations")
-          .upsert(
-            {
-              lecture_id,
-              slide_number: slide.slide_number,
-              explanation: generated.explanation,
-              key_points: generated.keyPoints,
-              comprehension_question: generated.comprehensionQuestion || null,
-              status: "draft",
-            },
-            { onConflict: "lecture_id,slide_number" }
-          );
-
-        if (upsertError) {
-          console.error(`Error upserting slide ${slide.slide_number}:`, upsertError);
-          results.errors.push({
-            slide_number: slide.slide_number,
-            error: upsertError.message,
-          });
-        } else {
-          results.generated++;
-          console.log(`[batch-generate-slides] Slide ${slide.slide_number} saved as draft`);
-        }
-
-        // Rate limiting: wait 1.5 seconds between API calls
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      } catch (err) {
-        console.error(`Error generating slide ${slide.slide_number}:`, err);
-        results.errors.push({
-          slide_number: slide.slide_number,
-          error: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
+    // If nothing to process, return early
+    if (slidesToProcess.length === 0) {
+      return new Response(
+        JSON.stringify({
+          status: "complete",
+          message: "All slides already have explanations",
+          total_slides: slides.length,
+          to_generate: 0,
+          skipped: skippedCount,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log(`[batch-generate-slides] Completed:`, results);
+    // Start background processing using EdgeRuntime.waitUntil
+    // This allows the function to return immediately while processing continues
+    EdgeRuntime.waitUntil(
+      processSlides(
+        slidesToProcess,
+        lecture_id,
+        slides.length,
+        LOVABLE_API_KEY,
+        EXAM_SUPABASE_URL,
+        EXAM_SUPABASE_ANON_KEY
+      )
+    );
 
-    return new Response(JSON.stringify(results), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.log(`[batch-generate-slides] Started background processing for ${slidesToProcess.length} slides`);
+
+    // Return immediate response
+    return new Response(
+      JSON.stringify({
+        status: "processing",
+        message: `Started generating ${slidesToProcess.length} slides in background`,
+        total_slides: slides.length,
+        to_generate: slidesToProcess.length,
+        skipped: skippedCount,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   } catch (err) {
     console.error("batch-generate-slides error:", err);
     return new Response(

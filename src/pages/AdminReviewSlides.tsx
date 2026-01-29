@@ -298,12 +298,30 @@ export default function AdminReviewSlides() {
     setIsGenerating(true);
     try {
       const result = await triggerBatchGeneration(selectedLecture, false);
-      toast({
-        title: 'Generation Complete',
-        description: `Generated: ${result.generated}, Skipped: ${result.skipped}${result.errors.length > 0 ? `, Errors: ${result.errors.length}` : ''}`,
-      });
-      await loadLectureSlides(selectedLecture);
-      loadSummaries();
+      
+      if (result.status === 'processing') {
+        toast({
+          title: 'Generation Started',
+          description: `Processing ${result.to_generate} slides in background. Refresh in a moment to see progress.`,
+        });
+        
+        // Auto-refresh after delays to show progress
+        setTimeout(() => {
+          loadLectureSlides(selectedLecture);
+          loadSummaries();
+        }, 8000);
+        
+        setTimeout(() => {
+          loadLectureSlides(selectedLecture);
+          loadSummaries();
+        }, 20000);
+      } else {
+        // Already complete (all slides existed)
+        toast({
+          title: 'Already Complete',
+          description: result.message,
+        });
+      }
     } catch (err) {
       toast({
         title: 'Error',
