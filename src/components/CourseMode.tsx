@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Lock, CheckCircle, Circle, LogIn, Wrench, Sparkles } from "lucide-react";
+import { Lock, CheckCircle, Circle, LogIn, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useUserProgress } from "@/contexts/UserProgressContext";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Switch } from "@/components/ui/switch";
 import { chapters } from "@/data/courseContent";
 import { motion } from "framer-motion";
 import { AnimatedParticles } from "@/components/ui/AnimatedParticles";
@@ -92,24 +91,6 @@ const CourseMode = () => {
 
   return (
     <div className="space-y-6">
-      {/* Dev Mode Toggle - Admin Only */}
-      {user && isAdmin && (
-        <div className="flex items-center justify-end gap-3 px-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Wrench className="h-4 w-4" />
-            <span>Dev Mode</span>
-          </div>
-          <Switch
-            checked={devMode}
-            onCheckedChange={setDevMode}
-          />
-          {devMode && (
-            <Badge variant="outline" className="border-yellow-500 text-yellow-500">
-              All sections unlocked
-            </Badge>
-          )}
-        </div>
-      )}
 
       {/* Animated Learning Path Progress */}
       <motion.div
