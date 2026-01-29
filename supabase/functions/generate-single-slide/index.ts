@@ -12,8 +12,9 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// Lovable AI Gateway
-const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// Hugging Face Inference API
+const HUGGINGFACE_API_URL = "https://router.huggingface.co/v1/chat/completions";
+const HUGGINGFACE_MODEL = "Qwen/Qwen2.5-72B-Instruct";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
@@ -215,31 +216,32 @@ Return a JSON object with:
 
 Respond ONLY with valid JSON, no markdown or extra text.`;
 
-  const response = await fetch(LOVABLE_AI_URL, {
+  const response = await fetch(HUGGINGFACE_API_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: HUGGINGFACE_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
+      max_tokens: 2048,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("AI Gateway error:", response.status, errorText);
+    console.error("Hugging Face API error:", response.status, errorText);
     if (response.status === 429) {
       throw new Error("Rate limit exceeded. Please try again in a moment.");
     }
-    if (response.status === 402) {
-      throw new Error("AI credits required. Please add funds to continue.");
+    if (response.status === 401) {
+      throw new Error("Invalid Hugging Face API key.");
     }
-    throw new Error(`AI Gateway error: ${response.status}`);
+    throw new Error(`Hugging Face API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -285,10 +287,10 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const HF_API_KEY = Deno.env.get("HUGGINGFACE_API_KEY");
+    if (!HF_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
+        JSON.stringify({ error: "HUGGINGFACE_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -332,7 +334,7 @@ serve(async (req) => {
       targetSlide.slide_text,
       totalSlides,
       lectureOutline,
-      LOVABLE_API_KEY
+      HF_API_KEY
     );
 
     console.log(`[generate-single-slide] Generated content, saving as draft...`);
