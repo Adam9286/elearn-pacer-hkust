@@ -1,108 +1,88 @@
 
 
-# Fix Admin Review Access & Course Mode Fallback Error
+# Simpler Slide Generation: One at a Time
 
-## Problems Identified
+## Problem
+The current batch function times out because generating 61 slides takes 6+ minutes, but Edge Functions have a 60-second limit. The logs show it IS working - it generated 36 slides before the connection dropped.
 
-Based on the screenshot and error logs, there are two issues:
+## Solution: Single-Slide Generation
+Replace batch generation with a simpler "Generate" button per slide that creates content instantly (~3 seconds per slide).
 
-1. **No visible link to Admin Review page** - The `/admin/review-slides` page exists but there's no way to navigate to it from the UI
-2. **"Failed to load explanation" error** - When no pre-generated (approved) content exists, the system tries to call the old n8n webhook which is failing
-
-## Solution Overview
+## How It Will Work
 
 ```text
-+----------------------------------+     +-----------------------------------+
-| Issue 1: Add Admin Link          |     | Issue 2: Fix Fallback Error       |
-+----------------------------------+     +-----------------------------------+
-| Add "Admin" button in Platform   |     | Remove broken n8n fallback OR     |
-| header (visible only for admin   |     | show user-friendly message when   |
-| user: adambaby2004@gmail.com)    |     | no approved content exists        |
-+----------------------------------+     +-----------------------------------+
++------------------------------------------+
+| Select Lecture: [01-Introduction ▼]      |
++------------------------------------------+
+| Slides         | Editor                  |
+|----------------|-------------------------|
+| ○ Slide 1      | [Generate] ← Click this |
+| ○ Slide 2      |                         |
+| ● Slide 3 ✓    | Explanation: _______    |
+| ...            | Key Points: • ___       |
+|                |                         |
+|                | [Save] [Approve]        |
++------------------------------------------+
 ```
 
-## Changes Required
+## Changes
 
-### 1. Add Admin Link to Platform Header
+### 1. New Edge Function: `generate-single-slide`
+A lightweight function that generates content for ONE slide only:
+- Accepts: `lecture_id`, `slide_number`
+- Generates explanation via Gemini 3 Flash
+- Saves directly to database with `status = 'draft'`
+- Returns the generated content immediately (~3 seconds)
 
-Add an admin-only button to the Platform header that links to `/admin/review-slides`.
+### 2. Update Admin UI
+- Add "Generate" button to SlideEditor (visible when slide has no content)
+- Add "Generate Next" button to quickly move through slides
+- Show progress indicator during generation
 
-**File:** `src/pages/Platform.tsx`
+### 3. Keep Batch Function (Background)
+The existing batch function still works - it just times out before finishing. But the content IS being saved (36 slides were generated). You can:
+- Run it multiple times (it skips already-generated slides)
+- Or use single-slide generation for remaining slides
 
-Add after the Account Settings button (around line 81):
-- Check if the logged-in user's email matches the admin email
-- Show a "Admin" button linking to `/admin/review-slides`
-- Use a subtle icon like `Shield` or `Settings2`
+## File Changes
 
+| File | Action | Description |
+|------|--------|-------------|
+| `supabase/functions/generate-single-slide/index.ts` | Create | New lightweight function |
+| `supabase/config.toml` | Edit | Add function config |
+| `src/services/adminApi.ts` | Edit | Add `generateSingleSlide()` |
+| `src/components/admin/SlideEditor.tsx` | Edit | Add Generate button |
+| `src/pages/AdminReviewSlides.tsx` | Edit | Handle missing slides + generation |
+
+## Technical Details
+
+### New Edge Function (`generate-single-slide`)
 ```typescript
-// Add near the imports
-import { Shield } from 'lucide-react';
+// Input: { lecture_id: "01-Introduction", slide_number: 5 }
+// Output: { success: true, data: { explanation, key_points, comprehension_question } }
 
-// Add in the header section (after AccountSettings)
-{user?.email === 'adambaby2004@gmail.com' && (
-  <Button
-    asChild
-    variant="outline"
-    size="sm"
-    className="flex items-center gap-2"
-  >
-    <Link to="/admin/review-slides">
-      <Shield className="w-4 h-4" />
-      <span className="hidden sm:inline">Admin</span>
-    </Link>
-  </Button>
-)}
+1. Fetch single slide text from lecture_slides_course
+2. Call Lovable AI (Gemini 3 Flash) - ~2-3 seconds
+3. Save to slide_explanations with status = 'draft'
+4. Return generated content
 ```
 
-### 2. Fix Fallback Error in courseApi.ts
+### UI Changes
+- SlideEditor shows "Generate Content" button if `explanation` is empty
+- After generation, content populates editor for review
+- One-click workflow: Generate → Review → Approve
 
-Since the n8n webhook is no longer available, the fallback is causing errors. We have two options:
+## Workflow After Implementation
 
-**Option A (Recommended)**: Remove the n8n fallback entirely and show a clear message that content is "pending review"
+1. Go to `/admin/review-slides`
+2. Select lecture (e.g., 01-Introduction)
+3. See list of slides (some generated, some empty)
+4. Click on empty slide → Click "Generate"
+5. Review content → Edit if needed → Approve
+6. Move to next slide, repeat
 
-**Option B**: Disable the fallback temporarily until you generate and approve content
-
-**File:** `src/services/courseApi.ts`
-
-Replace the `fallbackToRealTimeGeneration` function with a graceful error that explains the content is pending:
-
-```typescript
-async function fallbackToRealTimeGeneration(
-  request: SlideExplanationRequest
-): Promise<SlideExplanationResponse> {
-  // No longer calling n8n - return a placeholder message
-  console.log('[CourseAPI] No approved content found for slide', request.slideNumber);
-  
-  throw new Error(
-    'This slide explanation is pending admin review. Please check back later or try another slide.'
-  );
-}
-```
-
-This will show users a meaningful message instead of "Failed to fetch".
-
----
-
-## Alternative: Better UI Handling in GuidedLearning.tsx
-
-Instead of showing an error, we could display a "pending" state:
-
-**File:** `src/components/lesson/GuidedLearning.tsx`
-
-Update the error handling to show a more user-friendly message when content is pending review.
-
----
-
-## Summary of File Changes
-
-| File | Change |
-|------|--------|
-| `src/pages/Platform.tsx` | Add admin link in header (visible only for admin) |
-| `src/services/courseApi.ts` | Remove broken n8n fallback, throw user-friendly error |
-
-## After These Changes
-
-1. **Admin Access**: You'll see an "Admin" button in the Platform header when logged in as `adambaby2004@gmail.com`
-2. **No More Errors**: Users will see "pending admin review" instead of cryptic fetch errors
-3. **Workflow**: Go to Admin → Select lecture → Generate Missing → Review & Approve → Content becomes visible to students
-
+## Benefits
+- No timeouts (single API call completes in 3 seconds)
+- Immediate feedback
+- Control over which slides to generate
+- Can still use batch function for background generation
