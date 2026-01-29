@@ -12,9 +12,9 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// OpenRouter API (Arcee Trinity Large Preview - Free)
+// OpenRouter API (TNG R1T Chimera - Free)
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = "arcee-ai/trinity-large-preview:free";
+const OPENROUTER_MODEL = "tngtech/tng-r1t-chimera:free";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
