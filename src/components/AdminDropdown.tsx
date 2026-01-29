@@ -30,12 +30,6 @@ const AdminDropdown = () => {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 bg-popover border border-border shadow-lg z-50">
-        <DropdownMenuLabel className="flex items-center gap-2">
-          <Shield className="w-4 h-4" />
-          Admin Panel
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        
         {/* Lecture Review Link */}
         <DropdownMenuItem asChild>
           <Link to="/admin/review-slides" className="flex items-center gap-2 cursor-pointer">
