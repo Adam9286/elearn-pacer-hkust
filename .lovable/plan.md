@@ -1,32 +1,60 @@
 
-# Fix: Update ModelScope API Endpoint
+# Switch to OpenRouter (Llama 3.3 70B Instruct)
 
-## Problem Identified
-Your ModelScope token was created on **modelscope.cn** (Chinese platform), but the code is calling **api-inference.modelscope.ai** (international platform). These are separate services with different authentication systems.
+## Overview
+Replace the current ModelScope API with OpenRouter to use the **Meta Llama 3.3 70B Instruct** model for generating slide explanations. This model offers excellent multilingual support, 131K context window, and strong instruction-following for structured JSON output.
 
-## Solution
-Change the API endpoint from `.ai` to `.cn` domain.
+## Changes Required
 
-## What Changes
+### 1. Add OpenRouter API Secret
+Store the provided API key as `OPENROUTER_API_KEY` in the project secrets.
 
-| Current (broken) | Fixed |
-|------------------|-------|
-| `https://api-inference.modelscope.ai/v1/chat/completions` | `https://api-inference.modelscope.cn/v1/chat/completions` |
+### 2. Update `generate-single-slide` Edge Function
+- Change API endpoint from ModelScope to OpenRouter: `https://openrouter.ai/api/v1/chat/completions`
+- Update model identifier to: `meta-llama/llama-3.3-70b-instruct`
+- Update secret reference from `MODELSCOPE_API_KEY` to `OPENROUTER_API_KEY`
+- Update error messages to reference OpenRouter
 
-## Files to Modify
+### 3. Update `batch-generate-slides` Edge Function
+Same changes as above:
+- API endpoint: `https://openrouter.ai/api/v1/chat/completions`
+- Model: `meta-llama/llama-3.3-70b-instruct`
+- Secret: `OPENROUTER_API_KEY`
 
-### 1. supabase/functions/generate-single-slide/index.ts (line 16)
-Change the API URL constant:
-```typescript
-// Before
-const MODELSCOPE_API_URL = "https://api-inference.modelscope.ai/v1/chat/completions";
+### 4. Redeploy Both Functions
+Deploy the updated edge functions to apply changes.
 
-// After  
-const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
+---
+
+## Technical Details
+
+**API Configuration:**
+```text
+Endpoint: https://openrouter.ai/api/v1/chat/completions
+Model: meta-llama/llama-3.3-70b-instruct
+Secret: OPENROUTER_API_KEY
 ```
 
-### 2. supabase/functions/batch-generate-slides/index.ts
-Apply the same URL change for consistency when batch generating.
+**Files Modified:**
+- `supabase/functions/generate-single-slide/index.ts`
+- `supabase/functions/batch-generate-slides/index.ts`
 
-## After Implementation
-Redeploy the edge functions and test slide generation - your token should now authenticate correctly.
+**Key Changes in Code:**
+```typescript
+// Before (ModelScope)
+const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
+const MODELSCOPE_MODEL = "ZhipuAI/GLM-4.7";
+// Uses MODELSCOPE_API_KEY
+
+// After (OpenRouter)
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = "meta-llama/llama-3.3-70b-instruct";
+// Uses OPENROUTER_API_KEY
+```
+
+**Benefits of Llama 3.3 70B:**
+- 131K context window (perfect for full lecture outlines)
+- Strong instruction-following for reliable JSON output
+- Free tier available on OpenRouter
+- Excellent multilingual support (8 languages including English)
+- Optimized for dialogue and educational content
