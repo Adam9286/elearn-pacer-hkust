@@ -12,9 +12,9 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// OpenRouter API (TNG R1T Chimera - Free)
-const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_MODEL = "tngtech/tng-r1t-chimera:free";
+// ModelScope API (DeepSeek V3.2)
+const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
+const MODELSCOPE_MODEL = "deepseek-ai/DeepSeek-V3.2";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
@@ -216,16 +216,14 @@ Return a JSON object with:
 
 Respond ONLY with valid JSON, no markdown or extra text.`;
 
-  const response = await fetch(OPENROUTER_API_URL, {
+  const response = await fetch(MODELSCOPE_API_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "HTTP-Referer": "https://elearn-pacer-hkust.lovable.app",
-      "X-Title": "ELEC3120 Course Mode",
     },
     body: JSON.stringify({
-      model: OPENROUTER_MODEL,
+      model: MODELSCOPE_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -236,14 +234,14 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("OpenRouter API error:", response.status, errorText);
+    console.error("ModelScope API error:", response.status, errorText);
     if (response.status === 429) {
       throw new Error("Rate limit exceeded. Please try again in a moment.");
     }
     if (response.status === 401) {
-      throw new Error("Invalid OpenRouter API key.");
+      throw new Error("Invalid ModelScope API key.");
     }
-    throw new Error(`OpenRouter API error: ${response.status}`);
+    throw new Error(`ModelScope API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -289,10 +287,10 @@ serve(async (req) => {
       );
     }
 
-    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
-    if (!OPENROUTER_API_KEY) {
+    const MODELSCOPE_API_KEY = Deno.env.get("MODELSCOPE_API_KEY");
+    if (!MODELSCOPE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }),
+        JSON.stringify({ error: "MODELSCOPE_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -336,7 +334,7 @@ serve(async (req) => {
       targetSlide.slide_text,
       totalSlides,
       lectureOutline,
-      OPENROUTER_API_KEY
+      MODELSCOPE_API_KEY
     );
 
     console.log(`[generate-single-slide] Generated content, saving as draft...`);
