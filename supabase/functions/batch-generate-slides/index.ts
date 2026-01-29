@@ -20,6 +20,120 @@ const EXAM_SUPABASE_ANON_KEY =
 // Lovable AI Gateway
 const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
+// Lecture context metadata for all 22 lectures
+const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
+  "01-Introduction": {
+    chapter: "Foundations & Internet Overview",
+    title: "Introduction to Computer Networks",
+    topics: ["Network fundamentals", "Internet architecture", "Protocol layers", "Network edge and core"]
+  },
+  "02-Web": {
+    chapter: "Foundations & Internet Overview",
+    title: "Web and HTTP",
+    topics: ["HTTP protocol", "Web architecture", "Client-server model", "Cookies and sessions"]
+  },
+  "03-Mail": {
+    chapter: "Foundations & Internet Overview",
+    title: "Email Systems",
+    topics: ["SMTP protocol", "Email architecture", "POP3 and IMAP", "Mail servers"]
+  },
+  "04-DNS": {
+    chapter: "Foundations & Internet Overview",
+    title: "Domain Name System",
+    topics: ["DNS hierarchy", "Name resolution", "DNS records", "Caching"]
+  },
+  "05-SocketProgramming": {
+    chapter: "Foundations & Internet Overview",
+    title: "Socket Programming",
+    topics: ["TCP sockets", "UDP sockets", "Client-server programming", "Network APIs"]
+  },
+  "06-TransportLayerIntro": {
+    chapter: "Transport Layer",
+    title: "Transport Layer Introduction",
+    topics: ["Transport services", "Multiplexing", "Demultiplexing", "UDP basics"]
+  },
+  "07-ReliableDataTransfer": {
+    chapter: "Transport Layer",
+    title: "Reliable Data Transfer",
+    topics: ["RDT protocols", "Stop-and-wait", "Pipelining", "Error recovery"]
+  },
+  "08-TCP": {
+    chapter: "Transport Layer",
+    title: "TCP Protocol",
+    topics: ["TCP segment structure", "Connection management", "Flow control", "Congestion control"]
+  },
+  "09-NetworkLayer": {
+    chapter: "Network Layer",
+    title: "Network Layer Introduction",
+    topics: ["Forwarding vs routing", "Router architecture", "IP protocol", "Datagram format"]
+  },
+  "10-IP": {
+    chapter: "Network Layer",
+    title: "Internet Protocol",
+    topics: ["IPv4 addressing", "Subnetting", "CIDR", "NAT"]
+  },
+  "11-RoutingAlgorithms": {
+    chapter: "Network Layer",
+    title: "Routing Algorithms",
+    topics: ["Link state routing", "Distance vector", "Dijkstra's algorithm", "Bellman-Ford"]
+  },
+  "12-InternetRouting": {
+    chapter: "Network Layer",
+    title: "Internet Routing",
+    topics: ["OSPF", "BGP", "Autonomous systems", "Inter-domain routing"]
+  },
+  "13-SDN": {
+    chapter: "Network Layer",
+    title: "Software Defined Networking",
+    topics: ["SDN architecture", "OpenFlow", "Control plane", "Data plane separation"]
+  },
+  "14-LinkLayer": {
+    chapter: "Link Layer",
+    title: "Link Layer Introduction",
+    topics: ["Error detection", "Multiple access protocols", "MAC addresses", "ARP"]
+  },
+  "15-Ethernet": {
+    chapter: "Link Layer",
+    title: "Ethernet and Switching",
+    topics: ["Ethernet protocol", "Switches", "VLANs", "Spanning tree"]
+  },
+  "16-Wireless": {
+    chapter: "Wireless & Mobile",
+    title: "Wireless Networks",
+    topics: ["WiFi 802.11", "Wireless challenges", "CSMA/CA", "Hidden terminal problem"]
+  },
+  "17-MobileIP": {
+    chapter: "Wireless & Mobile",
+    title: "Mobile IP and Cellular",
+    topics: ["Mobile IP", "Handoff", "4G/5G networks", "Mobility management"]
+  },
+  "18-Security": {
+    chapter: "Network Security",
+    title: "Network Security Fundamentals",
+    topics: ["Encryption", "Authentication", "Message integrity", "Key distribution"]
+  },
+  "19-SecurityProtocols": {
+    chapter: "Network Security",
+    title: "Security Protocols",
+    topics: ["SSL/TLS", "IPsec", "Firewalls", "VPNs"]
+  },
+  "20-Multimedia": {
+    chapter: "Multimedia Networking",
+    title: "Multimedia Networking",
+    topics: ["Streaming protocols", "VoIP", "QoS", "CDNs"]
+  },
+  "21-DataCenters": {
+    chapter: "Advanced Topics",
+    title: "Data Center Networks",
+    topics: ["Data center architecture", "Load balancing", "Fat-tree topology", "SDN in data centers"]
+  },
+  "22-Review": {
+    chapter: "Course Review",
+    title: "Course Summary and Review",
+    topics: ["Key concepts review", "Protocol stack", "Exam preparation", "Important formulas"]
+  }
+};
+
 interface SlideContent {
   slide_number: number;
   slide_text: string;
@@ -42,27 +156,67 @@ addEventListener('beforeunload', (ev: Event) => {
   console.log('[batch-generate-slides] Shutting down:', detail?.reason);
 });
 
+function buildLectureOutline(slides: SlideContent[]): string {
+  return slides
+    .map((s) => `Slide ${s.slide_number}: ${s.slide_text.slice(0, 100)}${s.slide_text.length > 100 ? '...' : ''}`)
+    .join('\n');
+}
+
 async function generateSlideExplanation(
   lectureId: string,
   slideNumber: number,
   slideText: string,
   totalSlides: number,
+  lectureOutline: string,
   apiKey: string
 ): Promise<GeneratedContent> {
-  const systemPrompt = `You are an expert computer networks instructor for ELEC3120 at HKUST. 
-Your role is to explain lecture slides clearly and engagingly to undergraduate students.
-Always provide accurate, educational content that helps students understand networking concepts.`;
+  const context = LECTURE_CONTEXT[lectureId] || {
+    chapter: "Computer Networks",
+    title: lectureId,
+    topics: ["Networking concepts"]
+  };
+
+  const systemPrompt = `You are an expert computer networks instructor for ELEC3120 at HKUST.
+Your role is to explain lecture slides clearly to undergraduate students.
+
+CRITICAL INSTRUCTIONS:
+- Do NOT start explanations with greetings like "Welcome!", "Welcome back!", "Hello!", etc.
+- Only slide 1 of a lecture may include a brief introduction to the lecture topic.
+- For slides 2+, dive directly into the content without preamble.
+- Write as if you're continuing a conversation, not starting a new one.
+- Connect concepts to what was covered in previous slides when relevant.
+- Keep the tone educational, clear, and engaging without being repetitive.`;
+
+  const isFirstSlide = slideNumber === 1;
+  const positionInstruction = isFirstSlide
+    ? "This is the FIRST slide - you may briefly introduce the lecture topic."
+    : "NOT the first slide - skip any introduction or greeting, dive straight into the content.";
 
   const userPrompt = `Generate an explanation for this lecture slide.
 
-Lecture: ${lectureId}
-Slide ${slideNumber} of ${totalSlides}
+LECTURE CONTEXT:
+- Course: ELEC3120 Computer Networks
+- Chapter: ${context.chapter}
+- Lecture: ${context.title}
+- Topics covered: ${context.topics.join(", ")}
 
-Slide Content:
+CURRENT SLIDE:
+- Slide ${slideNumber} of ${totalSlides}
+- Position: ${positionInstruction}
+
+LECTURE OUTLINE (for context):
+${lectureOutline}
+
+SLIDE CONTENT:
 ${slideText}
 
+INSTRUCTIONS:
+- ${isFirstSlide ? "You may include ONE brief introduction to this lecture topic." : "Do NOT include any greeting or 'welcome' - dive straight into explaining the content."}
+- Reference previous concepts from this lecture if relevant.
+- Keep explanations connected and flowing.
+
 Return a JSON object with:
-1. "explanation": A clear, engaging 2-4 paragraph explanation of this slide's content
+1. "explanation": A clear, engaging 2-4 paragraph explanation (NO greetings except slide 1)
 2. "keyPoints": An array of 3-5 key takeaways (strings)
 3. "comprehensionQuestion": An object with:
    - "question": A multiple-choice question testing understanding
@@ -124,13 +278,16 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
 // Background processing function
 async function processSlides(
   slides: SlideContent[],
+  allSlides: SlideContent[],
   lectureId: string,
-  totalSlides: number,
   apiKey: string,
   examSupabaseUrl: string,
   examSupabaseKey: string
 ): Promise<void> {
   const examSupabase = createClient(examSupabaseUrl, examSupabaseKey);
+  const totalSlides = allSlides.length;
+  const lectureOutline = buildLectureOutline(allSlides);
+  
   let generated = 0;
   let errors = 0;
 
@@ -143,6 +300,7 @@ async function processSlides(
         slide.slide_number,
         slide.slide_text,
         totalSlides,
+        lectureOutline,
         apiKey
       );
 
@@ -238,7 +396,16 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[batch-generate-slides] Found ${slides.length} slides`);
+    // Always fetch ALL slides for context (even if we're only regenerating a range)
+    const { data: allSlides } = await examSupabase
+      .from("lecture_slides_course")
+      .select("slide_number, slide_text")
+      .eq("lecture_id", lecture_id)
+      .order("slide_number", { ascending: true });
+
+    const fullSlideList = (allSlides || slides) as SlideContent[];
+
+    console.log(`[batch-generate-slides] Found ${slides.length} slides (${fullSlideList.length} total in lecture)`);
 
     // Check which slides already have explanations
     const { data: existingExplanations } = await examSupabase
@@ -280,8 +447,8 @@ serve(async (req) => {
     EdgeRuntime.waitUntil(
       processSlides(
         slidesToProcess,
+        fullSlideList,
         lecture_id,
-        slides.length,
         LOVABLE_API_KEY,
         EXAM_SUPABASE_URL,
         EXAM_SUPABASE_ANON_KEY
