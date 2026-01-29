@@ -9,6 +9,7 @@ import Platform from "./pages/Platform";
 import Lesson from "./pages/Lesson";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
+import AdminReviewSlides from "./pages/AdminReviewSlides";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/platform" element={<Platform />} />
             <Route path="/platform/lesson/:lessonId" element={<Lesson />} />
+            <Route path="/admin/review-slides" element={<AdminReviewSlides />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
