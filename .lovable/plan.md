@@ -1,179 +1,142 @@
 
 
-# Fix Batch Generation Timeout Plan
+# Fix Redundant Greetings & Add Lecture Context
 
 ## Problem Analysis
 
-The `batch-generate-slides` edge function times out because:
+The current prompts in both `generate-single-slide/index.ts` and `batch-generate-slides/index.ts` have two issues:
 
-1. **Sequential Processing**: Each slide is processed one-by-one in a for-loop (lines 192-246)
-2. **Time Per Slide**: ~5-10 seconds AI generation + 1.5s rate-limit delay = ~7-12 seconds per slide
-3. **Timeout Limit**: Supabase Edge Functions have a **60-second hard limit**
-4. **Result**: A lecture with 18 slides needing generation = ~2+ minutes (times out after ~5-6 slides)
-
-The `generate-single-slide` function works because it only processes 1 slide (~5-10 seconds).
-
----
-
-## Proposed Solution: Background Processing with Immediate Response
-
-Use Supabase's `EdgeRuntime.waitUntil()` to:
-1. Return an immediate response to the client (no timeout)
-2. Continue processing slides in the background
-3. Track progress in a status table so the UI can poll for updates
+1. **Redundant greetings**: The AI adds "Welcome back!" or similar on every slide because there's no instruction to avoid it
+2. **No lecture context**: Each slide is generated in isolation - the AI only sees:
+   - Lecture ID (e.g., "01-Introduction")
+   - Slide number (e.g., "3 of 18")
+   - Slide text content
+   
+   It doesn't know the lecture title, chapter context, or what the overall learning journey looks like.
 
 ---
 
-## Architecture
+## Solution Overview
 
-```text
-+----------------+          +----------------------+
-|   Admin UI     |  POST    | batch-generate       |
-|  (Click btn)   | -------> | edge function        |
-+----------------+          +----------------------+
-       |                              |
-       |                    1. Return immediately:
-       |                       { job_id, status: "processing" }
-       |                              |
-       v                    2. Background: for each slide...
-+----------------+                    |
-| Poll for       | <----- 3. EdgeRuntime.waitUntil() 
-| progress       |           saves results to DB
-+----------------+
-```
+Improve the AI prompt to:
+
+1. **Explicitly forbid repetitive greetings** - Only allow a welcome-style intro on slide 1
+2. **Provide full lecture context** - Pass lecture title, chapter info, and topics
+3. **Fetch ALL slide texts for batch generation** - Pass a summary/outline so the AI understands the lecture flow
+4. **Add continuity instructions** - Tell the AI that each slide builds on the previous one
 
 ---
 
 ## Technical Implementation
 
-### Option A: Background Processing (Recommended)
-Use `EdgeRuntime.waitUntil()` to process slides after returning response.
+### Changes to Both Edge Functions
 
-**Pros**: Simple, single function, no new tables needed
-**Cons**: No real-time progress tracking (but we can check DB)
+The `generateSlideExplanation` function needs enhanced context parameters.
 
-### Option B: Job Queue with Status Table
-Create a `generation_jobs` table to track progress and poll from UI.
+**New System Prompt:**
 
-**Pros**: Real-time progress, retry failed slides
-**Cons**: More complex, requires new table
+```typescript
+const systemPrompt = `You are an expert computer networks instructor for ELEC3120 at HKUST.
+Your role is to explain lecture slides clearly to undergraduate students.
 
-**Selected: Option A** - simpler and meets the need
+CRITICAL INSTRUCTIONS:
+- Do NOT start explanations with greetings like "Welcome!", "Welcome back!", "Hello!", etc.
+- Only slide 1 of a lecture may include a brief introduction to the lecture topic.
+- For slides 2+, dive directly into the content without preamble.
+- Write as if you're continuing a conversation, not starting a new one.
+- Connect concepts to what was covered in previous slides when relevant.
+- Keep the tone educational, clear, and engaging without being repetitive.`;
+```
+
+**Enhanced User Prompt (with lecture context):**
+
+```typescript
+const userPrompt = `Generate an explanation for this lecture slide.
+
+LECTURE CONTEXT:
+- Course: ELEC3120 Computer Networks
+- Chapter: ${chapterTitle} (${chapterDescription})
+- Lecture: ${lectureTitle}
+- Topics covered in this lecture: ${lectureTopics}
+
+CURRENT SLIDE:
+- Slide ${slideNumber} of ${totalSlides}
+- Position: ${slideNumber === 1 ? 'This is the FIRST slide - you may briefly introduce the lecture' : 'NOT the first slide - skip any introduction or greeting'}
+
+LECTURE OUTLINE (for context):
+${lectureOutline}
+
+SLIDE CONTENT:
+${slideText}
+
+INSTRUCTIONS:
+- ${slideNumber === 1 ? 'You may include ONE brief introduction to this lecture topic.' : 'Do NOT include any greeting or "welcome" - dive straight into the content.'}
+- Reference previous concepts from this lecture if relevant.
+- Keep explanations connected and flowing.
+
+Return a JSON object with:
+1. "explanation": A clear 2-4 paragraph explanation (NO greetings except slide 1)
+2. "keyPoints": An array of 3-5 key takeaways
+3. "comprehensionQuestion": An object with question, options (4), correctIndex (0-3), explanation
+
+Respond ONLY with valid JSON.`;
+```
 
 ---
 
-## File Changes
+## Implementation Details
 
-### 1. supabase/functions/batch-generate-slides/index.ts
+### 1. Batch Generation (batch-generate-slides/index.ts)
 
-| Change | Description |
-|--------|-------------|
-| Add shutdown handler | Log progress when function terminates |
-| Wrap processing in waitUntil | Move the for-loop into a background task |
-| Return immediate response | Send job acknowledgment immediately |
-| Remove blocking awaits | Let the background task run independently |
-
-**New Flow:**
-```typescript
-serve(async (req) => {
-  // 1. Validate inputs (same as before)
-  // 2. Fetch slides list (same as before)
-  // 3. Determine which need generation (same as before)
-  
-  // 4. NEW: Start background processing
-  const slidesToProcess = slides.filter(...);
-  
-  EdgeRuntime.waitUntil(processSlides(slidesToProcess, ...));
-  
-  // 5. Return immediately
-  return new Response(JSON.stringify({
-    status: "processing",
-    message: `Started generating ${slidesToProcess.length} slides`,
-    total_slides: slides.length,
-    to_generate: slidesToProcess.length,
-    skipped: existingCount,
-  }), { headers: corsHeaders });
-});
-```
-
-### 2. src/services/adminApi.ts
+This already fetches ALL slides for the lecture. We can:
+1. Build a lecture outline from all slide texts before processing
+2. Pass the outline to each slide generation call
+3. Add lecture metadata from course content
 
 | Change | Description |
 |--------|-------------|
-| Update response handling | Handle new "processing" status |
-| Add polling helper | Optional: poll DB for completion |
+| Update system prompt | Add explicit no-greeting instructions |
+| Build lecture outline | Create summary of all slides to pass as context |
+| Add lecture metadata | Include chapter title, lecture title, topics |
+| Conditional greeting | Only allow intro on slide 1 |
 
-### 3. src/pages/AdminReviewSlides.tsx
+### 2. Single Slide Generation (generate-single-slide/index.ts)
+
+This currently fetches only the target slide. We need to:
+1. Fetch ALL slides for the lecture (for outline context)
+2. Pass the same enhanced prompt
 
 | Change | Description |
 |--------|-------------|
-| Update toast messages | Show "Generation started" instead of waiting |
-| Add refresh after delay | Auto-reload slides after a few seconds |
+| Fetch all slides | Get full lecture context, not just target slide |
+| Update system prompt | Same no-greeting instructions |
+| Build lecture outline | Summary of entire lecture |
+| Pass position context | Tell AI if this is slide 1 or not |
 
 ---
 
-## Detailed Code Changes
+## Lecture Context Data
 
-### Edge Function Changes
+Since the edge function can't import `courseContent.ts`, we have two options:
+
+**Option A**: Hardcode a minimal lecture metadata map in the edge function
+**Option B**: Pass lecture metadata from the frontend when calling the API
+
+**Recommended: Option A** - Simpler, no API changes needed. Create a lookup map:
 
 ```typescript
-// Add at top of file
-const processSlides = async (
-  slides: SlideContent[],
-  lectureId: string,
-  totalSlides: number,
-  apiKey: string,
-  examSupabase: any
-) => {
-  let generated = 0;
-  let errors = 0;
-  
-  for (const slide of slides) {
-    try {
-      console.log(`[background] Generating slide ${slide.slide_number}...`);
-      const content = await generateSlideExplanation(...);
-      await examSupabase.from("slide_explanations").upsert(...);
-      generated++;
-      console.log(`[background] Slide ${slide.slide_number} done (${generated}/${slides.length})`);
-      await new Promise(r => setTimeout(r, 1500)); // rate limit
-    } catch (err) {
-      console.error(`[background] Slide ${slide.slide_number} failed:`, err);
-      errors++;
-    }
-  }
-  
-  console.log(`[background] Complete: ${generated} generated, ${errors} errors`);
-};
-
-// Add shutdown handler
-addEventListener('beforeunload', (ev) => {
-  console.log('[batch-generate-slides] Shutting down:', ev.detail?.reason);
-});
-```
-
-### Admin UI Changes
-
-Show immediate feedback and auto-refresh:
-```typescript
-const handleGenerateLecture = async () => {
-  setIsGenerating(true);
-  try {
-    const result = await triggerBatchGeneration(selectedLecture, false);
-    toast({
-      title: 'Generation Started',
-      description: `Processing ${result.to_generate} slides in background...`,
-    });
-    
-    // Auto-refresh after 5 seconds to check progress
-    setTimeout(() => {
-      loadLectureSlides(selectedLecture);
-      loadSummaries();
-    }, 5000);
-  } catch (err) {
-    toast({ title: 'Error', variant: 'destructive' });
-  } finally {
-    setIsGenerating(false);
-  }
+const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
+  "01-Introduction": {
+    chapter: "Foundations & Internet Overview",
+    title: "Introduction to Computer Networks",
+    topics: ["Network fundamentals", "Internet architecture", "Protocol layers"]
+  },
+  "02-Web": {
+    chapter: "Foundations & Internet Overview", 
+    title: "Web Basics",
+    topics: ["HTTP", "Web protocols", "Client-server model"]
+  },
+  // ... etc for all 22 lectures
 };
 ```
 
@@ -183,9 +146,8 @@ const handleGenerateLecture = async () => {
 
 | File | Changes |
 |------|---------|
-| `supabase/functions/batch-generate-slides/index.ts` | Add EdgeRuntime.waitUntil(), return immediately, add shutdown handler |
-| `src/services/adminApi.ts` | Update response type to handle "processing" status |
-| `src/pages/AdminReviewSlides.tsx` | Update toast messages, add auto-refresh |
+| `supabase/functions/generate-single-slide/index.ts` | Update prompt, fetch all slides for context, add lecture metadata |
+| `supabase/functions/batch-generate-slides/index.ts` | Update prompt, build lecture outline, add lecture metadata |
 
 ---
 
@@ -193,10 +155,11 @@ const handleGenerateLecture = async () => {
 
 | Before | After |
 |--------|-------|
-| Function waits for all slides | Function returns in ~2 seconds |
-| Timeout after ~60s (5-6 slides) | Background processes all slides |
-| No feedback until complete/fail | Immediate "started" confirmation |
-| Must manually refresh | Auto-refresh to see progress |
+| "Welcome back!" on every slide | Welcome only on slide 1 (if at all) |
+| Each slide generated in isolation | AI sees full lecture outline |
+| No chapter/topic context | Rich context: chapter, title, topics |
+| Disjointed explanations | Connected, flowing teaching |
+| Generic system prompt | Explicit no-greeting + continuity instructions |
 
-This approach uses the Supabase-recommended `EdgeRuntime.waitUntil()` pattern for background processing while keeping the implementation simple.
+This will make the AI Tutor feel like a cohesive lecture experience rather than 18 separate explanations.
 
