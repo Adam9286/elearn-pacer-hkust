@@ -31,11 +31,15 @@ const SlideChat = ({
   slideContext,
   lectureId 
 }: SlideChatProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  
+  // Expand when there are messages or user is typing
+  const isExpanded = isFocused || messages.length > 0 || input.length > 0;
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -130,100 +134,78 @@ const SlideChat = ({
 
   return (
     <div className="border rounded-lg bg-card overflow-hidden">
-      {/* Header - Always visible */}
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-      >
+      {/* Compact input - always visible */}
+      <div className="p-3">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" />
-          <span className="font-medium">Ask about this slide</span>
-          {messages.length > 0 && (
-            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-              {messages.length} messages
-            </span>
-          )}
-        </div>
-        {isExpanded ? (
-          <ChevronUp className="h-5 w-5 text-muted-foreground" />
-        ) : (
-          <ChevronDown className="h-5 w-5 text-muted-foreground" />
-        )}
-      </button>
-
-      {/* Expandable Chat Area */}
-      {isExpanded && (
-        <div className="border-t">
-          {/* Messages */}
-          <ScrollArea className="h-64 p-4" ref={scrollRef}>
-            {messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground">
-                <MessageSquare className="h-8 w-8 mb-2 opacity-50" />
-                <p className="text-sm">
-                  Ask any question about Slide {slideNumber}
-                </p>
-                <p className="text-xs mt-1">
-                  The AI will use the lecture content to answer
-                </p>
-              </div>
+          <MessageSquare className="h-4 w-4 text-primary shrink-0" />
+          <div className="flex-1 relative">
+            <Textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setTimeout(() => setIsFocused(false), 150)}
+              placeholder={`Ask about Page ${slideNumber}...`}
+              className={cn(
+                "resize-none transition-all",
+                isExpanded ? "min-h-[60px]" : "min-h-[40px] py-2"
+              )}
+              disabled={isLoading}
+            />
+          </div>
+          <Button 
+            onClick={handleSend} 
+            disabled={!input.trim() || isLoading}
+            size="icon"
+            className={cn(
+              "shrink-0 transition-all",
+              isExpanded ? "h-[60px] w-[44px]" : "h-[40px] w-[40px]"
+            )}
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <div className="space-y-4">
-                {messages.map((msg) => (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
+      </div>
+
+      {/* Messages - shown when expanded */}
+      {isExpanded && messages.length > 0 && (
+        <div className="border-t">
+          <ScrollArea className="h-48 p-3" ref={scrollRef}>
+            <div className="space-y-3">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={cn(
+                    "flex",
+                    msg.role === 'user' ? "justify-end" : "justify-start"
+                  )}
+                >
                   <div
-                    key={msg.id}
                     className={cn(
-                      "flex",
-                      msg.role === 'user' ? "justify-end" : "justify-start"
+                      "max-w-[85%] rounded-lg px-3 py-2",
+                      msg.role === 'user'
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
                     )}
                   >
-                    <div
-                      className={cn(
-                        "max-w-[80%] rounded-lg px-4 py-2",
-                        msg.role === 'user'
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
-                      )}
-                    >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    </div>
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
-                ))}
-                {isLoading && (
-                  <div className="flex justify-start">
-                    <div className="bg-muted rounded-lg px-4 py-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    </div>
+                </div>
+              ))}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-muted rounded-lg px-3 py-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   </div>
-                )}
-              </div>
-            )}
-          </ScrollArea>
-
-          {/* Input Area */}
-          <div className="border-t p-4">
-            <div className="flex gap-2">
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your question..."
-                className="min-h-[60px] resize-none"
-                disabled={isLoading}
-              />
-              <Button 
-                onClick={handleSend} 
-                disabled={!input.trim() || isLoading}
-                size="icon"
-                className="h-[60px] w-[60px]"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Send className="h-5 w-5" />
-                )}
-              </Button>
+                </div>
+              )}
             </div>
-          </div>
+          </ScrollArea>
         </div>
       )}
     </div>
