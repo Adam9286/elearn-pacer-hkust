@@ -18,7 +18,7 @@ const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
 // ModelScope Inference API
-const MODELSCOPE_API_URL = "https://api-inference.modelscope.ai/v1/chat/completions";
+const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
 const MODELSCOPE_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
 
 // Lecture context metadata for all 22 lectures
