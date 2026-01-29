@@ -1,155 +1,202 @@
 
-# PDF Viewer Enhancement Plan
+
+# Fix Batch Generation Timeout Plan
 
 ## Problem Analysis
 
-From the screenshot, I can see two issues:
+The `batch-generate-slides` edge function times out because:
 
-1. **PDF iframe height is limited**: Currently `lg:h-[500px]` which feels cramped when the sidebar is hidden and there's more vertical space available
-2. **No page jump feature**: Users must click Previous/Next repeatedly to navigate - no way to jump directly to page 7 or 12
+1. **Sequential Processing**: Each slide is processed one-by-one in a for-loop (lines 192-246)
+2. **Time Per Slide**: ~5-10 seconds AI generation + 1.5s rate-limit delay = ~7-12 seconds per slide
+3. **Timeout Limit**: Supabase Edge Functions have a **60-second hard limit**
+4. **Result**: A lecture with 18 slides needing generation = ~2+ minutes (times out after ~5-6 slides)
 
----
-
-## Proposed Solutions
-
-### 1. Make PDF Iframe Bigger
-
-**Current constraint:** `lg:h-[500px]` in PdfViewer.tsx (line 61)
-
-**Proposed change:** Increase to `lg:h-[600px]` or even `lg:h-[calc(100vh-200px)]` for dynamic height based on viewport.
-
-| Option | Height | Pros | Cons |
-|--------|--------|------|------|
-| Fixed 600px | `lg:h-[600px]` | Simple, predictable | May still feel small on large screens |
-| Fixed 700px | `lg:h-[700px]` | More content visible | Could push content below fold on smaller screens |
-| Dynamic | `lg:h-[calc(100vh-220px)]` | Uses available space | Scrolling behavior changes |
-
-**Recommended:** `lg:h-[650px]` - a good balance for most screens
+The `generate-single-slide` function works because it only processes 1 slide (~5-10 seconds).
 
 ---
 
-### 2. Add Page Jump Dropdown
+## Proposed Solution: Background Processing with Immediate Response
 
-Transform the "Page X of Y" indicator into a clickable dropdown that lets users jump directly to any page.
+Use Supabase's `EdgeRuntime.waitUntil()` to:
+1. Return an immediate response to the client (no timeout)
+2. Continue processing slides in the background
+3. Track progress in a status table so the UI can poll for updates
 
-**Location:** PageNavigation.tsx - the center section
+---
 
-**UI Design:**
+## Architecture
+
 ```text
-[< Prev]   [Page ▼ 3 ] of 18   [Next >]
-                |
-                v
-           +---------+
-           | Page 1  |
-           | Page 2  |
-           | Page 3 ✓|
-           | Page 4  |
-           | ...     |
-           +---------+
++----------------+          +----------------------+
+|   Admin UI     |  POST    | batch-generate       |
+|  (Click btn)   | -------> | edge function        |
++----------------+          +----------------------+
+       |                              |
+       |                    1. Return immediately:
+       |                       { job_id, status: "processing" }
+       |                              |
+       v                    2. Background: for each slide...
++----------------+                    |
+| Poll for       | <----- 3. EdgeRuntime.waitUntil() 
+| progress       |           saves results to DB
++----------------+
 ```
-
-**Implementation:**
-- Use Radix Select component (already available: `@radix-ui/react-select`)
-- Generate options for all pages 1 to totalPages
-- On selection, call a new `onPageJump(pageNumber)` callback
-- Style to match existing muted/ghost aesthetic
 
 ---
 
-## Technical Changes
+## Technical Implementation
 
-### File: src/components/lesson/PdfViewer.tsx
+### Option A: Background Processing (Recommended)
+Use `EdgeRuntime.waitUntil()` to process slides after returning response.
 
-| Line | Current | New |
-|------|---------|-----|
-| 61 | `lg:h-[500px]` | `lg:h-[650px]` |
+**Pros**: Simple, single function, no new tables needed
+**Cons**: No real-time progress tracking (but we can check DB)
 
-### File: src/components/lesson/PageNavigation.tsx
+### Option B: Job Queue with Status Table
+Create a `generation_jobs` table to track progress and poll from UI.
+
+**Pros**: Real-time progress, retry failed slides
+**Cons**: More complex, requires new table
+
+**Selected: Option A** - simpler and meets the need
+
+---
+
+## File Changes
+
+### 1. supabase/functions/batch-generate-slides/index.ts
 
 | Change | Description |
 |--------|-------------|
-| Add `onPageJump` prop | New callback: `(page: number) => void` |
-| Import Select component | From `@/components/ui/select` |
-| Replace static text | Convert "Page X of Y" to a Select dropdown |
-| Generate page options | Map 1 to totalPages into Select options |
+| Add shutdown handler | Log progress when function terminates |
+| Wrap processing in waitUntil | Move the for-loop into a background task |
+| Return immediate response | Send job acknowledgment immediately |
+| Remove blocking awaits | Let the background task run independently |
 
-**New PageNavigation interface:**
+**New Flow:**
 ```typescript
-interface PageNavigationProps {
-  currentPage: number;
-  totalPages: number;
-  onPrevious: () => void;
-  onNext: () => void;
-  onPageJump: (page: number) => void;  // NEW
-  canGoNext: boolean;
-  canGoPrevious: boolean;
-  isLoading: boolean;
-}
+serve(async (req) => {
+  // 1. Validate inputs (same as before)
+  // 2. Fetch slides list (same as before)
+  // 3. Determine which need generation (same as before)
+  
+  // 4. NEW: Start background processing
+  const slidesToProcess = slides.filter(...);
+  
+  EdgeRuntime.waitUntil(processSlides(slidesToProcess, ...));
+  
+  // 5. Return immediately
+  return new Response(JSON.stringify({
+    status: "processing",
+    message: `Started generating ${slidesToProcess.length} slides`,
+    total_slides: slides.length,
+    to_generate: slidesToProcess.length,
+    skipped: existingCount,
+  }), { headers: corsHeaders });
+});
 ```
 
-### File: src/components/lesson/GuidedLearning.tsx
+### 2. src/services/adminApi.ts
 
 | Change | Description |
 |--------|-------------|
-| Add `handlePageJump` handler | New function to handle direct page navigation |
-| Pass to PageNavigation | Add `onPageJump={handlePageJump}` prop |
+| Update response handling | Handle new "processing" status |
+| Add polling helper | Optional: poll DB for completion |
 
-**Handler logic:**
+### 3. src/pages/AdminReviewSlides.tsx
+
+| Change | Description |
+|--------|-------------|
+| Update toast messages | Show "Generation started" instead of waiting |
+| Add refresh after delay | Auto-reload slides after a few seconds |
+
+---
+
+## Detailed Code Changes
+
+### Edge Function Changes
+
 ```typescript
-const handlePageJump = useCallback((targetPage: number) => {
-  if (targetPage >= 1 && targetPage <= totalPages && targetPage !== currentPage) {
-    // Mark current page as completed if moving forward
-    if (targetPage > currentPage) {
-      setSlides(prev => prev.map(slide => 
-        slide.slideNumber === currentPage 
-          ? { ...slide, status: 'completed' as const }
-          : slide
-      ));
+// Add at top of file
+const processSlides = async (
+  slides: SlideContent[],
+  lectureId: string,
+  totalSlides: number,
+  apiKey: string,
+  examSupabase: any
+) => {
+  let generated = 0;
+  let errors = 0;
+  
+  for (const slide of slides) {
+    try {
+      console.log(`[background] Generating slide ${slide.slide_number}...`);
+      const content = await generateSlideExplanation(...);
+      await examSupabase.from("slide_explanations").upsert(...);
+      generated++;
+      console.log(`[background] Slide ${slide.slide_number} done (${generated}/${slides.length})`);
+      await new Promise(r => setTimeout(r, 1500)); // rate limit
+    } catch (err) {
+      console.error(`[background] Slide ${slide.slide_number} failed:`, err);
+      errors++;
     }
-    setCurrentPage(targetPage);
   }
-}, [currentPage, totalPages]);
+  
+  console.log(`[background] Complete: ${generated} generated, ${errors} errors`);
+};
+
+// Add shutdown handler
+addEventListener('beforeunload', (ev) => {
+  console.log('[batch-generate-slides] Shutting down:', ev.detail?.reason);
+});
 ```
 
----
+### Admin UI Changes
 
-## Visual Mockup
-
-### Before (current):
-```text
-[< Prev Page]      Page 3 of 18      [Next Page >]
-```
-
-### After (with dropdown):
-```text
-[< Prev Page]   Page [▼ 3] of 18    [Next Page >]
-                     ↓ click
-              +-------------+
-              | 1           |
-              | 2           |
-              | 3 ✓         |
-              | 4           |
-              | 5           |
-              | ...         |
-              | 18          |
-              +-------------+
+Show immediate feedback and auto-refresh:
+```typescript
+const handleGenerateLecture = async () => {
+  setIsGenerating(true);
+  try {
+    const result = await triggerBatchGeneration(selectedLecture, false);
+    toast({
+      title: 'Generation Started',
+      description: `Processing ${result.to_generate} slides in background...`,
+    });
+    
+    // Auto-refresh after 5 seconds to check progress
+    setTimeout(() => {
+      loadLectureSlides(selectedLecture);
+      loadSummaries();
+    }, 5000);
+  } catch (err) {
+    toast({ title: 'Error', variant: 'destructive' });
+  } finally {
+    setIsGenerating(false);
+  }
+};
 ```
 
 ---
 
 ## Files to Modify
 
-1. **src/components/lesson/PdfViewer.tsx** - Increase iframe height
-2. **src/components/lesson/PageNavigation.tsx** - Add Select dropdown for page jump
-3. **src/components/lesson/GuidedLearning.tsx** - Add handlePageJump handler and pass to navigation
+| File | Changes |
+|------|---------|
+| `supabase/functions/batch-generate-slides/index.ts` | Add EdgeRuntime.waitUntil(), return immediately, add shutdown handler |
+| `src/services/adminApi.ts` | Update response type to handle "processing" status |
+| `src/pages/AdminReviewSlides.tsx` | Update toast messages, add auto-refresh |
 
 ---
 
 ## Summary
 
-| Enhancement | Implementation |
-|-------------|----------------|
-| Bigger PDF | Change `lg:h-[500px]` to `lg:h-[650px]` |
-| Page jump | Add Select dropdown in PageNavigation center, wire up through GuidedLearning |
+| Before | After |
+|--------|-------|
+| Function waits for all slides | Function returns in ~2 seconds |
+| Timeout after ~60s (5-6 slides) | Background processes all slides |
+| No feedback until complete/fail | Immediate "started" confirmation |
+| Must manually refresh | Auto-refresh to see progress |
 
-This is a minimal change (3 files) that significantly improves navigation UX.
+This approach uses the Supabase-recommended `EdgeRuntime.waitUntil()` pattern for background processing while keeping the implementation simple.
+
