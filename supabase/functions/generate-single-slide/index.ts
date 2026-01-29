@@ -12,8 +12,9 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// Lovable AI Gateway
-const LOVABLE_AI_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// ModelScope Inference API
+const MODELSCOPE_API_URL = "https://api-inference.modelscope.ai/v1/chat/completions";
+const MODELSCOPE_MODEL = "Qwen/Qwen3-Coder-30B-A3B-Instruct";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
@@ -215,14 +216,14 @@ Return a JSON object with:
 
 Respond ONLY with valid JSON, no markdown or extra text.`;
 
-  const response = await fetch(LOVABLE_AI_URL, {
+  const response = await fetch(MODELSCOPE_API_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: MODELSCOPE_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -233,17 +234,14 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Lovable AI error:", response.status, errorText);
+    console.error("ModelScope API error:", response.status, errorText);
     if (response.status === 429) {
       throw new Error("Rate limit exceeded. Please try again in a moment.");
     }
-    if (response.status === 402) {
-      throw new Error("Payment required. Please add credits to your workspace.");
-    }
     if (response.status === 401) {
-      throw new Error("Invalid API token.");
+      throw new Error("Invalid ModelScope API token.");
     }
-    throw new Error(`Lovable AI error: ${response.status}`);
+    throw new Error(`ModelScope API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -289,10 +287,10 @@ serve(async (req) => {
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const MODELSCOPE_TOKEN = Deno.env.get("MODELSCOPE_TOKEN");
+    if (!MODELSCOPE_TOKEN) {
       return new Response(
-        JSON.stringify({ error: "LOVABLE_API_KEY not configured" }),
+        JSON.stringify({ error: "MODELSCOPE_TOKEN not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -336,7 +334,7 @@ serve(async (req) => {
       targetSlide.slide_text,
       totalSlides,
       lectureOutline,
-      LOVABLE_API_KEY
+      MODELSCOPE_TOKEN
     );
 
     console.log(`[generate-single-slide] Generated content, saving as draft...`);
