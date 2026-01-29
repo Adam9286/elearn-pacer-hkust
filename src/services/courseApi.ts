@@ -23,57 +23,17 @@ function getLectureId(lessonId: string): string | null {
 }
 
 /**
- * Fallback to n8n real-time generation
- * Used when pre-generated content is not available
+ * Fallback when pre-generated content is not available
+ * No longer calls n8n - throws user-friendly error instead
  */
 async function fallbackToRealTimeGeneration(
   request: SlideExplanationRequest
 ): Promise<SlideExplanationResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.SLIDE_EXPLANATION);
-
-  try {
-    const response = await fetch(WEBHOOKS.COURSE_SLIDE_EXPLAIN, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        lessonId: request.lessonId,
-        slideNumber: request.slideNumber,
-        totalSlides: request.totalSlides,
-        lessonTitle: request.lessonTitle,
-        chapterTitle: request.chapterTitle,
-        chapterTopics: request.chapterTopics,
-        textbookSections: request.textbookSections,
-        previousContext: request.previousContext,
-        generateQuestion: request.generateQuestion,
-        pdfUrl: request.pdfUrl,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Failed to fetch explanation (${response.status})`);
-    }
-
-    const data = await response.json();
-    
-    return {
-      explanation: data.explanation || '',
-      keyPoints: Array.isArray(data.keyPoints) 
-        ? data.keyPoints 
-        : JSON.parse(data.keyPoints || '[]'),
-      comprehensionQuestion: data.comprehensionQuestion || undefined,
-    };
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err instanceof Error && err.name === 'AbortError') {
-      throw new Error('Request timed out. Please try again.');
-    }
-    throw err;
-  }
+  console.log('[CourseAPI] No approved content found for slide', request.slideNumber);
+  
+  throw new Error(
+    'This slide explanation is pending admin review. Please check back later or try another slide.'
+  );
 }
 
 /**
