@@ -22,7 +22,11 @@ const Lesson = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const [lessonProgress, setLessonProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState("ai-tutor");
   const { user, loading, markLessonComplete, getChapterProgress, isChapterUnlocked, getLessonsCompleted, getTotalLessons } = useUserProgress();
+  
+  // Hide sidebar in AI Tutor mode for more horizontal space
+  const showSidebar = activeTab === "overview";
 
   // Find current lesson and chapter using helper
   const lessonData = lessonId ? findLesson(lessonId) : null;
@@ -111,9 +115,9 @@ const Lesson = () => {
           </div>
         </header>
 
-        <div className="container grid grid-cols-1 lg:grid-cols-4 gap-6 p-6">
-          {/* Sidebar - Chapter Navigation */}
-          <aside className="lg:col-span-1">
+        <div className={`container grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-4' : ''} gap-6 p-6`}>
+          {/* Sidebar - Chapter Navigation (hidden in AI Tutor mode) */}
+          {showSidebar && <aside className="lg:col-span-1">
             <Card className="glass-card sticky top-20">
               <CardHeader>
                 <CardTitle className="text-lg text-foreground">Section {currentChapter.id} Lessons</CardTitle>
@@ -156,10 +160,10 @@ const Lesson = () => {
                 </ScrollArea>
               </CardContent>
             </Card>
-          </aside>
+          </aside>}
 
           {/* Main Content */}
-          <main className="lg:col-span-3 space-y-6">
+          <main className={`${showSidebar ? 'lg:col-span-3' : ''} space-y-6`}>
             {/* Lesson Header */}
             <Card className="glass-card">
               <CardHeader>
@@ -192,7 +196,7 @@ const Lesson = () => {
 
             {/* Lesson Content Tabs */}
             <Card className="glass-card">
-              <Tabs defaultValue="ai-tutor" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <CardHeader className="pb-4">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="overview">Overview</TabsTrigger>

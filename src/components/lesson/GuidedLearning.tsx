@@ -223,9 +223,9 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
       />
 
       {/* Main Content - Side by Side on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left: PDF Viewer (sticky on desktop) */}
-        <div className="lg:sticky lg:top-4 lg:self-start">
+        <div className="lg:sticky lg:top-24 lg:self-start">
           {lesson.pdfUrl && (
             <PdfViewer
               pdfUrl={lesson.pdfUrl}
