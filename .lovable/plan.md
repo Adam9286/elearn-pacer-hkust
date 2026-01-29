@@ -1,104 +1,155 @@
 
-
-# Course Mode Width Optimization Plan
+# PDF Viewer Enhancement Plan
 
 ## Problem Analysis
 
-The current layout has **three levels of nesting** that reduce available content width:
+From the screenshot, I can see two issues:
 
-1. **Page container**: `container` class with max-width constraints
-2. **Sidebar + Main**: `grid-cols-4` (sidebar 1, main 3) = main gets 75% of container
-3. **PDF + Explanation**: `grid-cols-2` inside main = each gets 37.5% of container
-
-Result: Each panel ends up ~300-400px wide, causing excessive vertical scrolling.
-
-## Proposed Solution: Collapsible Sidebar + Full-Width Layout
-
-### Option A: Hide sidebar by default in AI Tutor tab
-When user switches to "AI Tutor" tab, automatically collapse the sidebar to maximize horizontal space. Keep sidebar visible in "Overview" tab.
-
-### Option B: Floating/overlay sidebar
-Convert sidebar to a slide-out drawer that overlays content when opened, giving AI Tutor the full 4/4 grid width.
-
-### Option C: Remove sidebar entirely in AI Tutor mode
-The sidebar shows section lessons, but once in AI Tutor, users focus on single-lesson learning. Remove sidebar completely when in AI Tutor tab.
-
-**Recommended: Option A** - Conditional sidebar visibility based on active tab
+1. **PDF iframe height is limited**: Currently `lg:h-[500px]` which feels cramped when the sidebar is hidden and there's more vertical space available
+2. **No page jump feature**: Users must click Previous/Next repeatedly to navigate - no way to jump directly to page 7 or 12
 
 ---
 
-## Implementation Details
+## Proposed Solutions
 
-### Changes to Lesson.tsx
+### 1. Make PDF Iframe Bigger
 
-1. Track the active tab state at page level (currently `defaultValue="ai-tutor"`)
-2. Conditionally render sidebar based on active tab
-3. Adjust grid columns: 
-   - Overview tab: `lg:grid-cols-4` (with sidebar)
-   - AI Tutor tab: single column, full width (no sidebar)
+**Current constraint:** `lg:h-[500px]` in PdfViewer.tsx (line 61)
 
+**Proposed change:** Increase to `lg:h-[600px]` or even `lg:h-[calc(100vh-200px)]` for dynamic height based on viewport.
+
+| Option | Height | Pros | Cons |
+|--------|--------|------|------|
+| Fixed 600px | `lg:h-[600px]` | Simple, predictable | May still feel small on large screens |
+| Fixed 700px | `lg:h-[700px]` | More content visible | Could push content below fold on smaller screens |
+| Dynamic | `lg:h-[calc(100vh-220px)]` | Uses available space | Scrolling behavior changes |
+
+**Recommended:** `lg:h-[650px]` - a good balance for most screens
+
+---
+
+### 2. Add Page Jump Dropdown
+
+Transform the "Page X of Y" indicator into a clickable dropdown that lets users jump directly to any page.
+
+**Location:** PageNavigation.tsx - the center section
+
+**UI Design:**
+```text
+[< Prev]   [Page ▼ 3 ] of 18   [Next >]
+                |
+                v
+           +---------+
+           | Page 1  |
+           | Page 2  |
+           | Page 3 ✓|
+           | Page 4  |
+           | ...     |
+           +---------+
 ```
-Before:  [Sidebar 1/4] | [Main 3/4 → PDF 50% | Explanation 50%]
-After:   [Full Width → PDF 50% | Explanation 50%]
-```
 
-### Changes to GuidedLearning.tsx
-
-Increase the grid gap and adjust sticky positioning for better spacing.
+**Implementation:**
+- Use Radix Select component (already available: `@radix-ui/react-select`)
+- Generate options for all pages 1 to totalPages
+- On selection, call a new `onPageJump(pageNumber)` callback
+- Style to match existing muted/ghost aesthetic
 
 ---
 
 ## Technical Changes
 
-### File: src/pages/Lesson.tsx
+### File: src/components/lesson/PdfViewer.tsx
+
+| Line | Current | New |
+|------|---------|-----|
+| 61 | `lg:h-[500px]` | `lg:h-[650px]` |
+
+### File: src/components/lesson/PageNavigation.tsx
 
 | Change | Description |
 |--------|-------------|
-| Add `activeTab` state | Track which tab is selected |
-| Conditional sidebar | Hide sidebar when `activeTab === "ai-tutor"` |
-| Dynamic grid | `lg:grid-cols-1` for AI Tutor, `lg:grid-cols-4` for Overview |
-| Full-width main | When sidebar hidden, main content gets 100% width |
+| Add `onPageJump` prop | New callback: `(page: number) => void` |
+| Import Select component | From `@/components/ui/select` |
+| Replace static text | Convert "Page X of Y" to a Select dropdown |
+| Generate page options | Map 1 to totalPages into Select options |
+
+**New PageNavigation interface:**
+```typescript
+interface PageNavigationProps {
+  currentPage: number;
+  totalPages: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  onPageJump: (page: number) => void;  // NEW
+  canGoNext: boolean;
+  canGoPrevious: boolean;
+  isLoading: boolean;
+}
+```
 
 ### File: src/components/lesson/GuidedLearning.tsx
 
 | Change | Description |
 |--------|-------------|
-| Optional: Increase gap | Change `gap-6` to `gap-8` for more breathing room |
-| Sticky top adjustment | Update `lg:top-4` to account for new layout |
+| Add `handlePageJump` handler | New function to handle direct page navigation |
+| Pass to PageNavigation | Add `onPageJump={handlePageJump}` prop |
+
+**Handler logic:**
+```typescript
+const handlePageJump = useCallback((targetPage: number) => {
+  if (targetPage >= 1 && targetPage <= totalPages && targetPage !== currentPage) {
+    // Mark current page as completed if moving forward
+    if (targetPage > currentPage) {
+      setSlides(prev => prev.map(slide => 
+        slide.slideNumber === currentPage 
+          ? { ...slide, status: 'completed' as const }
+          : slide
+      ));
+    }
+    setCurrentPage(targetPage);
+  }
+}, [currentPage, totalPages]);
+```
 
 ---
 
-## Visual Comparison
+## Visual Mockup
 
-### Current Layout (cramped)
-```
-+------------------+----------------------------------------+
-| Sidebar (25%)    | Main Content (75%)                     |
-| Section Lessons  | +----------------+--------------------+ |
-|                  | | PDF (37.5%)    | Explanation (37.5%)| |
-|                  | |                |                    | |
-|                  | +----------------+--------------------+ |
-+------------------+----------------------------------------+
+### Before (current):
+```text
+[< Prev Page]      Page 3 of 18      [Next Page >]
 ```
 
-### Proposed Layout (AI Tutor tab)
+### After (with dropdown):
+```text
+[< Prev Page]   Page [▼ 3] of 18    [Next Page >]
+                     ↓ click
+              +-------------+
+              | 1           |
+              | 2           |
+              | 3 ✓         |
+              | 4           |
+              | 5           |
+              | ...         |
+              | 18          |
+              +-------------+
 ```
-+----------------------------------------------------------------+
-| Full Width Main Content (100%)                                  |
-| +-----------------------------+-------------------------------+ |
-| | PDF (50%)                   | Explanation (50%)             | |
-| |                             |                               | |
-| +-----------------------------+-------------------------------+ |
-+----------------------------------------------------------------+
-```
+
+---
+
+## Files to Modify
+
+1. **src/components/lesson/PdfViewer.tsx** - Increase iframe height
+2. **src/components/lesson/PageNavigation.tsx** - Add Select dropdown for page jump
+3. **src/components/lesson/GuidedLearning.tsx** - Add handlePageJump handler and pass to navigation
 
 ---
 
 ## Summary
 
-- **Sidebar hidden in AI Tutor tab** - Gives 33% more horizontal space
-- **Full-width grid** - PDF and explanation each get 50% of screen width
-- **Sidebar remains for Overview tab** - Navigation still available when browsing lesson summaries
+| Enhancement | Implementation |
+|-------------|----------------|
+| Bigger PDF | Change `lg:h-[500px]` to `lg:h-[650px]` |
+| Page jump | Add Select dropdown in PageNavigation center, wire up through GuidedLearning |
 
-This is a minimal-change approach: only Lesson.tsx needs modification, GuidedLearning.tsx stays mostly the same.
-
+This is a minimal change (3 files) that significantly improves navigation UX.
