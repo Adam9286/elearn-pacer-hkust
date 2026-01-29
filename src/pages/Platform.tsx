@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Send, Lightbulb, Shield } from "lucide-react";
+import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Send, Lightbulb } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,6 +11,7 @@ import HowItWorks from "@/components/HowItWorks";
 import Feedback from "@/components/Feedback";
 import ThemeToggle from "@/components/ThemeToggle";
 import AccountSettings from "@/components/AccountSettings";
+import AdminDropdown from "@/components/AdminDropdown";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useUserProgress } from "@/contexts/UserProgressContext";
 import { externalSupabase } from "@/lib/externalSupabase";
@@ -78,19 +79,7 @@ const Index = () => {
                   <span className="text-sm dark:text-white/80 text-gray-700 hidden sm:block">
                     {user.email}
                   </span>
-                  {user.email === 'adambaby2004@gmail.com' && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                    >
-                      <Link to="/admin/review-slides">
-                        <Shield className="w-4 h-4" />
-                        <span className="hidden sm:inline">Admin</span>
-                      </Link>
-                    </Button>
-                  )}
+                  <AdminDropdown />
                   <AccountSettings userEmail={user.email || ""} />
                   <Button
                     variant="outline"
