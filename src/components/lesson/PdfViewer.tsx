@@ -3,7 +3,7 @@
 // (e.g., from Google Drive iframe to PDF.js or react-pdf)
 
 import { cn } from "@/lib/utils";
-import { FileText } from "lucide-react";
+import { FileText, Info } from "lucide-react";
 
 interface PdfViewerProps {
   pdfUrl: string;
@@ -48,22 +48,23 @@ const PdfViewer = ({
   }
 
   return (
-    <div className={cn("space-y-2", className)}>
-      <div className="aspect-video rounded-lg overflow-hidden border bg-muted">
+    <div className={cn("space-y-0", className)}>
+      {/* Info banner - explains independent navigation */}
+      <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-t-lg border border-b-0">
+        <Info className="h-3.5 w-3.5 shrink-0" />
+        <span>
+          Use the PDF controls to browse. The AI explanation covers <strong>Page {currentPage}</strong>.
+        </span>
+      </div>
+      
+      {/* PDF iframe */}
+      <div className="aspect-[4/3] lg:aspect-auto lg:h-[500px] rounded-b-lg overflow-hidden border bg-muted">
         <iframe
           src={pdfUrl}
           className="w-full h-full"
           title={title}
           allow="autoplay"
         />
-      </div>
-      
-      {/* Info bar - shows that navigation is independent */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-        <span>Navigate slides using the PDF viewer controls above</span>
-        {totalPages && (
-          <span>Section {currentPage} of {totalPages}</span>
-        )}
       </div>
     </div>
   );

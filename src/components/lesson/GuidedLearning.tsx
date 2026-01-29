@@ -1,10 +1,9 @@
-// GuidedLearning - Main orchestrator for slide-by-slide learning
+// GuidedLearning - Main orchestrator for page-by-page learning
 // currentSlide is the single source of truth for all dependent UI
 // Uses explicit contentState for deterministic loading behavior
+// REDESIGNED: Side-by-side layout, user-controlled questions, Page terminology
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { Lesson, Chapter } from "@/data/courseContent";
 import { findLesson } from "@/data/courseContent";
@@ -18,10 +17,10 @@ import {
 // Sub-components
 import PdfViewer from "./PdfViewer";
 import ExplanationPanel from "./ExplanationPanel";
-import SlideNavigation from "./SlideNavigation";
-import SlideProgressTracker from "./SlideProgressTracker";
+import PageNavigation from "./PageNavigation";
+import CompactProgress from "./CompactProgress";
 import SlideChat from "./SlideChat";
-import ComprehensionCheck, { type ComprehensionQuestion } from "./ComprehensionCheck";
+import TestYourselfCard from "./TestYourselfCard";
 
 interface GuidedLearningProps {
   lesson: Lesson;
@@ -30,8 +29,8 @@ interface GuidedLearningProps {
 }
 
 const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) => {
-  // Calculate total slides from lesson duration
-  const totalSlides = useMemo(
+  // Calculate total pages from lesson duration
+  const totalPages = useMemo(
     () => estimateTotalSlides(lesson.estimatedMinutes), 
     [lesson.estimatedMinutes]
   );
@@ -43,12 +42,12 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   }, [lesson.id]);
   
   // ============ Core State ============
-  // currentSlide is the SINGLE SOURCE OF TRUTH
-  const [currentSlide, setCurrentSlide] = useState(1);
+  // currentPage is the SINGLE SOURCE OF TRUTH
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Slide data array - each slide has explicit contentState
   const [slides, setSlides] = useState<CourseSlide[]>(() => 
-    Array.from({ length: totalSlides }, (_, i) => ({
+    Array.from({ length: totalPages }, (_, i) => ({
       slideNumber: i + 1,
       status: i === 0 ? 'unlocked' : 'locked',
       contentState: 'idle',  // Explicit: not yet fetched
@@ -59,13 +58,10 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   const [previousContext, setPreviousContext] = useState<string>("");
   
   // ============ Questions State ============
-  const [questionsEnabled, setQuestionsEnabled] = useState(true);
-  const [questionsMode] = useState<'blocking' | 'dismissible'>('dismissible');
+  const [questionsEnabled] = useState(true);
   const [questionsShown, setQuestionsShown] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
   const [questionsCorrect, setQuestionsCorrect] = useState(0);
-  const [showQuestionDialog, setShowQuestionDialog] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState<ComprehensionQuestion | null>(null);
   
   // ============ Slide Lookup Map ============
   // Use slideNumber as key for safe lookup (not array index)
@@ -75,7 +71,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   );
   
   // Current slide data via map lookup (authoritative)
-  const currentSlideData = slideMap[currentSlide];
+  const currentSlideData = slideMap[currentPage];
   
   // ============ Derived State ============
   const slidesViewed = useMemo(
@@ -86,26 +82,26 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   );
   
   // Navigation control based on contentState
-  const isCurrentSlideLoading = currentSlideData?.contentState === 'loading';
-  const canGoPrevious = currentSlide > 1;
-  const canGoNext = currentSlide < totalSlides && !isCurrentSlideLoading;
+  const isCurrentPageLoading = currentSlideData?.contentState === 'loading';
+  const canGoPrevious = currentPage > 1;
+  const canGoNext = currentPage < totalPages && !isCurrentPageLoading;
   
   // ============ API Call ============
-  const fetchExplanationForSlide = useCallback(async (slideNum: number) => {
-    // Set loading state for this specific slide
+  const fetchExplanationForPage = useCallback(async (pageNum: number) => {
+    // Set loading state for this specific page
     setSlides(prev => prev.map(slide => 
-      slide.slideNumber === slideNum 
+      slide.slideNumber === pageNum 
         ? { ...slide, contentState: 'loading' as const }
         : slide
     ));
 
     try {
-      const generateQuestion = questionsEnabled && shouldGenerateQuestion(slideNum);
+      const generateQuestion = questionsEnabled && shouldGenerateQuestion(pageNum);
       
       const response: SlideExplanationResponse = await fetchSlideExplanation({
         lessonId: lesson.id,
-        slideNumber: slideNum,
-        totalSlides,
+        slideNumber: pageNum,
+        totalSlides: totalPages,
         lessonTitle: lesson.title,
         chapterTitle: chapter.title,
         chapterTopics: chapter.topics,
@@ -115,9 +111,9 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         pdfUrl: lesson.pdfUrl,
       });
       
-      // Set ready state with content for this slide
+      // Set ready state with content for this page
       setSlides(prev => prev.map(slide => {
-        if (slide.slideNumber === slideNum) {
+        if (slide.slideNumber === pageNum) {
           return {
             ...slide,
             contentState: 'ready' as const,
@@ -126,34 +122,32 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
             comprehensionQuestion: response.comprehensionQuestion,
           };
         }
-        // Unlock next slide
-        if (slide.slideNumber === slideNum + 1 && slide.status === 'locked') {
+        // Unlock next page
+        if (slide.slideNumber === pageNum + 1 && slide.status === 'locked') {
           return { ...slide, status: 'unlocked' as const };
         }
         return slide;
       }));
       
-      // Update context for next slide
+      // Update context for next page
       if (response.keyPoints?.length > 0) {
         setPreviousContext(prev => 
-          `${prev} Slide ${slideNum}: ${response.keyPoints.join('. ')}.`.slice(-1000)
+          `${prev} Page ${pageNum}: ${response.keyPoints.join('. ')}.`.slice(-1000)
         );
       }
 
-      // Show comprehension question if generated
+      // Track question if generated (no auto-popup)
       if (response.comprehensionQuestion) {
         setQuestionsShown(prev => prev + 1);
-        setCurrentQuestion(response.comprehensionQuestion);
-        setTimeout(() => setShowQuestionDialog(true), 500);
       }
 
     } catch (err) {
-      console.error('Error fetching slide explanation:', err);
+      console.error('Error fetching page explanation:', err);
       const message = err instanceof Error ? err.message : 'Failed to load explanation';
       
-      // Set error state for this specific slide
+      // Set error state for this specific page
       setSlides(prev => prev.map(slide => 
-        slide.slideNumber === slideNum 
+        slide.slideNumber === pageNum 
           ? { ...slide, contentState: 'error' as const, errorMessage: message }
           : slide
       ));
@@ -164,153 +158,124 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
         toast.error('AI credits depleted. Please add credits to continue learning.');
       }
     }
-  }, [lesson, chapter, totalSlides, previousContext, questionsEnabled]);
+  }, [lesson, chapter, totalPages, previousContext, questionsEnabled]);
 
   // ============ Effects ============
-  // Fetch explanation when slide changes - only if contentState is 'idle'
+  // Fetch explanation when page changes - only if contentState is 'idle'
   useEffect(() => {
     if (currentSlideData?.contentState === 'idle') {
-      fetchExplanationForSlide(currentSlide);
+      fetchExplanationForPage(currentPage);
     }
-  }, [currentSlide, currentSlideData?.contentState, fetchExplanationForSlide]);
+  }, [currentPage, currentSlideData?.contentState, fetchExplanationForPage]);
 
   // ============ Navigation Handlers ============
-  const handlePreviousSlide = useCallback(() => {
+  const handlePreviousPage = useCallback(() => {
     if (canGoPrevious) {
-      setCurrentSlide(prev => prev - 1);
+      setCurrentPage(prev => prev - 1);
     }
   }, [canGoPrevious]);
 
-  const handleNextSlide = useCallback(() => {
-    if (currentSlide < totalSlides) {
-      // Mark current slide as completed
+  const handleNextPage = useCallback(() => {
+    if (currentPage < totalPages) {
+      // Mark current page as completed
       setSlides(prev => prev.map(slide => 
-        slide.slideNumber === currentSlide 
+        slide.slideNumber === currentPage 
           ? { ...slide, status: 'completed' as const }
           : slide
       ));
-      setCurrentSlide(prev => prev + 1);
+      setCurrentPage(prev => prev + 1);
     } else {
-      // Completed all slides
-      toast.success("You've completed all sections for this lesson!");
+      // Completed all pages
+      toast.success("You've completed all pages for this lesson!");
       onComplete?.();
     }
-  }, [currentSlide, totalSlides, onComplete]);
+  }, [currentPage, totalPages, onComplete]);
 
-  const handleSkipToEnd = useCallback(() => {
-    setCurrentSlide(totalSlides);
-  }, [totalSlides]);
-
-  // ============ Question Handlers ============
+  // ============ Question Handler ============
   const handleQuestionAnswer = useCallback((correct: boolean) => {
     setQuestionsAnswered(prev => prev + 1);
     if (correct) {
       setQuestionsCorrect(prev => prev + 1);
     }
-    setCurrentQuestion(null);
-  }, []);
-
-  const handleQuestionSkip = useCallback(() => {
-    setCurrentQuestion(null);
   }, []);
 
   // Retry resets contentState to 'idle', triggering re-fetch
   const handleRetry = useCallback(() => {
     setSlides(prev => prev.map(slide => 
-      slide.slideNumber === currentSlide 
+      slide.slideNumber === currentPage 
         ? { ...slide, contentState: 'idle' as const, errorMessage: undefined }
         : slide
     ));
-  }, [currentSlide]);
+  }, [currentPage]);
 
   // ============ Render ============
   return (
-    <div className="space-y-6">
-      {/* Top Navigation */}
-      <SlideNavigation
-        currentSlide={currentSlide}
-        totalSlides={totalSlides}
-        onPrevious={handlePreviousSlide}
-        onNext={handleNextSlide}
-        onSkipToEnd={handleSkipToEnd}
+    <div className="space-y-4">
+      {/* Top Navigation - Clean page indicator */}
+      <PageNavigation
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPrevious={handlePreviousPage}
+        onNext={handleNextPage}
         canGoNext={canGoNext}
         canGoPrevious={canGoPrevious}
-        isLoading={isCurrentSlideLoading}
-        questionsEnabled={questionsEnabled}
-        onQuestionsToggle={setQuestionsEnabled}
+        isLoading={isCurrentPageLoading}
       />
 
-      {/* PDF Viewer - Abstracted */}
-      {lesson.pdfUrl && (
-        <PdfViewer
-          pdfUrl={lesson.pdfUrl}
-          currentPage={currentSlide}
-          totalPages={totalSlides}
-          title={lesson.title}
-        />
-      )}
+      {/* Main Content - Side by Side on Desktop */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left: PDF Viewer (sticky on desktop) */}
+        <div className="lg:sticky lg:top-4 lg:self-start">
+          {lesson.pdfUrl && (
+            <PdfViewer
+              pdfUrl={lesson.pdfUrl}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              title={lesson.title}
+            />
+          )}
+        </div>
 
-      {/* AI Explanation Panel - uses explicit contentState */}
-      <ExplanationPanel
-        slideNumber={currentSlide}
-        contentState={currentSlideData?.contentState ?? 'idle'}
-        explanation={currentSlideData?.explanation}
-        keyPoints={currentSlideData?.keyPoints}
-        errorMessage={currentSlideData?.errorMessage}
-        onRetry={handleRetry}
-      />
+        {/* Right: Learning Content Stack */}
+        <div className="space-y-4">
+          {/* AI Explanation Panel */}
+          <ExplanationPanel
+            slideNumber={currentPage}
+            contentState={currentSlideData?.contentState ?? 'idle'}
+            explanation={currentSlideData?.explanation}
+            keyPoints={currentSlideData?.keyPoints}
+            errorMessage={currentSlideData?.errorMessage}
+            onRetry={handleRetry}
+          />
 
-      {/* Follow-up Chat */}
-      <SlideChat
-        lessonId={lesson.id}
-        lessonTitle={lesson.title}
-        slideNumber={currentSlide}
-        slideContext={currentSlideData?.explanation}
-        lectureId={lectureId}
-      />
+          {/* Compact Chat - Always visible input */}
+          <SlideChat
+            lessonId={lesson.id}
+            lessonTitle={lesson.title}
+            slideNumber={currentPage}
+            slideContext={currentSlideData?.explanation}
+            lectureId={lectureId}
+          />
 
-      {/* Progress Tracker */}
-      <SlideProgressTracker
-        currentSlide={currentSlide}
-        totalSlides={totalSlides}
-        slidesViewed={slidesViewed}
+          {/* Test Yourself - User-controlled, inline */}
+          {currentSlideData?.comprehensionQuestion && (
+            <TestYourselfCard
+              question={currentSlideData.comprehensionQuestion}
+              pageNumber={currentPage}
+              onAnswer={handleQuestionAnswer}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Compact Progress Bar */}
+      <CompactProgress
+        currentPage={currentPage}
+        totalPages={totalPages}
         questionsShown={questionsShown}
         questionsAnswered={questionsAnswered}
         questionsCorrect={questionsCorrect}
       />
-
-      {/* Bottom Navigation */}
-      <div className="flex justify-between pt-4">
-        <Button
-          variant="outline"
-          onClick={handlePreviousSlide}
-          disabled={!canGoPrevious || isCurrentSlideLoading}
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Previous Section
-        </Button>
-        <Button 
-          onClick={handleNextSlide} 
-          disabled={isCurrentSlideLoading}
-        >
-          {currentSlide === totalSlides ? 'Complete Lesson' : 'Next Section'}
-          {currentSlide < totalSlides && <ChevronRight className="ml-2 h-4 w-4" />}
-        </Button>
-      </div>
-
-      {/* Comprehension Check Dialog */}
-      {currentQuestion && (
-        <ComprehensionCheck
-          open={showQuestionDialog}
-          onOpenChange={setShowQuestionDialog}
-          question={currentQuestion}
-          onAnswer={handleQuestionAnswer}
-          onSkip={handleQuestionSkip}
-          mode={questionsMode}
-          questionsEnabled={questionsEnabled}
-          onQuestionsToggle={setQuestionsEnabled}
-        />
-      )}
     </div>
   );
 };

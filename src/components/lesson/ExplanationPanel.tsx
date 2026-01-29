@@ -48,7 +48,7 @@ const ExplanationPanel = ({
           <Sparkles className="h-5 w-5 text-primary" />
           <span className="font-semibold text-primary">AI Tutor</span>
           <Badge variant="secondary" className="text-xs">
-            Section {slideNumber}
+            Page {slideNumber}
           </Badge>
         </div>
 
@@ -93,7 +93,7 @@ const ExplanationPanel = ({
           <div className="text-center py-8 text-muted-foreground">
             <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p>AI explanation will appear here</p>
-            <p className="text-sm mt-1">Navigate to a section to get started</p>
+            <p className="text-sm mt-1">Navigate to a page to get started</p>
           </div>
         )}
 
