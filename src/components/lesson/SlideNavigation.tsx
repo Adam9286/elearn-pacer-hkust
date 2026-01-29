@@ -67,7 +67,7 @@ const SlideNavigation = ({
       
       {/* Options */}
       <div className="flex items-center gap-4">
-        {/* Questions Toggle */}
+        {/* Popup Questions Toggle */}
         <div className="flex items-center gap-2">
           <Switch 
             id="questions-toggle"
@@ -75,7 +75,7 @@ const SlideNavigation = ({
             onCheckedChange={onQuestionsToggle}
           />
           <Label htmlFor="questions-toggle" className="text-sm cursor-pointer">
-            Questions
+            Popup Questions
           </Label>
         </div>
         
