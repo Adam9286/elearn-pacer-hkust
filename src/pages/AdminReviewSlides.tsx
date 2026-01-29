@@ -16,10 +16,12 @@ import {
   rejectSlide,
   approveAllSlides,
   triggerBatchGeneration,
+  generateSingleSlide,
   type SlideExplanation,
   type LectureSummary,
 } from '@/services/adminApi';
 import { externalSupabase } from '@/lib/externalSupabase';
+import { examSupabase } from '@/lib/examSupabase';
 
 // Admin user ID (from memory: adambaby2004@gmail.com)
 const ADMIN_EMAIL = 'adambaby2004@gmail.com';
@@ -35,7 +37,9 @@ export default function AdminReviewSlides() {
   // Data state
   const [selectedLecture, setSelectedLecture] = useState('');
   const [slides, setSlides] = useState<SlideExplanation[]>([]);
+  const [allSlideNumbers, setAllSlideNumbers] = useState<number[]>([]);
   const [selectedSlide, setSelectedSlide] = useState<SlideExplanation | null>(null);
+  const [selectedSlideNumber, setSelectedSlideNumber] = useState<number | null>(null);
   const [summaries, setSummaries] = useState<LectureSummary[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -74,12 +78,49 @@ export default function AdminReviewSlides() {
     }
   };
 
+  // Load all slide numbers for a lecture from the source table
+  const loadAllSlideNumbers = async (lectureId: string): Promise<number[]> => {
+    const { data, error } = await examSupabase
+      .from('lecture_slides_course')
+      .select('slide_number')
+      .eq('lecture_id', lectureId)
+      .order('slide_number', { ascending: true });
+
+    if (error) {
+      console.error('Failed to load slide numbers:', error);
+      return [];
+    }
+
+    return (data || []).map(row => row.slide_number);
+  };
+
   const loadLectureSlides = async (lectureId: string) => {
     setIsLoading(true);
     try {
-      const data = await fetchLectureDrafts(lectureId);
-      setSlides(data);
-      setSelectedSlide(data[0] || null);
+      // Load both existing explanations and all slide numbers
+      const [explanations, slideNumbers] = await Promise.all([
+        fetchLectureDrafts(lectureId),
+        loadAllSlideNumbers(lectureId),
+      ]);
+      
+      setSlides(explanations);
+      setAllSlideNumbers(slideNumbers);
+      
+      // Create placeholder for first slide if exists
+      if (slideNumbers.length > 0) {
+        const firstExplanation = explanations.find(e => e.slide_number === slideNumbers[0]);
+        if (firstExplanation) {
+          setSelectedSlide(firstExplanation);
+          setSelectedSlideNumber(firstExplanation.slide_number);
+        } else {
+          // Create placeholder for missing slide
+          setSelectedSlide(createPlaceholderSlide(lectureId, slideNumbers[0]));
+          setSelectedSlideNumber(slideNumbers[0]);
+        }
+      } else {
+        setSelectedSlide(null);
+        setSelectedSlideNumber(null);
+      }
     } catch (err) {
       toast({
         title: 'Error',
@@ -91,12 +132,37 @@ export default function AdminReviewSlides() {
     }
   };
 
+  // Create a placeholder slide explanation for slides without content
+  const createPlaceholderSlide = (lectureId: string, slideNumber: number): SlideExplanation => ({
+    id: `placeholder-${lectureId}-${slideNumber}`,
+    lecture_id: lectureId,
+    slide_number: slideNumber,
+    explanation: '',
+    key_points: [],
+    comprehension_question: null,
+    status: 'draft',
+    created_at: new Date().toISOString(),
+  });
+
   const handleLectureChange = (lectureId: string) => {
     setSelectedLecture(lectureId);
     setSlides([]);
+    setAllSlideNumbers([]);
     setSelectedSlide(null);
+    setSelectedSlideNumber(null);
     if (lectureId) {
       loadLectureSlides(lectureId);
+    }
+  };
+
+  // Handle selecting a slide number (may or may not have content)
+  const handleSelectSlideNumber = (slideNumber: number) => {
+    setSelectedSlideNumber(slideNumber);
+    const existing = slides.find(s => s.slide_number === slideNumber);
+    if (existing) {
+      setSelectedSlide(existing);
+    } else {
+      setSelectedSlide(createPlaceholderSlide(selectedLecture, slideNumber));
     }
   };
 
@@ -169,16 +235,52 @@ export default function AdminReviewSlides() {
     }
   };
 
-  const handleRegenerate = async () => {
-    if (!selectedSlide || !selectedLecture) return;
+  // Generate a single slide
+  const handleGenerateSingle = async () => {
+    if (!selectedLecture || selectedSlideNumber === null) return;
     setIsGenerating(true);
     try {
-      const result = await triggerBatchGeneration(selectedLecture, true);
+      const generated = await generateSingleSlide(selectedLecture, selectedSlideNumber);
+      
+      // Add to slides array and select it
+      setSlides(prev => {
+        const filtered = prev.filter(s => s.slide_number !== generated.slide_number);
+        return [...filtered, generated].sort((a, b) => a.slide_number - b.slide_number);
+      });
+      setSelectedSlide(generated);
+      
+      toast({
+        title: 'Generated',
+        description: `Slide ${selectedSlideNumber} content created`,
+      });
+      loadSummaries();
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to generate',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleRegenerate = async () => {
+    if (!selectedSlide || !selectedLecture || selectedSlideNumber === null) return;
+    setIsGenerating(true);
+    try {
+      const generated = await generateSingleSlide(selectedLecture, selectedSlideNumber);
+      
+      // Update the slide in the array
+      setSlides(prev => prev.map(s => 
+        s.slide_number === generated.slide_number ? generated : s
+      ));
+      setSelectedSlide(generated);
+      
       toast({
         title: 'Regenerated',
-        description: `Generated ${result.generated} slides`,
+        description: `Slide ${selectedSlideNumber} content updated`,
       });
-      await loadLectureSlides(selectedLecture);
       loadSummaries();
     } catch (err) {
       toast({
@@ -308,8 +410,9 @@ export default function AdminReviewSlides() {
             <aside className="w-64 shrink-0">
               <SlideList
                 slides={slides}
-                selectedId={selectedSlide?.id || null}
-                onSelect={setSelectedSlide}
+                allSlideNumbers={allSlideNumbers}
+                selectedSlideNumber={selectedSlideNumber}
+                onSelectSlideNumber={handleSelectSlideNumber}
               />
             </aside>
 
@@ -322,20 +425,13 @@ export default function AdminReviewSlides() {
                   onApprove={handleApprove}
                   onReject={handleReject}
                   onRegenerate={handleRegenerate}
-                  isLoading={isSaving || isGenerating}
+                  onGenerate={handleGenerateSingle}
+                  isLoading={isSaving}
+                  isGenerating={isGenerating}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <p>No slides to review</p>
-                  <Button
-                    variant="outline"
-                    className="mt-4"
-                    onClick={handleGenerateLecture}
-                    disabled={isGenerating}
-                  >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-                    Generate Slides
-                  </Button>
+                  <p>Select a slide from the list</p>
                 </div>
               )}
             </main>
