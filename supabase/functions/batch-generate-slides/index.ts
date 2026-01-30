@@ -17,9 +17,9 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// HuggingFace Inference API (Qwen2.5-72B-Instruct)
-const HF_API_URL = "https://api-inference.huggingface.co/models/Qwen/Qwen2.5-72B-Instruct/v1/chat/completions";
-const HF_MODEL = "Qwen/Qwen2.5-72B-Instruct";
+// OpenRouter API (Qwen2.5-72B-Instruct)
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_MODEL = "qwen/qwen-2.5-72b-instruct";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
@@ -227,14 +227,16 @@ Return a JSON object with:
 
 Respond ONLY with valid JSON, no markdown or extra text.`;
 
-  const response = await fetch(HF_API_URL, {
+  const response = await fetch(OPENROUTER_API_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
+      "HTTP-Referer": "https://elearn-pacer-hkust.lovable.app",
+      "X-Title": "LearningPacer ELEC3120",
     },
     body: JSON.stringify({
-      model: HF_MODEL,
+      model: OPENROUTER_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -245,14 +247,14 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("HuggingFace API error:", response.status, errorText);
+    console.error("OpenRouter API error:", response.status, errorText);
     if (response.status === 429) {
       throw new Error("Rate limit exceeded. Please try again in a moment.");
     }
     if (response.status === 401) {
-      throw new Error("Invalid HuggingFace API key.");
+      throw new Error("Invalid OpenRouter API key.");
     }
-    throw new Error(`HuggingFace API error: ${response.status}`);
+    throw new Error(`OpenRouter API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -361,10 +363,10 @@ serve(async (req) => {
       );
     }
 
-    const HUGGINGFACE_API_KEY = Deno.env.get("HUGGINGFACE_API_KEY");
-    if (!HUGGINGFACE_API_KEY) {
+    const OPENROUTER_API_KEY = Deno.env.get("OPENROUTER_API_KEY");
+    if (!OPENROUTER_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "HUGGINGFACE_API_KEY not configured" }),
+        JSON.stringify({ error: "OPENROUTER_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -457,7 +459,7 @@ serve(async (req) => {
         slidesToProcess,
         fullSlideList,
         lecture_id,
-        HUGGINGFACE_API_KEY,
+        OPENROUTER_API_KEY,
         EXAM_SUPABASE_URL,
         EXAM_SUPABASE_ANON_KEY
       )
