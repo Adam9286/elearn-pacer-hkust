@@ -11,8 +11,8 @@ export const WEBHOOKS = {
   // Course Mode AI Tutor - slide explanations
   COURSE_SLIDE_EXPLAIN: 'https://smellycat9286.app.n8n.cloud/webhook/56bcc2db-cee9-4158-a0b2-1675ecdd2423/course/slide-explain',
   
-  // Course Mode SlideChat - context-aware Q&A
-  COURSE_SLIDE_CHAT: 'https://smellycat9286.app.n8n.cloud/webhook/56bcc2db-cee9-4158-a0b2-1675ecdd2423/course/slide-chat',
+  // Course Mode SlideChat - context-aware Q&A (TEST MODE)
+  COURSE_SLIDE_CHAT: 'https://smellycat9286.app.n8n.cloud/webhook-test/course/slide-chat',
 } as const;
 
 // Request timeouts in milliseconds
