@@ -73,7 +73,7 @@ const SlideChat = ({
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CHAT);
 
-      const response = await fetch(WEBHOOKS.CHAT, {
+      const response = await fetch(WEBHOOKS.COURSE_SLIDE_CHAT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,7 +102,7 @@ const SlideChat = ({
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.response || data.message || "I couldn't generate a response. Please try again.",
+        content: data.response || data.output || data.message || "I couldn't generate a response. Please try again.",
         timestamp: new Date(),
       };
 
