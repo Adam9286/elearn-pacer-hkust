@@ -1,40 +1,65 @@
 
-# Switch to OpenRouter (Llama 3.3 70B Instruct) - COMPLETED ✓
 
-## Overview
-Replaced the ModelScope API with OpenRouter to use the **Meta Llama 3.3 70B Instruct** model for generating slide explanations.
+## Fix: ModelScope Qwen3-32B "enable_thinking" Parameter Error
 
-## Changes Made
+### Problem
+The Qwen3-32B model requires a special parameter `enable_thinking: false` for non-streaming API calls. Without this, the API returns a 400 error.
 
-### 1. Added OpenRouter API Secret ✓
-Stored the API key as `OPENROUTER_API_KEY` in the project secrets.
+### Solution: Add the Required Parameter
 
-### 2. Updated `generate-single-slide` Edge Function ✓
-- Changed API endpoint to OpenRouter: `https://openrouter.ai/api/v1/chat/completions`
-- Updated model to: `meta-llama/llama-3.3-70b-instruct`
-- Updated secret reference to `OPENROUTER_API_KEY`
-- Added required OpenRouter headers (`HTTP-Referer`, `X-Title`)
-
-### 3. Updated `batch-generate-slides` Edge Function ✓
-Same changes as above.
-
-### 4. Ready for Deployment ✓
-Functions will be auto-deployed with preview build.
+Update both edge functions to include `enable_thinking: false` in the request body.
 
 ---
 
-## Technical Details
+### Changes Required
 
-**API Configuration:**
-```text
-Endpoint: https://openrouter.ai/api/v1/chat/completions
-Model: meta-llama/llama-3.3-70b-instruct
-Secret: OPENROUTER_API_KEY
+#### 1. Update `generate-single-slide/index.ts`
+
+**Location**: Lines 225-232 (the API request body)
+
+**Current code**:
+```typescript
+body: JSON.stringify({
+  model: MODELSCOPE_MODEL,
+  messages: [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt },
+  ],
+  max_tokens: 2048,
+}),
 ```
 
-**Benefits of Llama 3.3 70B:**
-- 131K context window (perfect for full lecture outlines)
-- Strong instruction-following for reliable JSON output
-- Free tier available on OpenRouter
-- Excellent multilingual support (8 languages including English)
-- Optimized for dialogue and educational content
+**Updated code**:
+```typescript
+body: JSON.stringify({
+  model: MODELSCOPE_MODEL,
+  messages: [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt },
+  ],
+  max_tokens: 2048,
+  enable_thinking: false,  // Required for Qwen3-32B non-streaming calls
+}),
+```
+
+---
+
+#### 2. Update `batch-generate-slides/index.ts`
+
+Apply the same change to the batch function's API request.
+
+---
+
+### Alternative Option
+
+If you'd prefer to avoid this complexity, we could switch back to **GLM-4.7-Flash** which worked without any special parameters:
+```typescript
+const MODELSCOPE_MODEL = "ZhipuAI/GLM-4.7-Flash";
+```
+
+---
+
+### Recommendation
+
+I recommend **Option 1** (adding `enable_thinking: false`) since Qwen3-32B is a strong reasoning model that should produce high-quality explanations for technical content. The fix is minimal - just one line in each function.
+
