@@ -240,6 +240,7 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
         { role: "user", content: userPrompt },
       ],
       max_tokens: 2048,
+      enable_thinking: false,  // Required for Qwen3-32B non-streaming calls
     }),
   });
 
