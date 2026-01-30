@@ -12,9 +12,9 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// ModelScope API (Qwen3-32B)
+// ModelScope API (GLM-4.7-Flash)
 const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
-const MODELSCOPE_MODEL = "Qwen/Qwen3-32B";
+const MODELSCOPE_MODEL = "ZhipuAI/GLM-4.7-Flash";
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
