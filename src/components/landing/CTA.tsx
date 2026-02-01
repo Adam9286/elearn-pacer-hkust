@@ -164,9 +164,9 @@ const CTA = () => {
             className="mt-16 grid grid-cols-3 gap-4 max-w-lg mx-auto"
           >
             {[
-              { value: "RAG-Powered", label: "AI Accuracy" },
-              { value: "3 Modes", label: "Learning Paths" },
-              { value: "Real-time", label: "Feedback" }
+              { value: "Every Answer", label: "Cites Its Source" },
+              { value: "50+ Topics", label: "From ELEC3120" },
+              { value: "PDF Export", label: "For Offline Study" }
             ].map((stat, index) => (
               <motion.div 
                 key={index} 

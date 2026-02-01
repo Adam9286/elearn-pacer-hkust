@@ -49,6 +49,9 @@ const TestYourselfCard = ({
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [isRetryAttempt, setIsRetryAttempt] = useState(false);
+  const [attemptCount, setAttemptCount] = useState(0);
+  
+  const MAX_ATTEMPTS = 3;
 
   // Reset state when question changes (new page)
   useEffect(() => {
@@ -57,6 +60,7 @@ const TestYourselfCard = ({
     setIsCorrect(false);
     setIsExpanded(false);
     setIsRetryAttempt(false);
+    setAttemptCount(0);
   }, [question?.question, pageNumber]);
 
   // If page was already answered correctly, show that state
@@ -75,6 +79,7 @@ const TestYourselfCard = ({
   const handleSubmit = () => {
     if (!selectedOption) return;
     
+    setAttemptCount(prev => prev + 1);
     const selectedIndex = selectedOption.charCodeAt(0) - 65; // A=0, B=1, etc.
     const correct = selectedIndex === question.correctIndex;
     setIsCorrect(correct);
@@ -241,16 +246,23 @@ const TestYourselfCard = ({
                 </p>
               </div>
               
-              {/* Retry Button - only show for wrong answers */}
-              {!isCorrect && (
+              {/* Retry Button - only show for wrong answers with attempts remaining */}
+              {!isCorrect && attemptCount < MAX_ATTEMPTS && (
                 <Button 
                   variant="outline"
                   onClick={handleRetry}
                   className="w-full"
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  Try Again
+                  Try Again ({MAX_ATTEMPTS - attemptCount} {MAX_ATTEMPTS - attemptCount === 1 ? 'attempt' : 'attempts'} left)
                 </Button>
+              )}
+              
+              {/* No more attempts message */}
+              {!isCorrect && attemptCount >= MAX_ATTEMPTS && (
+                <p className="text-sm text-muted-foreground text-center py-2">
+                  No more attempts. Review the explanation above and move on.
+                </p>
               )}
             </div>
           )}
