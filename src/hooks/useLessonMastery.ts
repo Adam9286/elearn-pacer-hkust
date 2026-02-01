@@ -15,8 +15,9 @@ interface LessonMasteryState {
 }
 
 interface UseLessonMasteryReturn extends LessonMasteryState {
-  accuracy: number;             // Percentage (0-100)
-  hasPassed: boolean;           // accuracy >= 80
+  accuracy: number;             // Percentage (0-100) - kept for reference
+  requiredCorrect: number;      // How many correct needed (ceil(total * 0.8))
+  hasPassed: boolean;           // questionsCorrect >= requiredCorrect
   recordAnswer: (isCorrect: boolean) => Promise<void>;
   setTotalQuestions: (total: number) => void;
 }
@@ -36,12 +37,14 @@ export function useLessonMastery(
     error: null,
   });
 
-  // Calculate accuracy percentage
+  // Calculate accuracy percentage (kept for reference)
   const accuracy = state.questionsAnswered > 0
     ? Math.round((state.questionsCorrect / state.questionsAnswered) * 100)
     : 0;
 
-  const hasPassed = accuracy >= MASTERY_THRESHOLD && state.questionsAnswered > 0;
+  // Count-based mastery: need 80% of total pages answered correctly
+  const requiredCorrect = Math.ceil(state.questionsTotal * (MASTERY_THRESHOLD / 100));
+  const hasPassed = state.questionsCorrect >= requiredCorrect && requiredCorrect > 0;
 
   // Fetch existing mastery record on mount
   useEffect(() => {
@@ -103,8 +106,8 @@ export function useLessonMastery(
     // Optimistic update
     const newAnswered = state.questionsAnswered + 1;
     const newCorrect = state.questionsCorrect + (isCorrect ? 1 : 0);
-    const newAccuracy = Math.round((newCorrect / newAnswered) * 100);
-    const willPass = newAccuracy >= MASTERY_THRESHOLD;
+    const required = Math.ceil(state.questionsTotal * (MASTERY_THRESHOLD / 100));
+    const willPass = newCorrect >= required && required > 0;
 
     setState(prev => ({
       ...prev,
@@ -144,6 +147,7 @@ export function useLessonMastery(
   return {
     ...state,
     accuracy,
+    requiredCorrect,
     hasPassed,
     recordAnswer,
     setTotalQuestions,

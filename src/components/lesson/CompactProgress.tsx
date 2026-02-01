@@ -2,18 +2,16 @@
 // Shows page progress and mastery percentage for lecture completion
 
 import { Progress } from "@/components/ui/progress";
-import { Target, CheckCircle2, HelpCircle } from "lucide-react";
+import { Target, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CompactProgressProps {
   currentPage: number;
   totalPages: number;
   questionsAnswered: number;
-  questionsShown: number;
   questionsCorrect: number;
-  accuracy: number;
+  requiredCorrect: number;
   hasPassed: boolean;
-  masteryThreshold: number;
   className?: string;
 }
 
@@ -25,11 +23,9 @@ const CompactProgress = ({
   currentPage,
   totalPages,
   questionsAnswered,
-  questionsShown,
   questionsCorrect,
-  accuracy,
+  requiredCorrect,
   hasPassed,
-  masteryThreshold,
   className
 }: CompactProgressProps) => {
   const progressPercent = totalPages > 0 
@@ -49,9 +45,9 @@ const CompactProgress = ({
         </span>
       </div>
       
-      {/* Mastery section - always visible once questions answered */}
+      {/* Mastery section - count-based progress */}
       <div className="flex items-center gap-4">
-        {questionsAnswered > 0 ? (
+        {requiredCorrect > 0 && (
           <div className={cn(
             "flex items-center gap-2 text-sm font-medium",
             hasPassed 
@@ -64,36 +60,18 @@ const CompactProgress = ({
               <Target className="h-4 w-4" />
             )}
             <span>
-              {questionsCorrect}/{questionsAnswered} correct
-              <span className={cn(
-                "ml-1",
-                accuracy >= masteryThreshold 
-                  ? "text-green-600 dark:text-green-400" 
-                  : accuracy >= masteryThreshold - 20 
-                    ? "text-yellow-600 dark:text-yellow-400"
-                    : "text-muted-foreground"
-              )}>
-                ({accuracy}%)
-              </span>
+              {questionsCorrect}/{requiredCorrect} correct
             </span>
-            {hasPassed && (
+            {hasPassed ? (
               <span className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
                 Complete
               </span>
+            ) : (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                ({requiredCorrect - questionsCorrect} more needed)
+              </span>
             )}
           </div>
-        ) : questionsShown > 0 ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <HelpCircle className="h-4 w-4" />
-            <span>Answer questions to track progress</span>
-          </div>
-        ) : null}
-        
-        {/* Show threshold hint when not yet passed */}
-        {questionsAnswered > 0 && !hasPassed && (
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {masteryThreshold}% to complete
-          </span>
         )}
       </div>
     </div>
