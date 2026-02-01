@@ -11,6 +11,7 @@ import { findLesson } from "@/data/courseContent";
 import type { CourseSlide, SlideExplanationResponse } from "@/types/courseTypes";
 import { 
   fetchSlideExplanation, 
+  fetchActualSlideCount,
   estimateTotalSlides, 
   shouldGenerateQuestion 
 } from "@/services/courseApi";
@@ -35,11 +36,22 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   // Get user and progress context
   const { user, markLessonComplete } = useUserProgress();
   
-  // Calculate total pages from lesson duration
-  const totalPages = useMemo(
-    () => estimateTotalSlides(lesson.estimatedMinutes), 
-    [lesson.estimatedMinutes]
+  // State for actual page count - starts with estimate, updates from DB
+  const [totalPages, setTotalPages] = useState(() => 
+    estimateTotalSlides(lesson.estimatedMinutes)
   );
+  
+  // Fetch actual slide count from database on mount
+  useEffect(() => {
+    async function loadActualCount() {
+      const actualCount = await fetchActualSlideCount(lesson.id);
+      if (actualCount && actualCount > 0) {
+        console.log('[GuidedLearning] Using actual slide count:', actualCount);
+        setTotalPages(actualCount);
+      }
+    }
+    loadActualCount();
+  }, [lesson.id]);
   
   // Get lectureId for slide chat
   const lectureId = useMemo(() => {
