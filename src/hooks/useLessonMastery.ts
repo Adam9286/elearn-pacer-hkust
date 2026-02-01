@@ -91,12 +91,19 @@ export function useLessonMastery(
       }
 
       if (data) {
+        const total = data.questions_total || 0;
+        // Validate and cap counts to prevent impossible states like "4/1"
+        const validAnswered = Math.min(data.questions_answered || 0, total || Infinity);
+        const validCorrect = Math.min(data.questions_correct || 0, validAnswered);
+        const validPagesAnswered = (data.pages_answered || []).filter((p: number) => p <= (total || Infinity));
+        const validPagesCorrect = (data.pages_correct || []).filter((p: number) => validPagesAnswered.includes(p));
+        
         setState({
-          questionsTotal: data.questions_total || 0,
-          questionsAnswered: data.questions_answered || 0,
-          questionsCorrect: data.questions_correct || 0,
-          pagesAnswered: data.pages_answered || [],
-          pagesCorrect: data.pages_correct || [],
+          questionsTotal: total,
+          questionsAnswered: validAnswered,
+          questionsCorrect: validCorrect,
+          pagesAnswered: validPagesAnswered,
+          pagesCorrect: validPagesCorrect,
           isComplete: data.is_complete || false,
           isLoading: false,
           error: null,
@@ -110,10 +117,40 @@ export function useLessonMastery(
     fetchMastery();
   }, [userId, lessonId]);
 
-  // Set total questions (called when slides are loaded)
-  const setTotalQuestions = useCallback((total: number) => {
-    setState(prev => ({ ...prev, questionsTotal: total }));
-  }, []);
+  // Set total questions and sync to database if different
+  const setTotalQuestions = useCallback(async (total: number) => {
+    setState(prev => {
+      // Cap existing counts at new total to fix stale data
+      const validAnswered = Math.min(prev.questionsAnswered, total);
+      const validCorrect = Math.min(prev.questionsCorrect, validAnswered);
+      return { 
+        ...prev, 
+        questionsTotal: total,
+        questionsAnswered: validAnswered,
+        questionsCorrect: validCorrect,
+      };
+    });
+    
+    // If we have a user, sync the corrected total to database
+    if (userId && lessonId && total > 0) {
+      const { error } = await externalSupabase
+        .from("lesson_mastery")
+        .upsert({
+          user_id: userId,
+          lesson_id: lessonId,
+          questions_total: total,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,lesson_id'
+        });
+      
+      if (error) {
+        console.error("Error syncing questions_total:", error);
+      } else {
+        console.log('[Mastery] Synced questions_total to', total);
+      }
+    }
+  }, [userId, lessonId]);
 
   // Record a question answer with page tracking
   const recordAnswer = useCallback(async (

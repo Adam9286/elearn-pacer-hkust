@@ -99,6 +99,32 @@ export function estimateTotalSlides(estimatedMinutes: number): number {
 }
 
 /**
+ * Fetch actual slide count from database
+ * Counts approved slides for a specific lecture
+ */
+export async function fetchActualSlideCount(lessonId: string): Promise<number | null> {
+  const lectureId = getLectureId(lessonId);
+  if (!lectureId) {
+    console.warn('[CourseAPI] No lectureFile mapping for lessonId:', lessonId);
+    return null;
+  }
+  
+  const { count, error } = await examSupabase
+    .from('slide_explanations')
+    .select('*', { count: 'exact', head: true })
+    .eq('lecture_id', lectureId)
+    .eq('status', 'approved');
+    
+  if (error) {
+    console.error('[CourseAPI] Error fetching slide count:', error);
+    return null;
+  }
+  
+  console.log('[CourseAPI] Actual slide count for', lectureId, ':', count);
+  return count;
+}
+
+/**
  * Placeholder for future PDF metadata fetching
  */
 export async function fetchPdfPageCount(pdfUrl: string): Promise<number> {
