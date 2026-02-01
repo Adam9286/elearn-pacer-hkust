@@ -51,7 +51,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   const {
     questionsAnswered: masteryAnswered,
     questionsCorrect: masteryCorrect,
-    accuracy,
+    requiredCorrect,
     hasPassed,
     isComplete: masteryComplete,
     recordAnswer,
@@ -91,18 +91,13 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   // Current slide data via map lookup (authoritative)
   const currentSlideData = slideMap[currentPage];
   
-  // Count total questions available in lecture
-  const totalQuestionsAvailable = useMemo(
-    () => slides.filter(s => s.comprehensionQuestion).length,
-    [slides]
-  );
-  
-  // Update mastery hook with total questions when slides load
+  // Update mastery hook with total pages (not questions)
+  // Students need 80% of pages answered correctly
   useEffect(() => {
-    if (totalQuestionsAvailable > 0) {
-      setTotalQuestions(totalQuestionsAvailable);
+    if (totalPages > 0) {
+      setTotalQuestions(totalPages);
     }
-  }, [totalQuestionsAvailable, setTotalQuestions]);
+  }, [totalPages, setTotalQuestions]);
   
   // ============ Derived State ============
   const slidesViewed = useMemo(
@@ -242,18 +237,17 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     // Record to database via mastery hook
     await recordAnswer(correct);
     
-    // Check if this answer achieved mastery and trigger completion
-    const newAnswered = masteryAnswered + 1;
+    // Check if this answer achieved mastery (count-based: need 80% of pages correct)
     const newCorrect = masteryCorrect + (correct ? 1 : 0);
-    const newAccuracy = Math.round((newCorrect / newAnswered) * 100);
+    const required = Math.ceil(totalPages * (MASTERY_THRESHOLD / 100));
     
-    if (newAccuracy >= MASTERY_THRESHOLD && !hasTriggeredComplete && !masteryComplete) {
+    if (newCorrect >= required && !hasTriggeredComplete && !masteryComplete) {
       setHasTriggeredComplete(true);
-      toast.success(`🎉 ${MASTERY_THRESHOLD}% mastery achieved! Lecture marked complete.`);
+      toast.success(`🎉 ${required} correct answers! Lecture marked complete.`);
       await markLessonComplete(chapter.id, lesson.id);
       onComplete?.();
     }
-  }, [recordAnswer, masteryAnswered, masteryCorrect, hasTriggeredComplete, masteryComplete, markLessonComplete, chapter.id, lesson.id, onComplete]);
+  }, [recordAnswer, masteryCorrect, totalPages, hasTriggeredComplete, masteryComplete, markLessonComplete, chapter.id, lesson.id, onComplete]);
 
   // Retry resets contentState to 'idle', triggering re-fetch
   const handleRetry = useCallback(() => {
@@ -329,12 +323,10 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
       <CompactProgress
         currentPage={currentPage}
         totalPages={totalPages}
-        questionsShown={questionsShown}
         questionsAnswered={masteryAnswered}
         questionsCorrect={masteryCorrect}
-        accuracy={accuracy}
+        requiredCorrect={requiredCorrect}
         hasPassed={hasPassed}
-        masteryThreshold={MASTERY_THRESHOLD}
       />
     </div>
   );
