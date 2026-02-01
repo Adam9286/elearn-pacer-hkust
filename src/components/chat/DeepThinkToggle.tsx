@@ -53,7 +53,7 @@ export const DeepThinkToggle = ({
             <Zap className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <div className="flex flex-col">
               <span className="font-medium">Auto</span>
-              <span className="text-xs text-muted-foreground">Fast, adaptive responses</span>
+              <span className="text-xs text-muted-foreground">Quick answers (2-5s) for simple questions</span>
             </div>
           </div>
         </SelectItem>
@@ -62,7 +62,7 @@ export const DeepThinkToggle = ({
             <Brain className="w-4 h-4 text-primary flex-shrink-0" />
             <div className="flex flex-col">
               <span className="font-medium text-primary">DeepThink</span>
-              <span className="text-xs text-muted-foreground">Extended textbook knowledge</span>
+              <span className="text-xs text-muted-foreground">Thorough answers (10-20s) with textbook citations</span>
             </div>
           </div>
         </SelectItem>

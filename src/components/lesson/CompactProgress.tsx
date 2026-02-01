@@ -3,7 +3,8 @@
 
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Target, CheckCircle2, Flame } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Target, CheckCircle2, Flame, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CompactProgressProps {
@@ -63,8 +64,26 @@ const CompactProgress = ({
             ) : (
               <Target className="h-4 w-4" />
             )}
-            <span>
+            <span className="flex items-center gap-1">
               {questionsCorrect}/{requiredCorrect} correct
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button className="inline-flex items-center" type="button">
+                      <HelpCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[250px] text-center">
+                    <p className="text-sm">
+                      Answer 80% of the questions correctly to master this lecture.
+                      <br />
+                      <span className="text-muted-foreground text-xs">
+                        ({requiredCorrect} out of {totalPages} total pages)
+                      </span>
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </span>
             {hasPassed ? (
               <Badge variant="default" className="bg-green-600 text-white">

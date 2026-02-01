@@ -15,7 +15,9 @@ import {
   ChevronDown, 
   ChevronUp,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  Info,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ComprehensionQuestion } from "./ComprehensionCheck";
@@ -50,8 +52,19 @@ const TestYourselfCard = ({
   const [isCorrect, setIsCorrect] = useState(false);
   const [isRetryAttempt, setIsRetryAttempt] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
+  const [hasSeenTip, setHasSeenTip] = useState(() => {
+    return localStorage.getItem('testyourself-tip-dismissed') === 'true';
+  });
   
   const MAX_ATTEMPTS = 3;
+  
+  // Only show correct answer if user got it right OR exhausted all attempts
+  const showCorrectAnswer = hasSubmitted && (isCorrect || attemptCount >= MAX_ATTEMPTS);
+  
+  const dismissTip = () => {
+    localStorage.setItem('testyourself-tip-dismissed', 'true');
+    setHasSeenTip(true);
+  };
 
   // Reset state when question changes (new page)
   useEffect(() => {
@@ -173,6 +186,19 @@ const TestYourselfCard = ({
       {/* Expandable Content */}
       {isExpanded && (
         <CardContent className="pt-0 space-y-4">
+          {/* First-time tip */}
+          {!hasSeenTip && (
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+              <div className="flex-1 text-sm text-muted-foreground">
+                <p>Answer questions to track your mastery. You need 80% correct to complete this lecture.</p>
+              </div>
+              <button onClick={dismissTip} className="text-muted-foreground hover:text-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          
           {/* Question */}
           <p className="font-medium text-foreground">
             {question.question}
@@ -196,7 +222,7 @@ const TestYourselfCard = ({
                   className={cn(
                     "flex items-center space-x-3 rounded-lg border p-3 transition-colors",
                     !hasSubmitted && "hover:bg-muted/50 cursor-pointer",
-                    hasSubmitted && isThisCorrect && "border-green-500 bg-green-500/10",
+                    showCorrectAnswer && isThisCorrect && "border-green-500 bg-green-500/10",
                     hasSubmitted && isSelected && !isThisCorrect && "border-red-500 bg-red-500/10"
                   )}
                 >
@@ -208,7 +234,7 @@ const TestYourselfCard = ({
                     <span className="font-medium mr-2">{optionLetter}.</span>
                     {option}
                   </Label>
-                  {hasSubmitted && isThisCorrect && (
+                  {showCorrectAnswer && isThisCorrect && (
                     <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
                   )}
                   {hasSubmitted && isSelected && !isThisCorrect && (
@@ -231,20 +257,43 @@ const TestYourselfCard = ({
             </Button>
           ) : (
             <div className="space-y-3">
-              <div className={cn(
-                "rounded-lg p-4",
-                isCorrect ? "bg-green-500/10" : "bg-amber-500/10"
-              )}>
-                <p className={cn(
-                  "font-medium mb-2",
-                  isCorrect ? "text-green-700 dark:text-green-400" : "text-amber-700 dark:text-amber-400"
-                )}>
-                  {isCorrect ? "Great job!" : "Not quite right"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {question.explanation}
-                </p>
-              </div>
+              {isCorrect ? (
+                // Correct answer - show full explanation
+                <div className="rounded-lg p-4 bg-green-500/10">
+                  <p className="font-medium mb-2 text-green-700 dark:text-green-400">
+                    Great job!
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {question.explanation}
+                  </p>
+                </div>
+              ) : attemptCount >= MAX_ATTEMPTS ? (
+                // Exhausted attempts - reveal answer and explanation
+                <div className="rounded-lg p-4 bg-amber-500/10">
+                  <p className="font-medium mb-2 text-amber-700 dark:text-amber-400">
+                    Here's the correct answer
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {question.explanation}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2 italic">
+                    Review this explanation and continue to the next page.
+                  </p>
+                </div>
+              ) : (
+                // Wrong but has retries - show hint only, NOT the answer
+                <div className="rounded-lg p-4 bg-amber-500/10">
+                  <p className="font-medium mb-2 text-amber-700 dark:text-amber-400">
+                    Not quite right
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {attemptCount === 1 
+                      ? "Think about what makes this concept unique. Re-read the explanation above if needed."
+                      : "Consider the key characteristics that distinguish this from similar concepts."
+                    }
+                  </p>
+                </div>
+              )}
               
               {/* Retry Button - only show for wrong answers with attempts remaining */}
               {!isCorrect && attemptCount < MAX_ATTEMPTS && (
@@ -256,13 +305,6 @@ const TestYourselfCard = ({
                   <RefreshCw className="mr-2 h-4 w-4" />
                   Try Again ({MAX_ATTEMPTS - attemptCount} {MAX_ATTEMPTS - attemptCount === 1 ? 'attempt' : 'attempts'} left)
                 </Button>
-              )}
-              
-              {/* No more attempts message */}
-              {!isCorrect && attemptCount >= MAX_ATTEMPTS && (
-                <p className="text-sm text-muted-foreground text-center py-2">
-                  No more attempts. Review the explanation above and move on.
-                </p>
               )}
             </div>
           )}
