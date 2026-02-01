@@ -34,16 +34,6 @@ const Lesson = () => {
   const currentLesson = lessonData?.lesson ?? null;
   const lessonIndex = lessonData?.lessonIndex ?? -1;
 
-  // Check if chapter is locked (only after progress has loaded)
-  const chapterLocked = currentChapter && !loading ? !isChapterUnlocked(currentChapter.id) : false;
-
-  useEffect(() => {
-    if (!loading && chapterLocked && currentChapter) {
-      toast.error(`Section ${currentChapter.id} is locked. Complete the previous section first.`);
-      navigate("/platform", { state: { mode: "course" } });
-    }
-  }, [loading, chapterLocked, currentChapter, navigate]);
-
   if (!currentLesson || !currentChapter) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
