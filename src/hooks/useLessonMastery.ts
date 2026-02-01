@@ -1,14 +1,17 @@
 // useLessonMastery - Track question attempts and calculate mastery percentage
 // Persists to lesson_mastery table in externalSupabase
-// Students need 80% accuracy to complete a lecture
+// Students need 80% of pages answered correctly to complete a lecture
+// Tracks answered pages to prevent double-credit
 
 import { useState, useEffect, useCallback } from "react";
 import { externalSupabase } from "@/lib/externalSupabase";
 
 interface LessonMasteryState {
-  questionsTotal: number;       // Total questions available in lecture
-  questionsAnswered: number;    // How many user has attempted
-  questionsCorrect: number;     // How many user got right
+  questionsTotal: number;       // Total pages in lecture
+  questionsAnswered: number;    // How many pages user has attempted
+  questionsCorrect: number;     // How many pages user got right
+  pagesAnswered: number[];      // Which page numbers have been answered
+  pagesCorrect: number[];       // Which page numbers were answered correctly
   isComplete: boolean;          // Whether 80% threshold was reached
   isLoading: boolean;
   error: string | null;
@@ -18,11 +21,13 @@ interface UseLessonMasteryReturn extends LessonMasteryState {
   accuracy: number;             // Percentage (0-100) - kept for reference
   requiredCorrect: number;      // How many correct needed (ceil(total * 0.8))
   hasPassed: boolean;           // questionsCorrect >= requiredCorrect
-  recordAnswer: (isCorrect: boolean) => Promise<void>;
+  hasAnsweredPage: (pageNumber: number) => boolean;
+  wasPageCorrect: (pageNumber: number) => boolean;
+  recordAnswer: (pageNumber: number, isCorrect: boolean, isRetry: boolean) => Promise<void>;
   setTotalQuestions: (total: number) => void;
 }
 
-const MASTERY_THRESHOLD = 80; // 80% accuracy required
+const MASTERY_THRESHOLD = 80; // 80% of pages must be answered correctly
 
 export function useLessonMastery(
   lessonId: string, 
@@ -32,6 +37,8 @@ export function useLessonMastery(
     questionsTotal: 0,
     questionsAnswered: 0,
     questionsCorrect: 0,
+    pagesAnswered: [],
+    pagesCorrect: [],
     isComplete: false,
     isLoading: true,
     error: null,
@@ -45,6 +52,16 @@ export function useLessonMastery(
   // Count-based mastery: need 80% of total pages answered correctly
   const requiredCorrect = Math.ceil(state.questionsTotal * (MASTERY_THRESHOLD / 100));
   const hasPassed = state.questionsCorrect >= requiredCorrect && requiredCorrect > 0;
+
+  // Check if a specific page has already been answered
+  const hasAnsweredPage = useCallback((pageNumber: number) => {
+    return state.pagesAnswered.includes(pageNumber);
+  }, [state.pagesAnswered]);
+
+  // Check if a specific page was answered correctly
+  const wasPageCorrect = useCallback((pageNumber: number) => {
+    return state.pagesCorrect.includes(pageNumber);
+  }, [state.pagesCorrect]);
 
   // Fetch existing mastery record on mount
   useEffect(() => {
@@ -78,6 +95,8 @@ export function useLessonMastery(
           questionsTotal: data.questions_total || 0,
           questionsAnswered: data.questions_answered || 0,
           questionsCorrect: data.questions_correct || 0,
+          pagesAnswered: data.pages_answered || [],
+          pagesCorrect: data.pages_correct || [],
           isComplete: data.is_complete || false,
           isLoading: false,
           error: null,
@@ -96,23 +115,57 @@ export function useLessonMastery(
     setState(prev => ({ ...prev, questionsTotal: total }));
   }, []);
 
-  // Record a question answer
-  const recordAnswer = useCallback(async (isCorrect: boolean) => {
+  // Record a question answer with page tracking
+  const recordAnswer = useCallback(async (
+    pageNumber: number, 
+    isCorrect: boolean, 
+    isRetry: boolean
+  ) => {
     if (!userId || !lessonId) {
       console.warn("Cannot record answer: no user or lesson ID");
       return;
     }
 
-    // Optimistic update
-    const newAnswered = state.questionsAnswered + 1;
-    const newCorrect = state.questionsCorrect + (isCorrect ? 1 : 0);
+    const alreadyAnswered = state.pagesAnswered.includes(pageNumber);
+    const alreadyCorrect = state.pagesCorrect.includes(pageNumber);
+
+    // If already answered correctly, no changes allowed (prevent double-credit)
+    if (alreadyCorrect) {
+      console.log(`Page ${pageNumber} already answered correctly, no change`);
+      return;
+    }
+
+    // Calculate new state
+    let newPagesAnswered = [...state.pagesAnswered];
+    let newPagesCorrect = [...state.pagesCorrect];
+    let newAnswered = state.questionsAnswered;
+    let newCorrect = state.questionsCorrect;
+
+    if (!alreadyAnswered) {
+      // First attempt on this page
+      newPagesAnswered = [...state.pagesAnswered, pageNumber];
+      newAnswered = state.questionsAnswered + 1;
+      if (isCorrect) {
+        newPagesCorrect = [...state.pagesCorrect, pageNumber];
+        newCorrect = state.questionsCorrect + 1;
+      }
+    } else if (isRetry && isCorrect) {
+      // Retry on a page that was previously wrong - now correct!
+      newPagesCorrect = [...state.pagesCorrect, pageNumber];
+      newCorrect = state.questionsCorrect + 1;
+    }
+    // If isRetry and still wrong, no change
+
     const required = Math.ceil(state.questionsTotal * (MASTERY_THRESHOLD / 100));
     const willPass = newCorrect >= required && required > 0;
 
+    // Optimistic update
     setState(prev => ({
       ...prev,
       questionsAnswered: newAnswered,
       questionsCorrect: newCorrect,
+      pagesAnswered: newPagesAnswered,
+      pagesCorrect: newPagesCorrect,
       isComplete: prev.isComplete || willPass,
     }));
 
@@ -125,6 +178,8 @@ export function useLessonMastery(
         questions_total: state.questionsTotal,
         questions_answered: newAnswered,
         questions_correct: newCorrect,
+        pages_answered: newPagesAnswered,
+        pages_correct: newPagesCorrect,
         is_complete: state.isComplete || willPass,
         completed_at: willPass && !state.isComplete ? new Date().toISOString() : null,
         updated_at: new Date().toISOString(),
@@ -137,18 +192,22 @@ export function useLessonMastery(
       // Revert optimistic update on error
       setState(prev => ({
         ...prev,
-        questionsAnswered: prev.questionsAnswered - 1,
-        questionsCorrect: prev.questionsCorrect - (isCorrect ? 1 : 0),
+        questionsAnswered: state.questionsAnswered,
+        questionsCorrect: state.questionsCorrect,
+        pagesAnswered: state.pagesAnswered,
+        pagesCorrect: state.pagesCorrect,
         error: error.message,
       }));
     }
-  }, [userId, lessonId, state.questionsAnswered, state.questionsCorrect, state.questionsTotal, state.isComplete]);
+  }, [userId, lessonId, state]);
 
   return {
     ...state,
     accuracy,
     requiredCorrect,
     hasPassed,
+    hasAnsweredPage,
+    wasPageCorrect,
     recordAnswer,
     setTotalQuestions,
   };

@@ -54,6 +54,8 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     requiredCorrect,
     hasPassed,
     isComplete: masteryComplete,
+    hasAnsweredPage,
+    wasPageCorrect,
     recordAnswer,
     setTotalQuestions,
   } = useLessonMastery(lesson.id, user?.id);
@@ -233,21 +235,23 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
   }, [currentPage, totalPages]);
 
   // ============ Question Handler ============
-  const handleQuestionAnswer = useCallback(async (correct: boolean) => {
-    // Record to database via mastery hook
-    await recordAnswer(correct);
+  const handleQuestionAnswer = useCallback(async (correct: boolean, isRetry: boolean = false) => {
+    // Record to database via mastery hook with page tracking
+    await recordAnswer(currentPage, correct, isRetry);
     
     // Check if this answer achieved mastery (count-based: need 80% of pages correct)
     const newCorrect = masteryCorrect + (correct ? 1 : 0);
     const required = Math.ceil(totalPages * (MASTERY_THRESHOLD / 100));
     
-    if (newCorrect >= required && !hasTriggeredComplete && !masteryComplete) {
+    // Only trigger completion on first correct for this page (not on retry getting same result)
+    const wasAlreadyCorrect = wasPageCorrect(currentPage);
+    if (!wasAlreadyCorrect && correct && newCorrect >= required && !hasTriggeredComplete && !masteryComplete) {
       setHasTriggeredComplete(true);
       toast.success(`🎉 ${required} correct answers! Lecture marked complete.`);
       await markLessonComplete(chapter.id, lesson.id);
       onComplete?.();
     }
-  }, [recordAnswer, masteryCorrect, totalPages, hasTriggeredComplete, masteryComplete, markLessonComplete, chapter.id, lesson.id, onComplete]);
+  }, [recordAnswer, currentPage, masteryCorrect, totalPages, hasTriggeredComplete, masteryComplete, wasPageCorrect, markLessonComplete, chapter.id, lesson.id, onComplete]);
 
   // Retry resets contentState to 'idle', triggering re-fetch
   const handleRetry = useCallback(() => {
@@ -313,6 +317,8 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
             <TestYourselfCard
               question={currentSlideData.comprehensionQuestion}
               pageNumber={currentPage}
+              hasBeenAnswered={hasAnsweredPage(currentPage)}
+              previouslyCorrect={wasPageCorrect(currentPage)}
               onAnswer={handleQuestionAnswer}
             />
           )}
