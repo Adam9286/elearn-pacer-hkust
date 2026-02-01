@@ -1,133 +1,160 @@
 
-# Expand AI Tutor Layout to Use Full Screen Width
+# Fix Mastery Completion: 80% of Total Pages Required
 
-## Problem Analysis
-Looking at your screenshot, the PDF viewer is constrained by multiple nested containers:
-- Tailwind `container` class limits content to 1400px max-width
-- 2rem padding on each side (-64px)
-- Card component adds additional padding
-- 50/50 grid split gives PDF only ~50% of available space
+## Problem
 
-This results in a PDF that's only ~400-500px wide, causing multiple slides to be visible at once instead of focusing on one slide.
+The current implementation uses **accuracy-based** completion:
+- Formula: `questionsCorrect / questionsAnswered >= 80%`
+- Issue: 1 correct out of 1 answered = 100% → Passes immediately
 
-## Solution: Full-Width Layout for AI Tutor Mode
+## Your Requirement
 
-When in AI Tutor mode, we'll break out of the container constraints to maximize the learning experience.
+You want **count-based** completion:
+- Formula: `questionsCorrect >= 80% of totalPages`
+- Example: Lecture 2-1 has 89 pages → Need at least 72 correct answers
+- This ensures students engage with most of the content before completing
 
-### Changes
+## Current Data Flow Issue
 
-**1. Lesson.tsx - Remove container constraint in AI Tutor mode**
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ CURRENT (WRONG)                                                 │
+│                                                                 │
+│ Answer 1 question correctly                                     │
+│     ↓                                                           │
+│ accuracy = 1/1 = 100%                                          │
+│     ↓                                                           │
+│ 100% >= 80% → PASSES ❌                                         │
+└─────────────────────────────────────────────────────────────────┘
 
-Currently:
-```tsx
-<div className={`container grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-4' : ''} gap-6 p-6`}>
+┌─────────────────────────────────────────────────────────────────┐
+│ CORRECT (NEW)                                                   │
+│                                                                 │
+│ Lecture has 89 pages → requiredCorrect = ceil(89 × 0.80) = 72  │
+│     ↓                                                           │
+│ Answer 1 question correctly → questionsCorrect = 1             │
+│     ↓                                                           │
+│ 1 < 72 → NOT PASSED                                            │
+│     ↓                                                           │
+│ UI shows: "1/72 correct answers needed"                        │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-Change to conditional full-width in AI Tutor mode:
-```tsx
-<div className={`${showSidebar ? 'container' : 'w-full max-w-[1800px] mx-auto'} grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-4' : ''} gap-6 p-6`}>
+## Implementation Changes
+
+### 1. Update `useLessonMastery.ts`
+
+Change the passing logic from accuracy-based to count-based:
+
+```typescript
+// BEFORE
+const hasPassed = accuracy >= MASTERY_THRESHOLD && state.questionsAnswered > 0;
+
+// AFTER
+const requiredCorrect = Math.ceil(state.questionsTotal * (MASTERY_THRESHOLD / 100));
+const hasPassed = state.questionsCorrect >= requiredCorrect && requiredCorrect > 0;
 ```
 
-**2. Remove Card wrapper around AI Tutor content**
+**Key changes:**
+- Rename `questionsTotal` to `pagesTotal` for clarity (or keep as-is but use it for pages)
+- Add `requiredCorrect` calculation
+- Export `requiredCorrect` for UI display
+- Update `willPass` check in `recordAnswer` function
 
-The Card adds unnecessary nesting and padding. In AI Tutor mode, render GuidedLearning directly without the Card/Tabs wrapper overhead.
+### 2. Update `GuidedLearning.tsx`
 
-**3. PdfViewer.tsx - Increase height**
+Pass `totalPages` to the mastery hook instead of counting questions:
 
-Change from:
-```tsx
-<div className="aspect-[4/3] lg:aspect-auto lg:h-[650px] ...">
+```typescript
+// BEFORE
+useEffect(() => {
+  if (totalQuestionsAvailable > 0) {
+    setTotalQuestions(totalQuestionsAvailable);
+  }
+}, [totalQuestionsAvailable, setTotalQuestions]);
+
+// AFTER
+useEffect(() => {
+  if (totalPages > 0) {
+    setTotalQuestions(totalPages);  // Pass total PAGES, not questions
+  }
+}, [totalPages, setTotalQuestions]);
 ```
 
-To:
-```tsx
-<div className="aspect-[4/3] lg:aspect-auto lg:h-[75vh] min-h-[600px] max-h-[850px] ...">
+Update completion trigger:
+
+```typescript
+// BEFORE
+const newAccuracy = Math.round((newCorrect / newAnswered) * 100);
+if (newAccuracy >= MASTERY_THRESHOLD && !hasTriggeredComplete && !masteryComplete) {
+
+// AFTER
+const requiredCorrect = Math.ceil(totalPages * 0.8);
+if (newCorrect >= requiredCorrect && !hasTriggeredComplete && !masteryComplete) {
 ```
 
-This makes the PDF responsive to screen height while maintaining reasonable bounds.
+### 3. Update `CompactProgress.tsx`
 
-**4. GuidedLearning.tsx - Adjust grid ratio**
+Show progress toward required correct count:
 
-Change from equal 50/50 split:
-```tsx
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+```typescript
+// BEFORE (accuracy-based display)
+{questionsCorrect}/{questionsAnswered} correct ({accuracy}%)
+
+// AFTER (count-based display)
+{questionsCorrect}/{requiredCorrect} correct
 ```
 
-To 55/45 favoring PDF:
-```tsx
-<div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6">
+**New props needed:**
+- `requiredCorrect: number` - How many correct answers needed (e.g., 72)
+- Keep `questionsCorrect` - How many correct so far
+
+**Visual:**
+```
+Before: "3/4 correct (75%)"        ← Confusing, looks like you need 4
+After:  "3/72 correct answers"     ← Clear, shows you need 72 total
 ```
 
----
+### 4. Update `useLessonMastery.ts` - Return Interface
 
-## Visual Impact
-
-| Before | After |
-|--------|-------|
-| Container: 1400px max | Container: 1800px max |
-| PDF width: ~400px | PDF width: ~600-700px |
-| Multiple slides visible | Single slide focused |
-| Wasted dark margins | Content fills screen |
-
----
-
-## Technical Details
-
-### File: `src/pages/Lesson.tsx`
-
-**Line 118** - Make container wider in AI Tutor mode:
-```tsx
-// Before
-<div className={`container grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-4' : ''} gap-6 p-6`}>
-
-// After  
-<div className={`${showSidebar ? 'container' : 'w-full max-w-[1800px] mx-auto px-4 lg:px-8'} grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-4' : ''} gap-6 py-6`}>
+```typescript
+interface UseLessonMasteryReturn extends LessonMasteryState {
+  accuracy: number;              // Keep for reference
+  requiredCorrect: number;       // NEW: ceil(pagesTotal * 0.8)
+  hasPassed: boolean;            // questionsCorrect >= requiredCorrect
+  recordAnswer: (isCorrect: boolean) => Promise<void>;
+  setTotalQuestions: (total: number) => void;  // Rename to setTotalPages
+}
 ```
 
-**Lines 197-269** - Simplify AI Tutor rendering by reducing Card nesting:
-```tsx
-{activeTab === "ai-tutor" ? (
-  <GuidedLearning 
-    lesson={currentLesson} 
-    chapter={currentChapter}
-    onComplete={handleMarkComplete}
-  />
-) : (
-  <Card className="glass-card">
-    {/* Overview tab content with Tabs wrapper */}
-  </Card>
-)}
-```
+## Database Schema
 
-### File: `src/components/lesson/PdfViewer.tsx`
+No changes needed - the existing `lesson_mastery` table already has:
+- `questions_total` → We'll store `totalPages` here
+- `questions_correct` → Count of correct answers
+- `is_complete` → True when `questions_correct >= 80% of questions_total`
 
-**Line 45** - Increase iframe height:
-```tsx
-// Before
-<div className="aspect-[4/3] lg:aspect-auto lg:h-[650px] rounded-b-lg overflow-hidden border bg-muted">
+## UI Changes Summary
 
-// After
-<div className="aspect-[4/3] lg:aspect-auto lg:h-[75vh] lg:min-h-[600px] lg:max-h-[850px] rounded-b-lg overflow-hidden border bg-muted">
-```
+| Location | Before | After |
+|----------|--------|-------|
+| CompactProgress | `3/4 (75%)` | `3/72 correct` |
+| Progress hint | `80% to complete` | `69 more needed` |
+| Completion toast | `80% mastery achieved!` | `72 correct answers! Lecture complete.` |
 
-### File: `src/components/lesson/GuidedLearning.tsx`
+## File Changes Required
 
-**Line 242** - Favor PDF in grid split:
-```tsx
-// Before
-<div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+| File | Change |
+|------|--------|
+| `src/hooks/useLessonMastery.ts` | Change pass logic from accuracy to count-based |
+| `src/components/lesson/GuidedLearning.tsx` | Pass totalPages, update completion check |
+| `src/components/lesson/CompactProgress.tsx` | Add requiredCorrect prop, update display |
 
-// After
-<div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6">
-```
+## Example Walkthrough
 
----
-
-## Expected Result
-
-After these changes:
-- PDF viewer will be approximately 55% of a much wider container (~700-800px)
-- Single slide will be prominently displayed
-- Dark margins reduced significantly
-- Better focus for students on the current slide content
-
+For Lecture 2-1 with 89 pages:
+1. `requiredCorrect = ceil(89 × 0.80) = 72`
+2. Student answers question on page 4 correctly → `questionsCorrect = 1`
+3. UI shows: "1/72 correct answers (71 more needed)"
+4. Student continues answering questions...
+5. When `questionsCorrect` reaches 72 → "🎉 Lecture complete!"
