@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { DeepThinkToggle } from './DeepThinkToggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -542,17 +543,28 @@ export const ChatConversation = ({
                 accept=".pdf,.png,.jpg,.jpeg,.txt"
                 className="hidden"
               />
-              <Button
-                type="button"
-                variant="outline"
-                size="icon"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading || !isAuthenticated}
-                title={!isAuthenticated ? "Sign in to upload files" : "Attach files (PDF, images, text)"}
-                className="shrink-0"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isLoading || !isAuthenticated}
+                      className="shrink-0"
+                    >
+                      <Paperclip className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isAuthenticated 
+                      ? "Attach files (PDF, images, text)"
+                      : "Sign in to upload files"
+                    }
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Textarea
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
