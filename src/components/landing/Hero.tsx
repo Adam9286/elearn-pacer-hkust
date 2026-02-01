@@ -173,9 +173,9 @@ const Hero = () => {
           className="mt-12 flex flex-wrap justify-center gap-8 md:gap-12"
         >
           {[
-            { label: "Learning Modes", value: "3" },
-            { label: "AI-Powered", value: "100%" },
-            { label: "Topics Covered", value: "50+" },
+            { label: "Cites Sources", value: "Always" },
+            { label: "ELEC3120 Aligned", value: "100%" },
+            { label: "Exam Topics", value: "50+" },
           ].map((stat) => (
             <motion.div
               key={stat.label}

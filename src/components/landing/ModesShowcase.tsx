@@ -13,12 +13,12 @@ const ModesShowcase = () => {
     {
       icon: MessageSquare,
       title: "Chat Mode",
-      description: "Ask questions, get instant RAG-powered answers",
+      description: "Ask anything about the course, get answers from Prof. Meng's slides",
       features: [
-        "Natural language Q&A",
-        "Source citations included",
-        "Context-aware responses",
-        "Real-time interaction"
+        "Ask in plain English",
+        "Every answer shows which slide it's from",
+        "Understands follow-up questions",
+        "Answers in seconds, not hours"
       ],
       gradient: "from-neon-blue to-electric-cyan",
       mockup: (
@@ -51,12 +51,12 @@ const ModesShowcase = () => {
     {
       icon: BookOpen,
       title: "Course Mode",
-      description: "Master concepts with gated learning paths",
+      description: "Learn at your own pace with guided explanations",
       features: [
-        "Sequential unit unlocking",
-        "Progress tracking",
-        "Mastery-based advancement",
-        "Personalized pacing"
+        "AI explains each slide in plain English",
+        "Test yourself with quick checks",
+        "Track which topics you've mastered",
+        "Skip ahead when you're ready"
       ],
       gradient: "from-neon-purple to-cyber-pink",
       mockup: (
@@ -83,12 +83,12 @@ const ModesShowcase = () => {
     {
       icon: FileText,
       title: "Mock Exam Mode",
-      description: "Generate course-aligned practice exams by topic",
+      description: "Generate practice exams from specific lectures you choose",
       features: [
-        "Topic-based exam generation",
-        "Course-aligned questions",
-        "PDF export for offline practice",
-        "MCQ and short answer formats"
+        "Pick topics you want to review",
+        "Questions match Prof. Meng's teaching style",
+        "Download as PDF for offline practice",
+        "MCQ and open-ended formats"
       ],
       gradient: "from-electric-cyan to-neon-blue",
       mockup: (

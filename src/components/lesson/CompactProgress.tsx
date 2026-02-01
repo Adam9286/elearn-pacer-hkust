@@ -2,7 +2,8 @@
 // Shows page progress and mastery percentage for lecture completion
 
 import { Progress } from "@/components/ui/progress";
-import { Target, CheckCircle2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Target, CheckCircle2, Flame } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CompactProgressProps {
@@ -31,6 +32,9 @@ const CompactProgress = ({
   const progressPercent = totalPages > 0 
     ? Math.round((currentPage / totalPages) * 100) 
     : 0;
+
+  const remaining = requiredCorrect - questionsCorrect;
+  const isAlmostThere = remaining > 0 && remaining <= 10;
 
   return (
     <div className={cn(
@@ -63,12 +67,17 @@ const CompactProgress = ({
               {questionsCorrect}/{requiredCorrect} correct
             </span>
             {hasPassed ? (
-              <span className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full">
-                Complete
-              </span>
+              <Badge variant="default" className="bg-green-600 text-white">
+                ✓ Lecture Mastered
+              </Badge>
+            ) : isAlmostThere ? (
+              <Badge variant="secondary" className="animate-pulse bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30">
+                <Flame className="h-3 w-3 mr-1" />
+                Almost there! 🎯
+              </Badge>
             ) : (
               <span className="text-xs text-muted-foreground whitespace-nowrap">
-                ({requiredCorrect - questionsCorrect} more needed)
+                ({remaining} more needed)
               </span>
             )}
           </div>

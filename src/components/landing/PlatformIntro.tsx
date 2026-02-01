@@ -9,10 +9,10 @@ const PlatformIntro = () => {
   });
 
   const features = [
-    { icon: Brain, text: "RAG Architecture prevents hallucinations" },
-    { icon: Zap, text: "Real-time semantic search with vector embeddings" },
-    { icon: Lock, text: "Source-cited answers from verified materials" },
-    { icon: Target, text: "Gated learning paths for structured progression" },
+    { icon: Brain, text: "Every answer cites Prof. Meng's lecture slides" },
+    { icon: Zap, text: "Ask anything about ELEC3120, get instant answers" },
+    { icon: Lock, text: "Only uses your course materials - no hallucinations" },
+    { icon: Target, text: "Practice with real exam-style questions" },
   ];
 
   return (
@@ -151,14 +151,6 @@ const PlatformIntro = () => {
               </div>
             </div>
 
-            {/* Floating code snippets */}
-            <motion.div
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 3, repeat: Infinity }}
-              className="absolute -top-4 -right-4 bg-dark-void/80 backdrop-blur-sm p-3 rounded-lg border border-neon-purple/30 text-xs text-neon-purple font-mono"
-            >
-              vector_search()
-            </motion.div>
           </motion.div>
 
           {/* Right: Text content */}
@@ -168,7 +160,7 @@ const PlatformIntro = () => {
             transition={{ duration: 0.8, delay: 0.2 }}
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-neon-blue to-electric-cyan bg-clip-text text-transparent">
-              Powered by Retrieval-Augmented Generation
+              Built Specifically for ELEC3120
             </h2>
             
             <div className="space-y-6">

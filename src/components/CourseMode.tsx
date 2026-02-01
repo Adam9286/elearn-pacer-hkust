@@ -304,9 +304,22 @@ const CourseMode = () => {
                   {totalLessons} lecture{totalLessons !== 1 ? 's' : ''}
                 </div>
                 {!unlocked && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground pt-2 border-t">
-                    <Lock className="w-4 h-4" />
-                    <span>Complete all lectures in Section {chapter.id - 1} to unlock</span>
+                  <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground pt-2 border-t">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4" />
+                      <span>Recommended: Complete Section {chapter.id - 1} first</span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-primary hover:text-primary/80"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/platform/lesson/${chapter.id}-1`);
+                      }}
+                    >
+                      Skip ahead →
+                    </Button>
                   </div>
                 )}
               </CardContent>

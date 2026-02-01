@@ -35,6 +35,8 @@ const LearningJourneyTimeline = () => {
     { step: 4, title: "Ace ELEC3120", description: "You're ready for the final exam!", icon: Brain },
   ];
 
+  // Note: Students can jump to any mode based on their needs - no strict order required
+
   return (
     <Card className="glass-card shadow-lg border-2 overflow-hidden">
       <CardHeader className="gradient-hero text-white">

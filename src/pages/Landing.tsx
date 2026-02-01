@@ -1,7 +1,6 @@
 import Hero from "@/components/landing/Hero";
 import PlatformIntro from "@/components/landing/PlatformIntro";
 import ModesShowcase from "@/components/landing/ModesShowcase";
-import TechStack from "@/components/landing/TechStack";
 import CTA from "@/components/landing/CTA";
 import SectionDivider from "@/components/landing/SectionDivider";
 import BusFleet from "@/components/landing/BusFleet";
@@ -21,8 +20,6 @@ const Landing = () => {
       <PlatformIntro />
       <SectionDivider variant="robot" />
       <ModesShowcase />
-      <SectionDivider variant="binary" />
-      <TechStack />
       <SectionDivider variant="wave" />
       <CTA />
       

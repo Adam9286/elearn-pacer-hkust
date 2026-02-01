@@ -547,7 +547,8 @@ export const ChatConversation = ({
                 variant="outline"
                 size="icon"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
+                disabled={isLoading || !isAuthenticated}
+                title={!isAuthenticated ? "Sign in to upload files" : "Attach files (PDF, images, text)"}
                 className="shrink-0"
               >
                 <Paperclip className="w-4 h-4" />

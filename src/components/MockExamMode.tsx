@@ -63,8 +63,8 @@ const MockExamMode = () => {
   const [totalPoints, setTotalPoints] = useState(0);
   const [scoredPoints, setScoredPoints] = useState(0);
   const [error, setError] = useState<string>("");
-  const [progress, setProgress] = useState(0);
   const [examLink, setExamLink] = useState<string | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
 
   // Exam customization state
@@ -78,15 +78,16 @@ const MockExamMode = () => {
 
   const { toast } = useToast();
 
-  // Progress indicator during loading
+  // Elapsed time counter during loading (honest, not fake progress)
   useEffect(() => {
     if (isLoadingQuestions) {
+      const start = Date.now();
       const interval = setInterval(() => {
-        setProgress((prev) => Math.min(prev + 5, 95));
-      }, 2000);
+        setElapsedTime(Date.now() - start);
+      }, 1000);
       return () => clearInterval(interval);
     } else {
-      setProgress(0);
+      setElapsedTime(0);
     }
   }, [isLoadingQuestions]);
 
@@ -122,7 +123,6 @@ const MockExamMode = () => {
   const fetchExamQuestions = async () => {
     setIsLoadingQuestions(true);
     setError("");
-    setProgress(0);
 
     try {
       // Call n8n webhook directly (bypasses edge functions)
@@ -197,7 +197,6 @@ const MockExamMode = () => {
         return;
       }
 
-      setProgress(100);
       setExamLink(link);
       setDownloadLink(download || null);
 
@@ -217,7 +216,6 @@ const MockExamMode = () => {
       });
     } finally {
       setIsLoadingQuestions(false);
-      setProgress(0);
     }
   };
 
@@ -725,17 +723,13 @@ const MockExamMode = () => {
               <div className="py-8 text-center space-y-4">
                 <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
                 <div className="space-y-3">
-                  <div className="flex items-center gap-2 text-sm justify-center">
-                    <span className="font-medium">Generating your personalized exam...</span>
-                  </div>
-                  <Progress value={progress} className="h-2 max-w-md mx-auto" />
-                  <p className="text-xs text-muted-foreground">
-                    {progress < 30 && "Analyzing your course material..."}
-                    {progress >= 30 && progress < 60 && "Creating exam questions..."}
-                    {progress >= 60 && progress < 90 && "Formatting PDF document..."}
-                    {progress >= 90 && "Almost ready..."}
+                  <p className="font-medium">Generating your personalized exam...</p>
+                  <p className="text-sm text-muted-foreground">
+                    This typically takes 30-60 seconds
                   </p>
-                  <p className="text-sm text-muted-foreground">This may take up to 2 minutes</p>
+                  <p className="text-xs text-muted-foreground">
+                    Elapsed: {Math.floor(elapsedTime / 1000)}s
+                  </p>
                 </div>
               </div>
             ) : (
