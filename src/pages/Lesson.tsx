@@ -115,7 +115,7 @@ const Lesson = () => {
           </div>
         </header>
 
-        <div className={`container grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-4' : ''} gap-6 p-6`}>
+        <div className={`${showSidebar ? 'container' : 'w-full max-w-[1800px] mx-auto px-4 lg:px-8'} grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-4' : ''} gap-6 py-6`}>
           {/* Sidebar - Chapter Navigation (hidden in AI Tutor mode) */}
           {showSidebar && <aside className="lg:col-span-1">
             <Card className="glass-card sticky top-20">

@@ -239,7 +239,7 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
       />
 
       {/* Main Content - Side by Side on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6">
         {/* Left: PDF Viewer (sticky on desktop) */}
         <div className="lg:sticky lg:top-24 lg:self-start">
           {lesson.pdfUrl && (
