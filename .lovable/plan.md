@@ -1,406 +1,284 @@
 
-# Comprehensive UX Overhaul Plan
 
-## Overview
-This plan addresses all issues identified in the brutal critique: landing page filler, technical jargon overload, Chat Mode inefficiencies, Course Mode gating friction, Mock Exam fake progress, and missing retry limits.
+# In-Context Help + Retry Logic Fix
 
----
+## Part 1: In-Context Micro-Help (Not a Manual)
 
-## Part 1: Landing Page - Student-Centric Rewrite
+Instead of building a documentation page, we'll add contextual help WHERE users get confused.
 
-### Problem
-Landing page talks TO engineers, not TO students. Students don't care about "RAG Architecture" or "pgvector embeddings" - they care about passing ELEC3120.
+### 1.1 CompactProgress.tsx - Explain "5/72" on First View
 
-### Changes
+Add an info icon with tooltip next to the mastery count that explains the 80% requirement.
 
-#### 1.1 Hero.tsx - Simplify Stats
-**Current** (line 175-191):
+**Changes:**
 ```typescript
-{ label: "Learning Modes", value: "3" },
-{ label: "AI-Powered", value: "100%" },  // Meaningless
-{ label: "Topics Covered", value: "50+" },
-```
+// Add imports
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { HelpCircle } from "lucide-react";
 
-**New** (student-focused outcomes):
-```typescript
-{ label: "Cites Sources", value: "Always" },
-{ label: "ELEC3120 Aligned", value: "100%" },
-{ label: "Exam Topics", value: "50+" },
-```
-
-#### 1.2 PlatformIntro.tsx - Remove Technical Jargon
-**Current** (line 11-16):
-```typescript
-{ icon: Brain, text: "RAG Architecture prevents hallucinations" },
-{ icon: Zap, text: "Real-time semantic search with vector embeddings" },
-{ icon: Lock, text: "Source-cited answers from verified materials" },
-{ icon: Target, text: "Gated learning paths for structured progression" },
-```
-
-**New** (student language):
-```typescript
-{ icon: Brain, text: "Every answer cites Prof. Meng's lecture slides" },
-{ icon: Zap, text: "Ask anything about ELEC3120, get instant answers" },
-{ icon: Lock, text: "Only uses your course materials - no hallucinations" },
-{ icon: Target, text: "Practice with real exam-style questions" },
-```
-
-**Also remove** (line 155-161):
-- The floating "vector_search()" code snippet - meaningless to students
-
-**Change section title** (line 170-173):
-```typescript
-// BEFORE: "Powered by Retrieval-Augmented Generation"
-// AFTER: "Built Specifically for ELEC3120"
-```
-
-#### 1.3 TechStack.tsx - DELETE ENTIRELY
-This entire component is engineering vanity that provides zero value to students.
-- "Supabase pgvector for embeddings" - students don't care
-- "n8n workflow automation" - irrelevant to them
-- "RAG Pipeline" diagram - confuses them
-
-**Action**: Remove `<TechStack />` from `Landing.tsx` and delete the component file.
-
-#### 1.4 ModesShowcase.tsx - Clearer Feature Descriptions
-**Current** (line 13-20):
-```typescript
-description: "Ask questions, get instant RAG-powered answers",
-features: [
-  "Natural language Q&A",
-  "Source citations included",
-  "Context-aware responses",
-  "Real-time interaction"
-],
-```
-
-**New**:
-```typescript
-description: "Ask anything about the course, get answers from Prof. Meng's slides",
-features: [
-  "Ask in plain English",
-  "Every answer shows which slide it's from",
-  "Understands follow-up questions",
-  "Answers in seconds, not hours"
-],
-```
-
-**Similar updates for Course Mode and Mock Exam Mode** - replace vague tech terms with concrete benefits.
-
-#### 1.5 CTA.tsx - Swap Technical Stats for Student Outcomes
-**Current** (line 166-170):
-```typescript
-{ value: "RAG-Powered", label: "AI Accuracy" },
-{ value: "3 Modes", label: "Learning Paths" },
-{ value: "Real-time", label: "Feedback" }
-```
-
-**New**:
-```typescript
-{ value: "Every Answer", label: "Cites Its Source" },
-{ value: "50+ Topics", label: "From ELEC3120" },
-{ value: "PDF Export", label: "For Offline Study" }
-```
-
----
-
-## Part 2: How It Works - Already Strong, Minor Tweaks
-
-### What's Good
-- ChatGPT vs LearningPacer comparison (keep as-is)
-- Source citation proof section (keep)
-- Honest limitations section (keep)
-
-### Changes
-
-#### 2.1 Learning Journey Timeline - Add Flexibility Note
-Students skip to Mock Exam mode during cram time. Acknowledge this.
-
-**Add text after line 35**:
-```typescript
-// Add a note like: "Jump to any mode based on your needs - no strict order required"
-```
-
-#### 2.2 Consider moving LearningJourneyTimeline higher
-It's currently at the bottom. The ChatGPT comparison should stay at top, but the journey should come before exam practice for logical flow.
-
----
-
-## Part 3: Chat Mode - Guest Upload Optimization
-
-### Problem
-Guests can upload files to `guest/{filename}` but have no account - burning storage for transient sessions that will never be retrieved.
-
-### Current Code (from attachmentService.ts based on ChatMode usage)
-```typescript
-const uploadResults = await uploadAttachments(attachments, userId);
-```
-
-When `userId` is null (guest), files still get uploaded.
-
-### Solution Options
-
-**Option A (Recommended)**: Disable file uploads for guests entirely
-- Show tooltip: "Sign in to upload files"
-- Prevents wasted storage
-
-**Option B**: Use temporary session-based cleanup
-- Store with TTL, auto-delete after 24 hours
-- More complex, requires edge function
-
-### Implementation (Option A)
-In `ChatConversation.tsx` (the input component):
-```typescript
-// Disable attachment button if not authenticated
-<Button 
-  disabled={!isAuthenticated}
-  title={!isAuthenticated ? "Sign in to upload files" : "Attach files"}
-  ...
-/>
-```
-
----
-
-## Part 4: Course Mode - Make Gating Optional
-
-### Philosophy
-You want to support, not force. The 80% mastery system is good for motivated students, but shouldn't block cramming students who need to skip ahead.
-
-### Current Gating Logic (CourseMode.tsx, line 307-310)
-```typescript
-{!unlocked && (
-  <span>Complete all lectures in Section {chapter.id - 1} to unlock</span>
-)}
-```
-
-### New Approach: Visible but Skippable
-
-**Add "Dev Mode" style toggle for all users (not just admin)**
-
-Replace the locked section message with:
-```typescript
-{!unlocked && (
-  <div className="flex items-center justify-between">
-    <span className="text-muted-foreground">
-      <Lock className="w-4 h-4 inline mr-1" />
-      Recommended: Complete Section {chapter.id - 1} first
-    </span>
-    <Button 
-      variant="ghost" 
-      size="sm"
-      onClick={() => handleUnitClick(chapter.id)}
-    >
-      Skip ahead anyway →
-    </Button>
-  </div>
-)}
-```
-
-**Visual change**:
-- Remove hard lock icon for sections 2+
-- Show "recommended path" indicator instead
-- Keep completion tracking visible
-
-**Result**: Students see the intended path but can jump if needed during exam crunch.
-
----
-
-## Part 5: Mock Exam Mode - Honest Loading State
-
-### Problem
-Fake progress bar that increments every 2 seconds regardless of actual backend progress.
-
-### Current Code (line 82-91)
-```typescript
-useEffect(() => {
-  if (isLoadingQuestions) {
-    const interval = setInterval(() => {
-      setProgress((prev) => Math.min(prev + 5, 95));  // Fake increments
-    }, 2000);
-    return () => clearInterval(interval);
-  }
-}, [isLoadingQuestions]);
-```
-
-### Solution: Replace with Honest Indeterminate State
-
-```typescript
-// Remove the fake progress effect entirely
-// Replace with simple loading states:
-
-{isLoadingQuestions && (
-  <div className="space-y-4 text-center py-8">
-    <Loader2 className="w-12 h-12 animate-spin mx-auto text-primary" />
-    <div className="space-y-2">
-      <p className="font-medium">Generating your exam...</p>
-      <p className="text-sm text-muted-foreground">
-        This typically takes 30-60 seconds
+// Wrap the "5/72 correct" display with tooltip
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button className="inline-flex items-center gap-1">
+        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" />
+      </button>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="max-w-[250px] text-center">
+      <p className="text-sm">
+        Answer 80% of the questions correctly to master this lecture.
+        <br />
+        <span className="text-muted-foreground text-xs">
+          ({requiredCorrect} out of {totalPages} total pages)
+        </span>
       </p>
-      {/* Show elapsed time instead of fake progress */}
-      <p className="text-xs text-muted-foreground">
-        Elapsed: {Math.floor(elapsedTime / 1000)}s
-      </p>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
+
+**Why 80%?** Students will see this the first time they're confused. One hover = understanding. No manual needed.
+
+---
+
+### 1.2 DeepThinkToggle.tsx - Better Mode Descriptions
+
+The current descriptions are too vague:
+- "Fast, adaptive responses" - what does this mean?
+- "Extended textbook knowledge" - still unclear
+
+**Update the dropdown descriptions:**
+
+| Mode | Current | New |
+|------|---------|-----|
+| **Auto** | "Fast, adaptive responses" | "Quick answers (2-5s) for simple questions" |
+| **DeepThink** | "Extended textbook knowledge" | "Thorough answers (10-20s) with textbook citations" |
+
+**Code changes (lines 51-68):**
+```typescript
+<SelectItem value="auto">
+  <div className="flex items-center gap-3 py-1">
+    <Zap className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+    <div className="flex flex-col">
+      <span className="font-medium">Auto</span>
+      <span className="text-xs text-muted-foreground">Quick answers (2-5s) for simple questions</span>
     </div>
   </div>
-)}
-```
-
-**Add elapsed time state**:
-```typescript
-const [elapsedTime, setElapsedTime] = useState(0);
-
-useEffect(() => {
-  if (isLoadingQuestions) {
-    const start = Date.now();
-    const interval = setInterval(() => {
-      setElapsedTime(Date.now() - start);
-    }, 1000);
-    return () => clearInterval(interval);
-  } else {
-    setElapsedTime(0);
-  }
-}, [isLoadingQuestions]);
+</SelectItem>
+<SelectItem value="deepthink">
+  <div className="flex items-center gap-3 py-1">
+    <Brain className="w-4 h-4 text-primary flex-shrink-0" />
+    <div className="flex flex-col">
+      <span className="font-medium text-primary">DeepThink</span>
+      <span className="text-xs text-muted-foreground">Thorough answers (10-20s) with textbook citations</span>
+    </div>
+  </div>
+</SelectItem>
 ```
 
 ---
 
-## Part 6: TestYourselfCard - Retry Limits
+### 1.3 ChatConversation.tsx - Attachment Tooltip for Logged-Out Users
 
-### Problem
-Unlimited retries let students brute-force their way to 80% mastery without learning.
+Currently the attachment button is just disabled. Add a tooltip explaining WHY.
 
-### Current Code (line 85-90)
+**Code (around line 550-560, attachment button area):**
 ```typescript
-const handleRetry = () => {
-  setSelectedOption(null);
-  setHasSubmitted(false);
-  setIsCorrect(false);
-  setIsRetryAttempt(true);
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={!isAuthenticated}
+        className="h-8 w-8"
+      >
+        <Paperclip className="h-4 w-4" />
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>
+      {isAuthenticated 
+        ? "Attach files (PDF, images, text)"
+        : "Sign in to upload files"
+      }
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
+
+---
+
+### 1.4 TestYourselfCard.tsx - First-Time Hint (localStorage-based)
+
+On the FIRST "Test Yourself" card a user ever sees, show a small hint below the question explaining the purpose. After they answer once, store in localStorage to never show again.
+
+**Add to TestYourselfCard:**
+```typescript
+const [hasSeenTip, setHasSeenTip] = useState(() => {
+  return localStorage.getItem('testyourself-tip-dismissed') === 'true';
+});
+
+const dismissTip = () => {
+  localStorage.setItem('testyourself-tip-dismissed', 'true');
+  setHasSeenTip(true);
 };
-```
 
-### Solution: Limit to 3 Attempts Per Question
-
-**Add state**:
-```typescript
-const [attemptCount, setAttemptCount] = useState(0);
-const MAX_ATTEMPTS = 3;
-```
-
-**Update handleSubmit**:
-```typescript
-const handleSubmit = () => {
-  if (!selectedOption) return;
-  
-  setAttemptCount(prev => prev + 1);
-  const selectedIndex = selectedOption.charCodeAt(0) - 65;
-  const correct = selectedIndex === question.correctIndex;
-  setIsCorrect(correct);
-  setHasSubmitted(true);
-  onAnswer(correct, isRetryAttempt);
-};
-```
-
-**Update retry button visibility**:
-```typescript
-{!isCorrect && attemptCount < MAX_ATTEMPTS && (
-  <Button 
-    variant="outline"
-    onClick={handleRetry}
-    className="w-full"
-  >
-    <RefreshCw className="mr-2 h-4 w-4" />
-    Try Again ({MAX_ATTEMPTS - attemptCount} attempts left)
-  </Button>
-)}
-
-{!isCorrect && attemptCount >= MAX_ATTEMPTS && (
-  <p className="text-sm text-muted-foreground text-center">
-    No more attempts. Review the explanation above.
-  </p>
-)}
-```
-
-**Reset attempts when page changes** (in useEffect):
-```typescript
-useEffect(() => {
-  setSelectedOption(null);
-  setHasSubmitted(false);
-  setIsCorrect(false);
-  setIsExpanded(false);
-  setIsRetryAttempt(false);
-  setAttemptCount(0);  // Reset on new page
-}, [question?.question, pageNumber]);
-```
-
----
-
-## Part 7: CompactProgress.tsx - Clearer Mastery UI
-
-### Current Display
-Already updated to show "X/72 correct (69 more needed)"
-
-### Enhancement: Add Encouraging Messaging
-
-When close to completion (within 10):
-```typescript
-{remaining <= 10 && remaining > 0 && (
-  <Badge variant="secondary" className="animate-pulse">
-    Almost there! 🎯
-  </Badge>
-)}
-
-{hasPassed && (
-  <Badge variant="default" className="bg-green-600">
-    ✓ Lecture Mastered
-  </Badge>
+// In the expandable content, before the question:
+{!hasSeenTip && (
+  <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 mb-4">
+    <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
+    <div className="flex-1 text-sm text-muted-foreground">
+      <p>Answer questions to track your mastery. You need 80% correct to complete this lecture.</p>
+    </div>
+    <button onClick={dismissTip} className="text-muted-foreground hover:text-foreground">
+      <X className="h-4 w-4" />
+    </button>
+  </div>
 )}
 ```
 
 ---
 
-## Summary of Files to Modify
+## Part 2: Fix the Retry Paradox
 
-| File | Change Type | Priority |
-|------|-------------|----------|
-| `Landing.tsx` | Remove TechStack import | High |
-| `TechStack.tsx` | DELETE file | High |
-| `Hero.tsx` | Update stats to student outcomes | High |
-| `PlatformIntro.tsx` | Replace jargon with benefits, remove code snippet | High |
-| `ModesShowcase.tsx` | Rewrite feature lists in student language | High |
-| `CTA.tsx` | Replace tech stats with outcomes | Medium |
-| `ChatMode.tsx` or input component | Disable uploads for guests | Medium |
-| `CourseMode.tsx` | Add "Skip ahead" option for locked sections | High |
-| `MockExamMode.tsx` | Replace fake progress with elapsed timer | Medium |
-| `TestYourselfCard.tsx` | Add 3-attempt retry limit | High |
-| `CompactProgress.tsx` | Add encouraging badges near completion | Low |
-| `HowItWorks.tsx` | Reorder sections, add flexibility note | Low |
+### The Problem (from screenshot)
+
+When a student answers wrong:
+1. Their wrong answer (A) is highlighted red with ✗
+2. The CORRECT answer (B) is highlighted GREEN with ✓
+3. The full explanation is shown
+4. Then it says "Try Again"
+
+**This defeats the purpose.** They already KNOW B is correct. Clicking "Try Again" is just clicking B for a free point.
+
+### The Solution: Hide Answer Until Correct or Exhausted
+
+**New UX Flow:**
+
+| Attempt | Student gets WRONG | Student gets CORRECT |
+|---------|-------------------|---------------------|
+| 1st | Red highlight on their choice. Hint: "Not quite - think about the transport layer's main purpose." NO green reveal. Retry button. | Green highlight. Full explanation. Mastery credit. |
+| 2nd | Same as above. "Still not right - consider what distinguishes layers." Retry button. | Same as above. |
+| 3rd (final) | Red highlight + GREEN reveal + full explanation. "Here's the correct answer. Review and move on." No more retries. | Same as above. |
+
+**This is real learning.** Struggle → insight → reward.
+
+### Code Changes (TestYourselfCard.tsx)
+
+**1. Don't show correct answer highlighting on wrong attempts (lines 196-201):**
+
+```typescript
+// BEFORE (shows correct answer on any wrong)
+hasSubmitted && isThisCorrect && "border-green-500 bg-green-500/10",
+hasSubmitted && isSelected && !isThisCorrect && "border-red-500 bg-red-500/10"
+
+// AFTER (only show correct if user got it right OR exhausted attempts)
+const showCorrectAnswer = hasSubmitted && (isCorrect || attemptCount >= MAX_ATTEMPTS);
+
+// In className:
+showCorrectAnswer && isThisCorrect && "border-green-500 bg-green-500/10",
+hasSubmitted && isSelected && !isThisCorrect && "border-red-500 bg-red-500/10"
+```
+
+**2. Don't show green checkmark until earned (lines 211-213):**
+
+```typescript
+// BEFORE
+{hasSubmitted && isThisCorrect && (
+  <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+)}
+
+// AFTER
+{showCorrectAnswer && isThisCorrect && (
+  <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+)}
+```
+
+**3. Different feedback messages based on state (lines 234-247):**
+
+```typescript
+{hasSubmitted && (
+  <div className="space-y-3">
+    {isCorrect ? (
+      // Correct answer - show full explanation
+      <div className="rounded-lg p-4 bg-green-500/10">
+        <p className="font-medium mb-2 text-green-700 dark:text-green-400">
+          Great job!
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {question.explanation}
+        </p>
+      </div>
+    ) : attemptCount >= MAX_ATTEMPTS ? (
+      // Exhausted attempts - reveal answer and explanation
+      <div className="rounded-lg p-4 bg-amber-500/10">
+        <p className="font-medium mb-2 text-amber-700 dark:text-amber-400">
+          Here's the correct answer
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {question.explanation}
+        </p>
+        <p className="text-sm text-muted-foreground mt-2 italic">
+          Review this explanation and continue to the next page.
+        </p>
+      </div>
+    ) : (
+      // Wrong but has retries - show hint only, NOT the answer
+      <div className="rounded-lg p-4 bg-amber-500/10">
+        <p className="font-medium mb-2 text-amber-700 dark:text-amber-400">
+          Not quite right
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {attemptCount === 1 
+            ? "Think about what makes this layer unique in the network stack."
+            : "Consider the key responsibility that differentiates this from other layers."
+          }
+        </p>
+      </div>
+    )}
+    
+    {/* Retry button - only if wrong AND has attempts left */}
+    {!isCorrect && attemptCount < MAX_ATTEMPTS && (
+      <Button variant="outline" onClick={handleRetry} className="w-full">
+        <RefreshCw className="mr-2 h-4 w-4" />
+        Try Again ({MAX_ATTEMPTS - attemptCount} {MAX_ATTEMPTS - attemptCount === 1 ? 'attempt' : 'attempts'} left)
+      </Button>
+    )}
+  </div>
+)}
+```
+
+**4. Smarter hints (optional enhancement):**
+
+Instead of hardcoded generic hints, we could add a `hint` field to the question schema. But for now, generic hints are fine - they don't reveal the answer.
 
 ---
 
-## Implementation Order
+## Summary of Changes
 
-1. **Phase 1 - Critical UX** (do first)
-   - Delete TechStack.tsx
-   - Rewrite PlatformIntro jargon
-   - Add skip-ahead to CourseMode
-   - Add retry limits to TestYourselfCard
-
-2. **Phase 2 - Polish**
-   - Update Hero and CTA stats
-   - Fix Mock Exam loading state
-   - Disable guest uploads
-
-3. **Phase 3 - Minor**
-   - CompactProgress encouragement
-   - HowItWorks reordering
+| File | Change |
+|------|--------|
+| `src/components/lesson/CompactProgress.tsx` | Add tooltip explaining 80% mastery requirement |
+| `src/components/chat/DeepThinkToggle.tsx` | Clearer mode descriptions with response times |
+| `src/components/chat/ChatConversation.tsx` | Tooltip for disabled attachment button |
+| `src/components/lesson/TestYourselfCard.tsx` | 1. First-time tip (localStorage). 2. Hide correct answer until earned/exhausted. 3. Show hints instead of explanations on wrong attempts. |
 
 ---
 
 ## Expected Outcomes
 
-- Students see "Pass ELEC3120" messaging, not "RAG Architecture"
-- Cramming students can skip to Mock Exam without frustration
-- No brute-forcing the mastery system (3 attempts max)
-- Honest loading states build trust
-- No wasted storage on guest uploads
+1. **No confused users** - every "huh?" moment has an in-context explanation
+2. **No documentation page** - the app teaches itself
+3. **Real learning from retries** - students must THINK, not just click the green answer
+4. **Mastery integrity preserved** - can't game the 80% by brute-forcing
+
+---
+
+## Technical Notes
+
+- CompactProgress needs to receive `totalPages` as a prop (it currently has `requiredCorrect`, so we need to also pass total for the tooltip math)
+- TestYourselfCard localStorage key: `testyourself-tip-dismissed`
+- No database changes needed
+- All changes are UI/UX only
+
