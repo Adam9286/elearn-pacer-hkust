@@ -2,8 +2,8 @@
 // Update these in one place when endpoints change
 
 export const WEBHOOKS = {
-  // Chat AI webhook - PRODUCTION
-  CHAT: 'https://smellycat9286.app.n8n.cloud/webhook/6f2a40a0-765a-44f0-a012-b24f418869bb',
+  // Chat AI webhook - TEST MODE
+  CHAT: 'https://smellycat9286.app.n8n.cloud/webhook-test/6f2a40a0-765a-44f0-a012-b24f418869bb',
   
   // Mock exam generator webhook - PRODUCTION
   EXAM_GENERATOR: 'https://smellycat9286.app.n8n.cloud/webhook/bfdb1a10-c848-4bd1-8f50-5dbca106ccdb',
