@@ -100,8 +100,10 @@ export const ChatSidebar = ({
   onNewChat,
   onDeleteConversation,
   onRenameConversation,
+  onDeleteAll,
 }: ChatSidebarProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [conversationToDelete, setConversationToDelete] = useState<string | null>(null);
   const [conversationToRename, setConversationToRename] = useState<string | null>(null);
@@ -135,6 +137,17 @@ export const ChatSidebar = ({
           <Button onClick={onNewChat} className="flex-1 gap-2" variant="outline">
             <Plus className="h-4 w-4" /> New Chat
           </Button>
+          {conversations.length > 0 && onDeleteAll && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDeleteAllDialogOpen(true)}
+              className="text-muted-foreground hover:text-destructive"
+              title="Delete all chats"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={onToggleCollapse}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -275,6 +288,30 @@ export const ChatSidebar = ({
               }}
             >
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Dialog */}
+      <AlertDialog open={deleteAllDialogOpen} onOpenChange={setDeleteAllDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete all conversations?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all {conversations.length} conversation{conversations.length !== 1 ? 's' : ''} and their messages. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                onDeleteAll?.();
+                setDeleteAllDialogOpen(false);
+              }}
+            >
+              Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
