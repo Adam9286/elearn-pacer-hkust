@@ -9,12 +9,21 @@ export interface ChatConversation {
   updated_at: string;
 }
 
+export interface RetrievedMaterial {
+  lecture_id: string;
+  lecture_title?: string;
+  slide_number: number;
+  slide_text?: string;
+  similarity?: number;
+}
+
 export interface ChatMessage {
   id: string;
   conversation_id: string;
   role: 'user' | 'assistant';
   content: string;
-  source?: string;
+  source?: string; // Legacy - kept for backwards compatibility
+  retrieved_materials?: RetrievedMaterial[]; // New RAG-based materials
   responseTime?: string; // Debug timer - local only, not persisted
   attachments?: Array<{
     name: string;

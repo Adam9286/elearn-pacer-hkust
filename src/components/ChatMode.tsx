@@ -170,13 +170,16 @@ const ChatMode = () => {
       
       const payload = data.body ?? data;
       const output = payload.output ?? "I received your question and I'm processing it.";
+      const retrievedMaterials = payload.retrieved_materials ?? [];
+      // Legacy fallback
       const source = payload.source_document ?? payload.source;
 
       // Save AI response to database
       const aiMessage = await saveMessage(conversationId, {
         role: 'assistant',
         content: output,
-        source: source,
+        retrieved_materials: retrievedMaterials.length > 0 ? retrievedMaterials : undefined,
+        source: retrievedMaterials.length === 0 ? source : undefined, // Fallback to legacy
       });
 
       // Remove loading message and add real AI response with response time

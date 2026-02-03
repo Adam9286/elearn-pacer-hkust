@@ -12,7 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { externalSupabase } from '@/lib/externalSupabase';
 import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMath } from '@/components/RenderMath';
-import { ChatMessage } from '@/hooks/useChatHistory';
+import { ChatMessage, RetrievedMaterial } from '@/hooks/useChatHistory';
+import { LectureReferences } from './LectureReferences';
 import { Link } from 'react-router-dom';
 import { WEBHOOKS } from '@/constants/api';
 import { validateFiles, validateImageFile } from '@/utils/fileValidation';
@@ -24,7 +25,8 @@ interface LocalMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
-  source?: string;
+  source?: string; // Legacy
+  retrieved_materials?: RetrievedMaterial[]; // New RAG-based materials
   responseTime?: string;
   attachments?: Array<{
     name: string;
@@ -88,6 +90,7 @@ export const ChatConversation = ({
         role: m.role,
         content: m.content,
         source: m.source,
+        retrieved_materials: m.retrieved_materials,
         responseTime: m.responseTime,
         attachments: m.attachments,
       }))
@@ -333,6 +336,8 @@ export const ChatConversation = ({
 
         const payload = data.body ?? data;
         const output = payload.output ?? "I received your question and I'm processing it.";
+        const retrievedMaterials = payload.retrieved_materials ?? [];
+        // Legacy fallback
         const source = payload.source_document ?? payload.source;
 
         const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -343,7 +348,8 @@ export const ChatConversation = ({
             id: (Date.now() + 1).toString(),
             role: 'assistant',
             content: output,
-            source: source,
+            retrieved_materials: retrievedMaterials.length > 0 ? retrievedMaterials : undefined,
+            source: retrievedMaterials.length === 0 ? source : undefined, // Fallback to legacy
             responseTime: responseTime,
           };
           setNewMessageId(aiMessage.id);
@@ -484,7 +490,12 @@ export const ChatConversation = ({
                           ))}
                         </div>
                       )}
-                      {message.source && (
+                      {/* New: Lecture References from RAG */}
+                      {message.retrieved_materials && message.retrieved_materials.length > 0 && (
+                        <LectureReferences materials={message.retrieved_materials} />
+                      )}
+                      {/* Legacy fallback: source string */}
+                      {!message.retrieved_materials && message.source && (
                         <div className="mt-3 pt-2 border-t border-border/30">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <BookOpen className="w-3.5 h-3.5" />
