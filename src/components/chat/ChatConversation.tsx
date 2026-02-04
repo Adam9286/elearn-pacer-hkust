@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { externalSupabase } from '@/lib/externalSupabase';
 import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
-import { RenderMath } from '@/components/RenderMath';
+import { RenderMarkdown } from './RenderMarkdown';
 import { ChatMessage, RetrievedMaterial } from '@/types/chatTypes';
 import { LectureReferences, RetrievedMaterial as LegacyRetrievedMaterial } from './LectureReferences';
 import { CitationSection } from './CitationSection';
@@ -470,8 +470,8 @@ export const ChatConversation = ({
                       {message.content === "I received your question and I'm processing it…" ? (
                         <AIThinkingIndicator isActive={true} />
                       ) : (
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap">
-                          <RenderMath text={message.content} />
+                        <div className="text-sm leading-relaxed">
+                          <RenderMarkdown content={message.content} />
                         </div>
                       )}
                       {message.attachments && message.attachments.length > 0 && (
