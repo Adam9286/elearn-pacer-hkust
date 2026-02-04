@@ -724,6 +724,73 @@ All colors MUST be HSL.
   }
 }
 
+/* ========== CHAT MARKDOWN STYLES ========== */
+.chat-markdown {
+  /* Compact spacing for chat context */
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.chat-markdown h2 {
+  color: hsl(var(--primary));
+}
+
+.chat-markdown h3 {
+  color: hsl(var(--foreground));
+}
+
+.chat-markdown strong {
+  color: hsl(var(--foreground));
+}
+
+.chat-markdown code {
+  background: hsl(var(--muted));
+  color: hsl(var(--primary));
+}
+
+.chat-markdown blockquote {
+  border-color: hsl(var(--primary) / 0.4);
+  background: hsl(var(--muted) / 0.3);
+}
+
+.chat-markdown pre {
+  background: hsl(var(--muted));
+}
+
+.chat-markdown pre code {
+  color: hsl(var(--foreground));
+}
+
+/* Correct answer styling - semantic success */
+.chat-markdown .bg-emerald-500\/10 {
+  background-color: hsl(160 84% 39% / 0.1);
+}
+
+.chat-markdown .border-emerald-500\/20 {
+  border-color: hsl(160 84% 39% / 0.2);
+}
+
+.chat-markdown .text-emerald-500 {
+  color: hsl(160 84% 39%);
+}
+
+/* Warning styling - semantic warning */
+.chat-markdown .bg-amber-500\/10 {
+  background-color: hsl(38 92% 50% / 0.1);
+}
+
+.chat-markdown .border-amber-500\/20 {
+  border-color: hsl(38 92% 50% / 0.2);
+}
+
+.chat-markdown .text-amber-600 {
+  color: hsl(32 95% 44%);
+}
+
+.dark .chat-markdown .text-amber-400 {
+  color: hsl(38 92% 50%);
+}
+
 /* Math equation styling */
 .katex {
   font-size: 1.1em;
