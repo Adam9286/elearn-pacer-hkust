@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { RetrievedMaterial } from '@/types/chatTypes';
-import { truncateText, formatSimilarity } from '@/utils/citationParser';
+import { truncateText, formatSimilarity, getMaterialContent } from '@/utils/citationParser';
 
 interface MaterialPreviewProps {
   material: RetrievedMaterial;
@@ -12,8 +12,9 @@ interface MaterialPreviewProps {
 
 export const MaterialPreview = ({ material }: MaterialPreviewProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const content = getMaterialContent(material);
 
-  if (!material.content) return null;
+  if (!content) return null;
 
   const similarity = formatSimilarity(material.similarity);
 
@@ -34,8 +35,8 @@ export const MaterialPreview = ({ material }: MaterialPreviewProps) => {
           <div className="flex items-start gap-2">
             <FileText className="w-3.5 h-3.5 text-muted-foreground mt-0.5 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-muted-foreground italic leading-relaxed">
-                "{truncateText(material.content, 200)}"
+            <p className="text-muted-foreground italic leading-relaxed">
+                "{truncateText(content, 200)}"
               </p>
               
               <div className="flex items-center gap-2 mt-2 flex-wrap">

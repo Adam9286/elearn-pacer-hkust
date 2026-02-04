@@ -123,3 +123,11 @@ export function truncateText(text: string, maxLength: number = 150): string {
   if (!text || text.length <= maxLength) return text;
   return text.substring(0, maxLength).trim() + '…';
 }
+
+/**
+ * Get the content from a retrieved material, normalizing between 'excerpt' and 'content' fields
+ * n8n returns 'excerpt', but older code may use 'content'
+ */
+export function getMaterialContent(material: RetrievedMaterial): string {
+  return material.excerpt || material.content || '';
+}

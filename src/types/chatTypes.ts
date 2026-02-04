@@ -10,6 +10,7 @@ export interface ParsedCitation {
 
 export interface RetrievedMaterial {
   content: string;
+  excerpt?: string;           // NEW - n8n returns excerpt, normalize with getMaterialContent()
   page_number?: number;
   chapter?: string;
   document_title: string;
