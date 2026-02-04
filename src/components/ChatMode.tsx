@@ -149,8 +149,10 @@ const ChatMode = () => {
       created_at: new Date().toISOString(),
     });
 
-    // Call n8n webhook for AI response
+    // Call n8n webhook for AI response with timeout
     const startTime = Date.now();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
 
     try {
       const response = await fetch(WEBHOOKS.CHAT, {
@@ -164,7 +166,10 @@ const ChatMode = () => {
           attachments: uploadedUrls,
           mode: deepThinkMode ? 'deepthink' : 'auto',
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       const data = await response.json();
       const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
@@ -191,19 +196,34 @@ const ChatMode = () => {
         addMessageLocally({ ...aiMessage, responseTime });
       }
     } catch (error) {
+      clearTimeout(timeoutId);
       console.error('Error calling n8n webhook:', error);
+      
+      // Determine error message based on error type
+      const isTimeout = error instanceof Error && error.name === 'AbortError';
+      const errorContent = isTimeout
+        ? "The request timed out after 90 seconds. The AI is experiencing high load. Please try again with a simpler question or try again later."
+        : "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.";
       
       // Save error message
       const errorMessage = await saveMessage(conversationId, {
         role: 'assistant',
-        content:
-          "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.",
+        content: errorContent,
       });
 
       // Remove loading message and add error response
       removeMessageLocally(loadingMessageId);
       if (errorMessage) {
         addMessageLocally(errorMessage);
+      }
+      
+      // Show toast for timeout
+      if (isTimeout) {
+        toast({
+          title: 'Request Timed Out',
+          description: 'The AI took too long to respond. Please try again.',
+          variant: 'destructive',
+        });
       }
     } finally {
       setIsWaitingForAI(false);
