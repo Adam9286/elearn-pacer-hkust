@@ -1,295 +1,261 @@
 
-# Chat Performance Optimization Plan
+# Rich Chat Formatting + Citation Restoration Plan
 
 ## Problem Summary
 
-Your current Chat Mode takes **60-100+ seconds** to respond, while your previous workflow responded in ~30 seconds. The root causes are:
+From your screenshots, I can see two issues:
 
-1. **No frontend timeout** - fetch hangs indefinitely
-2. **JSON output requirement** - forces the LLM to reason about structure
-3. **High maxIterations (100)** - allows excessive tool calls
-4. **Missing HNSW indexes** - vector search scans sequentially
-5. **High TopK values** - retrieves too many documents
+### Issue 1: Empty Citations/Retrieved Materials
+- Screenshot 2 shows the **Supabase Retrieve Lecture Notes** node IS returning data with `pageContent`, `metadata.filename`, `metadata.page_number`, etc.
+- But Screenshot 3 shows **Normalize Agent Output** returns `retrieved_materials: []`
+- This is because the node expects the LLM to include materials in its JSON output, but we removed that requirement for speed
 
----
-
-## What Will Change
-
-### Summary Table
-
-| Component | Current | After Optimization |
-|-----------|---------|-------------------|
-| Frontend timeout | None (hangs forever) | 90 seconds with graceful error |
-| n8n maxIterations | 100 | 10 |
-| n8n TopK (Auto) | Lecture 3, Textbook 2 | Lecture 2, Textbook 1 |
-| n8n TopK (DeepThink) | Default (10?) | Lecture 3, Textbook 2 |
-| Agent output format | Strict JSON schema | Plain text + post-processing |
-| Database indexes | None | HNSW on both vector tables |
+### Issue 2: Plain Text Formatting
+- Current rendering only handles LaTeX math via `RenderMath`
+- No markdown parsing for headers, bullet points, bold, etc.
+- ChatGPT uses rich formatting: headers, bullet points, blockquotes, icons, colored sections
 
 ---
 
-## Part 1: Frontend Timeout (Code Changes)
+## Solution Overview
 
-### File: `src/components/ChatMode.tsx`
+### Part 1: Frontend Rich Formatting (Code Changes)
 
-Add an AbortController to the fetch call so it times out after 90 seconds instead of hanging forever.
+Create a new `RenderMarkdown` component that parses AI responses into beautiful, structured content like ChatGPT:
 
-**Changes:**
-- Import `TIMEOUTS` from constants
-- Create AbortController before fetch
-- Set timeout to abort after 90 seconds
-- Handle AbortError separately from network errors
-- Show user-friendly timeout message
+**Features:**
+- Headers (`##`, `###`) with colored styling
+- Bullet points and numbered lists with icons
+- Bold and italic text
+- Blockquotes with accent border
+- Code blocks with syntax highlighting
+- Emojis and visual indicators
+- LaTeX math support (integrated with existing KaTeX)
+- Section dividers
 
-### File: `src/constants/api.ts`
+### Part 2: n8n Workflow Fix (Manual Steps)
 
-The `TIMEOUTS.CHAT` constant already exists (120000ms). We'll use 90 seconds (90000ms) for the abort to leave buffer time.
-
----
-
-## Part 2: n8n Workflow Changes (Manual Steps)
-
-You'll need to make these changes in your n8n workflow editor.
-
-### Step 2.1: Reduce maxIterations
-
-**Node:** Auto Agent
-
-**Current:**
-```json
-"options": {
-  "maxIterations": 100
-}
-```
-
-**Change to:**
-```json
-"options": {
-  "maxIterations": 10
-}
-```
-
-**Why:** Prevents the agent from making excessive tool calls. 10 iterations is enough for 2-3 retrieval attempts.
+Capture `retrieved_materials` directly from the vector store tool outputs instead of relying on the LLM to include them in its response.
 
 ---
 
-### Step 2.2: Reduce TopK Values
+## Visual Design Reference
 
-**Auto Agent Tools:**
+Based on your ChatGPT screenshot, the target formatting includes:
 
-| Node | Current TopK | New TopK |
-|------|--------------|----------|
-| Supabase Retrieve Lecture Notes | 3 | 2 |
-| Supabase (Retrieve Textbook) | 2 | 1 |
+```text
++----------------------------------------------------------+
+| Correct answer:                                           |
+| ✅ This procedure uses a field in the packet header...   |
++----------------------------------------------------------+
 
-**DeepThink Agent Tools:**
+## Why this is correct (step-by-step)
 
-| Node | Current TopK | New TopK |
-|------|--------------|----------|
-| Supabase (Retrieve Lecture Notes)1 | Default (10) | 3 |
-| Supabase (Retrieve Textbook)1 | Default (5) | 2 |
+We're asked for something that is **true for flow control** 
+but **not true for congestion control**.
+
+**Flow control (receiver-side protection)**
+- Purpose: prevent the **receiver** from being overwhelmed
+- Mechanism: the receiver **advertises a window size**
+- This value is **explicitly encoded in the packet header**
+- The sender **must not exceed** this advertised window
+
+👍 This matches the correct option exactly.
 
 ---
 
-### Step 2.3: Simplify Agent Output (Remove JSON Requirement)
+## Why the other options are wrong
 
-**Current System Prompt (both agents):**
-The system prompt forces JSON output:
-```
-CRITICAL OUTPUT REQUIREMENT (MANDATORY)
-You MUST return a JSON object with EXACTLY these keys:
-{
-  "answer": string,
-  "retrieved_materials": array
-}
-```
+❌ **Computes a maximum window size using AIMD**
+- AIMD is a **congestion control** mechanism
+- Used by TCP to probe available network capacity
 
-**New System Prompt:**
-```
-You are LearningPacer, a course-specific virtual teaching assistant for ELEC3120 (Computer Networks) at HKUST.
-
-GENERAL BEHAVIOR
-- Be concise, clear, and academically precise.
-- Assume the user wants a correct explanation grounded in course material.
-- Do NOT hallucinate lecture content.
-- Do NOT invent page numbers, chapters, or sources.
-
-ACADEMIC RULES
-- Use ELEC3120 lecture slides as the PRIMARY source.
-- Use the ELEC3120 textbook ONLY if lecture slides are insufficient.
-- Use OCR context ONLY if explicitly provided.
-- If no relevant course material is retrieved, explicitly say:
-  "No directly relevant course material was retrieved."
-  Then provide a short explanation labeled as "General knowledge".
-
-FORMAT RULES
-- Plain text only (no markdown headers).
-- Short paragraphs.
-- Dash (-) bullets only when listing.
-- No emojis.
-- Use LaTeX for equations.
-
-Do NOT include citations in your answer. The system will handle citations separately.
-```
-
-**User Prompt (simplified):**
-```
-User Question:
-"{{$json.query}}"
-
-OCR Context (if any):
-{{$json.finalContext}}
-
-Instructions:
-1. If OCR context is present and relevant, prioritize it.
-2. Otherwise, retrieve from lecture slides first.
-3. Use the textbook only if lecture slides are insufficient.
-4. Answer the question directly in plain text.
+> One-line summary (exam-ready):
+> Flow control uses an advertised window field in the packet
+> header to limit the sender...
 ```
 
 ---
 
-### Step 2.4: Update Post-Processing Nodes
+## Frontend Implementation
 
-Since the agent will now return plain text, update the "Normalize Agent Output" node:
+### File 1: Create `src/components/chat/RenderMarkdown.tsx`
 
-**New Code:**
+A new component that:
+1. Parses markdown-like syntax
+2. Renders structured sections with visual styling
+3. Integrates LaTeX math rendering
+4. Uses icons and colors for visual hierarchy
+
+**Parsing Logic:**
+- `##` Headers: Large, colored, with bottom border
+- `**text**` Bold: Semibold weight
+- `- bullet` Lists: With colored bullet icons
+- `> quote` Blockquotes: With accent left border
+- `$math$` LaTeX: Inline/block math via KaTeX
+- Special patterns: 
+  - Checkmarks for correct answers
+  - X marks for incorrect answers
+  - Thumb icons for emphasis
+
+### File 2: Update `src/components/chat/ChatConversation.tsx`
+
+Replace `<RenderMath text={message.content} />` with `<RenderMarkdown content={message.content} />`
+
+### File 3: Update `tailwind.config.ts`
+
+Add the typography plugin for proper prose styling:
+```typescript
+plugins: [
+  require("tailwindcss-animate"),
+  require("@tailwindcss/typography")  // Add this
+],
+```
+
+### File 4: Add chat-specific prose styles in `src/index.css`
+
+Custom styles for chat markdown:
+- Smaller text sizes
+- Compact spacing
+- Theme-aware colors
+- Proper dark mode support
+
+---
+
+## Part 2: n8n Workflow Fix (Manual Steps)
+
+The key insight from your screenshots:
+- The **Supabase Retrieve Lecture Notes** node returns:
+  ```json
+  {
+    "type": "text",
+    "text": "{\"pageContent\":\"...\",\"metadata\":{\"source\":\"...\",\"filename\":\"07-Congestion_Control.pdf\",\"page_number\":\"07-\"}}"
+  }
+  ```
+- This data is NOT being captured by the Normalize Agent Output node
+
+### Option A: Capture Tool Outputs via Agent Steps (Recommended)
+
+The n8n AI Agent node exposes tool call outputs. Add a **Code node** between the Agent and Normalize that:
+
+1. Reads from `$json.steps` (agent execution trace)
+2. Extracts tool outputs that look like vector search results
+3. Parses the metadata to build `retrieved_materials`
+
+**New "Extract Tool Results" Node Code:**
 ```javascript
-const raw = $json.output ?? $json.text ?? $json.result ?? '';
+const agentOutput = $input.first().json;
 
-// Get the answer text directly (no JSON parsing needed)
-let answer = String(raw)
-  .replace(/<think>[\s\S]*?<\/think>/g, '')  // Remove chain-of-thought
-  .replace(/^#{1,6}\s+/gm, '')                // Remove headers
-  .replace(/\*\*/g, '')                       // Remove bold
-  .replace(/\*/g, '')                         // Remove italic
-  .replace(/\n{3,}/g, '\n\n')                 // Normalize newlines
-  .trim();
+// Get the answer text
+const answer = agentOutput.output ?? agentOutput.text ?? '';
 
-// We'll get retrieved_materials from a separate tool output aggregator
-// For now, return empty array - the Build Citations node handles this
+// Extract tool call results from agent steps
+const steps = agentOutput.steps || [];
+const retrieved_materials = [];
+
+for (const step of steps) {
+  // Check if this step is a tool call
+  if (step.action?.tool === 'lecture_slides_course' || 
+      step.action?.tool === 'Elec3120Textbook') {
+    
+    const toolOutput = step.observation || '';
+    
+    // Parse the tool output (it's usually a JSON string)
+    try {
+      const parsed = typeof toolOutput === 'string' 
+        ? JSON.parse(toolOutput) 
+        : toolOutput;
+      
+      // Handle array of results
+      const results = Array.isArray(parsed) ? parsed : [parsed];
+      
+      for (const result of results) {
+        const content = result.pageContent || result.text || '';
+        const metadata = result.metadata || {};
+        
+        retrieved_materials.push({
+          document_title: metadata.filename || metadata.source || 'Unknown',
+          chapter: metadata.chapter || 'Course Material',
+          page_number: metadata.page_number || 'unknown',
+          source: step.action?.tool || 'lecture_slides_course',
+          excerpt: content.substring(0, 500) + '...',
+          similarity: metadata.similarity || null
+        });
+      }
+    } catch (e) {
+      // Skip unparseable results
+      console.log('Could not parse tool output:', e);
+    }
+  }
+}
+
 return [{
   json: {
     answer,
-    retrieved_materials: []
+    retrieved_materials
   }
 }];
 ```
 
-**Update "Build Citations" Node:**
-Since we removed JSON output, we need to extract materials from the agent's tool calls. For simplicity, you can:
+### Option B: Simpler - Return Tool Outputs Directly
 
-Option A: Return empty arrays (citations won't show)
-Option B: Add a "Window Buffer Memory" node to capture tool outputs
+If Option A is too complex, you can:
+1. Add a "Window Buffer Memory" node to capture tool outputs
+2. Or configure the Supabase vector store nodes to "Return All Results" and merge them
 
-For now, use Option A (simpler):
-```javascript
-const item = $input.first().json;
+---
 
-return [{
-  json: {
-    answer: item.answer || '',
-    citations: [],
-    retrieved_materials: []
-  }
-}];
+## Files Summary
+
+| Action | File | Purpose |
+|--------|------|---------|
+| CREATE | `src/components/chat/RenderMarkdown.tsx` | Rich markdown renderer with LaTeX |
+| UPDATE | `src/components/chat/ChatConversation.tsx` | Use RenderMarkdown instead of RenderMath |
+| UPDATE | `tailwind.config.ts` | Add typography plugin |
+| UPDATE | `src/index.css` | Add chat prose styles |
+
+---
+
+## n8n Manual Steps Summary
+
+1. **Add "Extract Tool Results" Code Node** after the AI Agent nodes
+2. Connect it before "Normalize Agent Output" 
+3. Use the code provided above to extract materials from `$json.steps`
+4. Update "Build Citations" to use the extracted materials
+
+---
+
+## Expected Result
+
+### Before
+```
+Based on the lecture material retrieved, I can analyze the question 
+about what is true about flow control but not true about congestion 
+control.\n \n From the lecture slides:\n \n 1. Flow control is 
+defined as ensuring the window is "less than or equal to the...
 ```
 
+### After
+```
+## Why this is correct (step-by-step)
+
+We're asked for something that is **true for flow control** but 
+**not true for congestion control**.
+
+**Flow control (receiver-side protection)**
+- Purpose: prevent the **receiver** from being overwhelmed
+- Mechanism: the receiver **advertises a window size**
+- This value is **explicitly encoded in the packet header**
+
+👍 This matches the correct option exactly.
+
 ---
 
-## Part 3: Database HNSW Indexes (SQL)
+## Why the other options are wrong
 
-Run this SQL in your exam Supabase project (oqgotlmztpvchkipslnc) via the SQL editor:
-
-```sql
--- Create HNSW index for lecture_slides_course table
--- This dramatically speeds up vector similarity searches
-CREATE INDEX IF NOT EXISTS lecture_slides_course_embedding_hnsw_idx 
-ON lecture_slides_course 
-USING hnsw (embedding vector_cosine_ops)
-WITH (m = 16, ef_construction = 64);
-
--- Create HNSW index for Elec3120Textbook table
-CREATE INDEX IF NOT EXISTS elec3120_textbook_embedding_hnsw_idx 
-ON "Elec3120Textbook" 
-USING hnsw (embedding vector_cosine_ops)
-WITH (m = 16, ef_construction = 64);
-
--- Analyze tables to update query planner statistics
-ANALYZE lecture_slides_course;
-ANALYZE "Elec3120Textbook";
+❌ **Computes a maximum window size using AIMD**
+- AIMD (Additive Increase, Multiplicative Decrease) is a 
+  **congestion control** mechanism
 ```
 
-**What HNSW does:**
-- Creates a graph-based index for approximate nearest neighbor search
-- Reduces search time from O(n) sequential scan to O(log n)
-- `m = 16` controls graph connectivity (higher = more accurate, slower to build)
-- `ef_construction = 64` controls build-time accuracy
-
----
-
-## Part 4: Verify Custom Match Functions
-
-Check if your custom query functions (`match_lecturenotes`, `match_textbook`) are properly optimized. Run this to see current function definitions:
-
-```sql
-\df match_lecturenotes
-\df match_textbook
-```
-
-If they don't use the HNSW index properly, you may want to remove the `queryName` option from n8n and let it use the default pgvector matching.
-
----
-
-## Implementation Checklist
-
-### Frontend (I will implement)
-- [ ] Add AbortController with 90s timeout to ChatMode.tsx
-- [ ] Handle timeout errors with user-friendly message
-- [ ] Show "Request timed out" toast on failure
-
-### n8n (You implement manually)
-- [ ] Set Auto Agent maxIterations to 10
-- [ ] Set DeepThink Agent maxIterations to 10
-- [ ] Reduce Lecture Notes TopK: 3 → 2 (Auto), Default → 3 (DeepThink)
-- [ ] Reduce Textbook TopK: 2 → 1 (Auto), Default → 2 (DeepThink)
-- [ ] Simplify system prompts (remove JSON requirement)
-- [ ] Update Normalize Agent Output code
-- [ ] Update Build Citations code
-
-### Database (Run SQL in Supabase)
-- [ ] Create HNSW index on lecture_slides_course
-- [ ] Create HNSW index on Elec3120Textbook
-- [ ] Run ANALYZE on both tables
-
----
-
-## Expected Performance Improvement
-
-| Metric | Before | After (Estimated) |
-|--------|--------|-------------------|
-| Average response time | 60-100s | 15-30s |
-| Timeout handling | Hangs forever | Graceful 90s timeout |
-| Vector search speed | O(n) scan | O(log n) HNSW |
-| Tool iterations | Up to 100 | Max 10 |
-
----
-
-## Files to Modify
-
-| File | Action |
-|------|--------|
-| `src/components/ChatMode.tsx` | Add AbortController timeout |
-| `src/constants/api.ts` | No changes needed (TIMEOUTS.CHAT exists) |
-
----
-
-## Trade-offs
-
-1. **Removing JSON output** means we lose structured `retrieved_materials` from the agent. Citations will be empty unless you add a separate tool output collector.
-
-2. **Lower TopK** means less context for the LLM, potentially reducing answer quality for complex questions.
-
-3. **Lower maxIterations** means the agent might not find relevant content if the first attempts fail.
-
-These are acceptable trade-offs for a 3-4x speed improvement.
+Plus clickable citations with the full excerpt visible!
