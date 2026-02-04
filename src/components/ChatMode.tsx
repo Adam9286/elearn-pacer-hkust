@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { externalSupabase } from '@/lib/externalSupabase';
-import { useChatHistory, ChatMessage } from '@/hooks/useChatHistory';
+import { useChatHistory } from '@/hooks/useChatHistory';
+import type { ChatMessage } from '@/types/chatTypes';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
 import { WEBHOOKS } from '@/constants/api';
@@ -169,17 +170,19 @@ const ChatMode = () => {
       const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
       
       const payload = data.body ?? data;
-      const output = payload.output ?? "I received your question and I'm processing it.";
+      const answer = payload.answer ?? payload.output ?? "I received your question and I'm processing it.";
+      const citations = payload.citations ?? [];
       const retrievedMaterials = payload.retrieved_materials ?? [];
       // Legacy fallback
       const source = payload.source_document ?? payload.source;
 
-      // Save AI response to database
+      // Save AI response to database with new citation fields
       const aiMessage = await saveMessage(conversationId, {
         role: 'assistant',
-        content: output,
+        content: answer,
+        citations: citations.length > 0 ? citations : undefined,
         retrieved_materials: retrievedMaterials.length > 0 ? retrievedMaterials : undefined,
-        source: retrievedMaterials.length === 0 ? source : undefined, // Fallback to legacy
+        source: retrievedMaterials.length === 0 && citations.length === 0 ? source : undefined, // Fallback to legacy
       });
 
       // Remove loading message and add real AI response with response time

@@ -12,8 +12,11 @@ import { useToast } from '@/hooks/use-toast';
 import { externalSupabase } from '@/lib/externalSupabase';
 import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMath } from '@/components/RenderMath';
-import { ChatMessage, RetrievedMaterial } from '@/hooks/useChatHistory';
-import { LectureReferences } from './LectureReferences';
+import { ChatMessage, RetrievedMaterial } from '@/types/chatTypes';
+import { LectureReferences, RetrievedMaterial as LegacyRetrievedMaterial } from './LectureReferences';
+import { CitationSection } from './CitationSection';
+import { NoCitationNotice } from './NoCitationNotice';
+import { isNoCitationMessage } from '@/utils/citationParser';
 import { Link } from 'react-router-dom';
 import { WEBHOOKS } from '@/constants/api';
 import { validateFiles, validateImageFile } from '@/utils/fileValidation';
@@ -26,7 +29,8 @@ interface LocalMessage {
   role: 'user' | 'assistant';
   content: string;
   source?: string; // Legacy
-  retrieved_materials?: RetrievedMaterial[]; // New RAG-based materials
+  citations?: string[]; // NEW - Raw citation strings
+  retrieved_materials?: RetrievedMaterial[]; // NEW - Full material data
   responseTime?: string;
   attachments?: Array<{
     name: string;
@@ -90,6 +94,7 @@ export const ChatConversation = ({
         role: m.role,
         content: m.content,
         source: m.source,
+        citations: m.citations,
         retrieved_materials: m.retrieved_materials,
         responseTime: m.responseTime,
         attachments: m.attachments,
@@ -335,7 +340,8 @@ export const ChatConversation = ({
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         const payload = data.body ?? data;
-        const output = payload.output ?? "I received your question and I'm processing it.";
+        const answer = payload.answer ?? payload.output ?? "I received your question and I'm processing it.";
+        const citations = payload.citations ?? [];
         const retrievedMaterials = payload.retrieved_materials ?? [];
         // Legacy fallback
         const source = payload.source_document ?? payload.source;
@@ -347,9 +353,10 @@ export const ChatConversation = ({
           const aiMessage: LocalMessage = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content: output,
+            content: answer,
+            citations: citations.length > 0 ? citations : undefined,
             retrieved_materials: retrievedMaterials.length > 0 ? retrievedMaterials : undefined,
-            source: retrievedMaterials.length === 0 ? source : undefined, // Fallback to legacy
+            source: retrievedMaterials.length === 0 && citations.length === 0 ? source : undefined, // Fallback to legacy
             responseTime: responseTime,
           };
           setNewMessageId(aiMessage.id);
@@ -490,12 +497,23 @@ export const ChatConversation = ({
                           ))}
                         </div>
                       )}
-                      {/* New: Lecture References from RAG */}
-                      {message.retrieved_materials && message.retrieved_materials.length > 0 && (
-                        <LectureReferences materials={message.retrieved_materials} />
+                      {/* NEW: Citation Section - for new backend format */}
+                      {message.citations && message.citations.length > 0 && (
+                        isNoCitationMessage(message.citations) ? (
+                          <NoCitationNotice />
+                        ) : (
+                          <CitationSection
+                            citations={message.citations}
+                            retrievedMaterials={message.retrieved_materials}
+                          />
+                        )
+                      )}
+                      {/* Legacy fallback: old RAG materials format */}
+                      {!message.citations && message.retrieved_materials && message.retrieved_materials.length > 0 && (
+                        <LectureReferences materials={message.retrieved_materials as unknown as LegacyRetrievedMaterial[]} />
                       )}
                       {/* Legacy fallback: source string */}
-                      {!message.retrieved_materials && message.source && (
+                      {!message.retrieved_materials && !message.citations && message.source && (
                         <div className="mt-3 pt-2 border-t border-border/30">
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <BookOpen className="w-3.5 h-3.5" />
