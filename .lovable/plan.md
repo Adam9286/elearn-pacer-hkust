@@ -1,303 +1,121 @@
 
-# Academic Citation Display System for Chat Mode
+# Clickable Citations with Full Excerpt Modal
 
 ## Overview
 
-Redesign the chat citation UI to handle the new backend response contract that provides structured `answer`, `citations`, and `retrieved_materials` fields. The goal is a clean, academic-focused interface that prioritizes answer readability while providing transparent, trustworthy source attribution.
+Enhance the citation UI so users can click to view the full excerpt that the AI retrieved, along with clear metadata showing which lecture/page the content came from.
 
-## New Backend Response Contract
+## Current State Analysis
 
-```json
-{
-  "answer": "Plain-text explanation...",
-  "citations": [
-    "- ELEC3120 Textbook, Chapter 3: Transport Layer, Page 199 (LOCAL_UPLOAD)",
-    "- Lecture Notes, TCP Congestion Control, Slide 12 (LOCAL_UPLOAD)"
-  ],
-  "retrieved_materials": [
-    {
-      "content": "...",
-      "page_number": 199,
-      "chapter": "Chapter 3: Transport Layer",
-      "document_title": "ELEC3120 Textbook",
-      "source_url": "LOCAL_UPLOAD",
-      "similarity": 0.82
-    }
-  ]
-}
-```
+From the n8n screenshot, `retrieved_materials` contains:
+- `document_title`: "08-AdvancedCC.pdf", "07-Congestion_Control.pdf"
+- `chapter`: "Advanced Congestion Control", "Congestion Control"  
+- `page_number`: (currently showing "unknown")
+- `source`: "lecture_slides_course"
+- `excerpt`: Full text content retrieved by the RAG pipeline
 
-## Visual Design Hierarchy
+### Issue Identified
+The current `RetrievedMaterial` type expects `content` field, but n8n returns `excerpt`. This needs to be normalized.
+
+## Visual Design
 
 ```text
 +----------------------------------------------------------+
 |  [AI Message Bubble]                                      |
-|                                                           |
-|  Answer text displays here in clean, readable format.     |
-|  Optimized spacing for studying. No inline clutter.       |
-|  This is the primary content students should focus on.    |
+|  Answer text...                                           |
 |                                                           |
 |  -------------------------------------------------------- |
-|                                                           |
-|  📚 Sources (2)                              [Expand ▼]   |
-|                                                           |
-|  ┌──────────────────────────────────────────────────────┐ |
-|  │  📖 ELEC3120 Textbook                                │ |
-|  │     Chapter 3: Transport Layer                       │ |
-|  │     Page 199                                         │ |
-|  │                                    [Why this? ▶]     │ |
-|  └──────────────────────────────────────────────────────┘ |
+|  SOURCES (3)                                     [▼]      |
 |                                                           |
 |  ┌──────────────────────────────────────────────────────┐ |
-|  │  📑 Lecture Notes                                    │ |
-|  │     TCP Congestion Control                           │ |
-|  │     Slide 12                                         │ |
-|  │                                    [Why this? ▶]     │ |
+|  │  📑 08-AdvancedCC.pdf                      [Page ?]  │ |
+|  │     Advanced Congestion Control                      │ |
+|  │     "Recall: Mathis Equation throughput..."  [👁 View]│ |
 |  └──────────────────────────────────────────────────────┘ |
-|                                                           |
-|  ⏱ 3.42s                                                  |
 +----------------------------------------------------------+
-```
 
-### No Citation Case
+Clicking [👁 View] opens:
 
-```text
 +----------------------------------------------------------+
-|  [AI Message Bubble]                                      |
-|                                                           |
-|  Answer text based on general knowledge...                |
-|                                                           |
-|  -------------------------------------------------------- |
-|                                                           |
-|  ⚠️ General Knowledge                                     |
-|  This answer is based on general knowledge,               |
-|  not course materials. Verify with your slides.           |
-|                                                           |
+|  ╔══════════════════════════════════════════════════════╗ |
+|  ║  Source Details                             [✕ Close]║ |
+|  ╠══════════════════════════════════════════════════════╣ |
+|  ║  📑 08-AdvancedCC.pdf                                ║ |
+|  ║  Chapter: Advanced Congestion Control                ║ |
+|  ║  Source: Lecture Slides                              ║ |
+|  ║  Match: 82%                                          ║ |
+|  ╠══════════════════════════════════════════════════════╣ |
+|  ║  RETRIEVED EXCERPT                                   ║ |
+|  ║  ───────────────────────────────────────────────     ║ |
+|  ║  "Recall: Mathis Equation throughput = 1/p * MSS     ║ |
+|  ║  RTT flow A 50ms RTT vs Flow B 10ms RTT. Using       ║ |
+|  ║  the Mathis Equation, Flow B will achieve higher     ║ |
+|  ║  throughput than Flow A because throughput is        ║ |
+|  ║  inversely proportional to RTT..."                   ║ |
+|  ║                                                      ║ |
+|  ║  [Full excerpt without truncation]                   ║ |
+|  ╚══════════════════════════════════════════════════════╝ |
 +----------------------------------------------------------+
 ```
 
 ## Component Architecture
 
-### New/Updated Files
+### Files to Modify
 
-| File | Purpose |
-|------|---------|
-| `src/types/chatTypes.ts` | **NEW** - Centralized types for citations and materials |
-| `src/components/chat/CitationSection.tsx` | **NEW** - Main citations container with collapse/expand |
-| `src/components/chat/CitationCard.tsx` | **NEW** - Individual citation display card |
-| `src/components/chat/MaterialPreview.tsx` | **NEW** - "Why this source?" expandable preview |
-| `src/components/chat/NoCitationNotice.tsx` | **NEW** - Warning for general knowledge answers |
-| `src/hooks/useChatHistory.ts` | **UPDATE** - Add new types for citations |
-| `src/components/chat/ChatConversation.tsx` | **UPDATE** - Integrate new citation components |
-| `src/components/ChatMode.tsx` | **UPDATE** - Parse new response format |
-| `src/utils/citationParser.ts` | **NEW** - Parse citation strings into structured data |
+| File | Change |
+|------|--------|
+| `src/types/chatTypes.ts` | Add `excerpt` field to `RetrievedMaterial` type |
+| `src/components/chat/CitationCard.tsx` | Add clickable "View" button, integrate dialog trigger |
+| `src/components/chat/MaterialPreview.tsx` | Use `excerpt` OR `content` field, add dialog state |
+| `src/components/chat/SourceDetailDialog.tsx` | **NEW** - Full modal view of the retrieved content |
+| `src/utils/citationParser.ts` | Update `truncateText` to handle both `content` and `excerpt` |
 
-### Component Hierarchy
+### New Component: SourceDetailDialog
 
-```text
-ChatConversation
-└── Message Bubble
-    ├── RenderMath (answer text)
-    ├── CitationSection (if citations exist)
-    │   ├── CitationCard (for each citation)
-    │   │   └── MaterialPreview (expandable)
-    │   └── CitationCard...
-    └── NoCitationNotice (if no course materials used)
-```
+A dialog component that shows:
+1. Document title with icon
+2. Chapter/topic
+3. Source type badge (Lecture Slides / Textbook)
+4. Similarity score badge
+5. Full excerpt text (scrollable)
 
-## Implementation Details
+## Technical Implementation
 
-### 1. New Types (`src/types/chatTypes.ts`)
+### 1. Update Type Definition
 
+Add `excerpt` as an alternative to `content` in the `RetrievedMaterial` interface to support both the old and new n8n output formats.
+
+### 2. Update CitationCard
+
+- Add "View" button that opens the dialog
+- The button only appears when `material.excerpt` or `material.content` exists
+- Keep the existing "Why this source?" collapsible as a quick preview
+
+### 3. Create SourceDetailDialog
+
+Uses existing shadcn `Dialog` component to show:
+- Header with document title and close button
+- Metadata section (chapter, source type, similarity score)
+- Scrollable content area for the full excerpt
+- Clean, readable typography for studying
+
+### 4. Normalize Content Field
+
+In `citationParser.ts`, add a helper function:
 ```typescript
-export interface ParsedCitation {
-  documentTitle: string;      // "ELEC3120 Textbook" or "Lecture Notes"
-  chapter?: string;           // "Chapter 3: Transport Layer"
-  pageNumber?: number;        // 199
-  slideNumber?: number;       // 12
-  sourceType: 'textbook' | 'lecture' | 'unknown';
-}
-
-export interface RetrievedMaterial {
-  content: string;
-  page_number?: number;
-  chapter?: string;
-  document_title: string;
-  source_url: string;
-  similarity?: number;
-}
-
-export interface ChatMessage {
-  id: string;
-  conversation_id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  citations?: string[];              // NEW - Raw citation strings
-  retrieved_materials?: RetrievedMaterial[];  // NEW - Full material data
-  responseTime?: string;
-  attachments?: Array<{ name: string; url: string; type: string; }>;
-  created_at: string;
+export function getMaterialContent(material: RetrievedMaterial): string {
+  return material.excerpt || material.content || '';
 }
 ```
 
-### 2. Citation Parser Utility (`src/utils/citationParser.ts`)
-
-Parse raw citation strings into structured display data:
-
-```typescript
-// Input:  "- ELEC3120 Textbook, Chapter 3: Transport Layer, Page 199 (LOCAL_UPLOAD)"
-// Output: { documentTitle: "ELEC3120 Textbook", chapter: "Chapter 3: Transport Layer", pageNumber: 199, sourceType: "textbook" }
-
-export function parseCitation(raw: string): ParsedCitation;
-export function isNoCitationMessage(citations: string[]): boolean;
-export function matchMaterialToCitation(citation: ParsedCitation, materials: RetrievedMaterial[]): RetrievedMaterial | null;
-```
-
-### 3. CitationSection Component
-
-Main container that:
-- Shows citation count badge
-- Defaults to collapsed state for cleaner UI
-- Expands to show all citations
-- Only renders if citations exist AND are not "no materials" message
-
-Props:
-```typescript
-interface CitationSectionProps {
-  citations: string[];
-  retrievedMaterials?: RetrievedMaterial[];
-}
-```
-
-### 4. CitationCard Component
-
-Individual citation display with:
-- Icon based on source type (book for textbook, file for slides)
-- Document title (bold, primary)
-- Chapter/topic name (muted)
-- Page/slide number (badge style)
-- Optional "Why this?" expand trigger
-
-Visual styling:
-- Light border, subtle background
-- Academic feel (think Notion or Obsidian)
-- Compact but readable
-
-### 5. MaterialPreview Component
-
-Expandable section showing:
-- Content snippet (first ~150 chars)
-- Similarity score as subtle percentage badge
-- Source URL indicator
-
-### 6. NoCitationNotice Component
-
-Displayed when:
-- `citations` array contains "No course materials were retrieved"
-- OR `citations.length === 0` AND response exists
-
-Design:
-- Warning/info style (amber/yellow tint)
-- Icon: ⚠️ or ℹ️
-- Message: "This answer is based on general knowledge, not course materials."
-- Subtle, non-alarming
-
-### 7. Update ChatConversation.tsx
-
-Replace current `LectureReferences` component with new citation system:
-
-```tsx
-{/* Citation Section - only if citations exist */}
-{message.citations && message.citations.length > 0 && (
-  isNoCitationMessage(message.citations) ? (
-    <NoCitationNotice />
-  ) : (
-    <CitationSection
-      citations={message.citations}
-      retrievedMaterials={message.retrieved_materials}
-    />
-  )
-)}
-
-{/* Legacy fallback for old messages */}
-{!message.citations && message.retrieved_materials && (
-  <LectureReferences materials={message.retrieved_materials} />
-)}
-```
-
-### 8. Update Response Parsing
-
-In both `ChatMode.tsx` and `ChatConversation.tsx`:
-
-```typescript
-const payload = data.body ?? data;
-const answer = payload.answer ?? payload.output ?? "...";
-const citations = payload.citations ?? [];
-const retrievedMaterials = payload.retrieved_materials ?? [];
-
-const aiMessage = await saveMessage(conversationId, {
-  role: 'assistant',
-  content: answer,
-  citations: citations,
-  retrieved_materials: retrievedMaterials,
-});
-```
-
-## Styling Guidelines
-
-### Colors (Academic Theme)
-- Citation cards: `bg-muted/30` with `border-border/50`
-- Document title: `text-foreground font-medium`
-- Chapter/page: `text-muted-foreground text-sm`
-- Page badge: `bg-primary/10 text-primary`
-- No-citation notice: `bg-amber-50 dark:bg-amber-900/20 border-amber-200`
-
-### Typography
-- Answer text: Default size, generous line-height (1.6-1.8)
-- Citations header: `text-xs font-medium uppercase tracking-wide`
-- Document titles: `text-sm font-medium`
-- Secondary info: `text-xs text-muted-foreground`
-
-### Spacing
-- Answer to citations separator: `mt-4 pt-3 border-t`
-- Between citation cards: `gap-2`
-- Card internal padding: `px-3 py-2.5`
-
-## Database Schema Consideration
-
-The `chat_messages` table in external Supabase (Project 1) needs:
-
-```sql
-ALTER TABLE chat_messages 
-ADD COLUMN IF NOT EXISTS citations JSONB DEFAULT NULL,
-ADD COLUMN IF NOT EXISTS retrieved_materials JSONB DEFAULT NULL;
-```
-
-This preserves full citation data for:
-- Displaying past conversations correctly
-- Future analytics (which sources are most helpful)
-- Click-to-view-source features
-
-## Future Extensibility
-
-The design supports:
-1. **Click to view source**: Citation cards can become clickable links
-2. **Page preview modal**: MaterialPreview can trigger a lightbox
-3. **Exam citations**: Same format works for "this is from past exam Q3"
-4. **Similarity filtering**: UI ready for "show only high-confidence sources"
-5. **Cross-reference navigation**: Link directly to Course Mode slides
+This ensures backward compatibility with both field names.
 
 ## Files Changed Summary
 
 | Action | File |
 |--------|------|
-| CREATE | `src/types/chatTypes.ts` |
-| CREATE | `src/utils/citationParser.ts` |
-| CREATE | `src/components/chat/CitationSection.tsx` |
-| CREATE | `src/components/chat/CitationCard.tsx` |
-| CREATE | `src/components/chat/MaterialPreview.tsx` |
-| CREATE | `src/components/chat/NoCitationNotice.tsx` |
-| UPDATE | `src/hooks/useChatHistory.ts` |
-| UPDATE | `src/components/chat/ChatConversation.tsx` |
-| UPDATE | `src/components/ChatMode.tsx` |
-| KEEP   | `src/components/chat/LectureReferences.tsx` (legacy fallback) |
+| UPDATE | `src/types/chatTypes.ts` - Add `excerpt?: string` field |
+| UPDATE | `src/components/chat/CitationCard.tsx` - Add View button + dialog trigger |
+| UPDATE | `src/components/chat/MaterialPreview.tsx` - Support excerpt field |
+| CREATE | `src/components/chat/SourceDetailDialog.tsx` - Full detail modal |
+| UPDATE | `src/utils/citationParser.ts` - Add `getMaterialContent` helper |
