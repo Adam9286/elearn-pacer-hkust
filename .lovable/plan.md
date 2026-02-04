@@ -1,193 +1,162 @@
 
-# Rich Chat Formatting + Citation Restoration Plan
 
-## Problem Summary
+# Fix Citation Display: Show Vector Database Results
 
-From your screenshots, I can see two issues:
+## Problem Analysis
 
-### Issue 1: Empty Citations/Retrieved Materials
-- Screenshot 2 shows the **Supabase Retrieve Lecture Notes** node IS returning data with `pageContent`, `metadata.filename`, `metadata.page_number`, etc.
-- But Screenshot 3 shows **Normalize Agent Output** returns `retrieved_materials: []`
-- This is because the node expects the LLM to include materials in its JSON output, but we removed that requirement for speed
+From your screenshots:
+1. **n8n workflow** clearly shows "12 items total" flowing through the tools, indicating the vector database IS being queried successfully
+2. **Frontend** shows "General Knowledge" notice, meaning `citations` is either empty or contains the fallback message
+3. **Root cause**: The `Extract Tool Results` node cannot find tool outputs because the n8n AI Agent stores them in a different structure than expected
 
-### Issue 2: Plain Text Formatting
-- Current rendering only handles LaTeX math via `RenderMath`
-- No markdown parsing for headers, bullet points, bold, etc.
-- ChatGPT uses rich formatting: headers, bullet points, blockquotes, icons, colored sections
-
----
-
-## Solution Overview
-
-### Part 1: Frontend Rich Formatting (Code Changes)
-
-Create a new `RenderMarkdown` component that parses AI responses into beautiful, structured content like ChatGPT:
-
-**Features:**
-- Headers (`##`, `###`) with colored styling
-- Bullet points and numbered lists with icons
-- Bold and italic text
-- Blockquotes with accent border
-- Code blocks with syntax highlighting
-- Emojis and visual indicators
-- LaTeX math support (integrated with existing KaTeX)
-- Section dividers
-
-### Part 2: n8n Workflow Fix (Manual Steps)
-
-Capture `retrieved_materials` directly from the vector store tool outputs instead of relying on the LLM to include them in its response.
-
----
-
-## Visual Design Reference
-
-Based on your ChatGPT screenshot, the target formatting includes:
+### Data Flow Issue
 
 ```text
-+----------------------------------------------------------+
-| Correct answer:                                           |
-| ✅ This procedure uses a field in the packet header...   |
-+----------------------------------------------------------+
-
-## Why this is correct (step-by-step)
-
-We're asked for something that is **true for flow control** 
-but **not true for congestion control**.
-
-**Flow control (receiver-side protection)**
-- Purpose: prevent the **receiver** from being overwhelmed
-- Mechanism: the receiver **advertises a window size**
-- This value is **explicitly encoded in the packet header**
-- The sender **must not exceed** this advertised window
-
-👍 This matches the correct option exactly.
-
----
-
-## Why the other options are wrong
-
-❌ **Computes a maximum window size using AIMD**
-- AIMD is a **congestion control** mechanism
-- Used by TCP to probe available network capacity
-
-> One-line summary (exam-ready):
-> Flow control uses an advertised window field in the packet
-> header to limit the sender...
+Auto Agent (12 items total)
+       │
+       ▼ output structure: { output: "...", ??? }
+       │
+Extract Tool Results
+       │ Looking for: intermediateSteps or steps
+       │ Finding: NOTHING (wrong key path)
+       │
+       ▼ returns: { answer: "...", retrieved_materials: [] }
+       │
+Build Citations
+       │ materials.length = 0, so:
+       │
+       ▼ returns: { citations: ["- No course materials were retrieved..."] }
+       │
+Frontend: isNoCitationMessage() = TRUE → Shows "General Knowledge"
 ```
 
 ---
 
-## Frontend Implementation
+## Solution: Two-Part Fix
 
-### File 1: Create `src/components/chat/RenderMarkdown.tsx`
+### Part 1: n8n Workflow Fix (Manual Steps)
 
-A new component that:
-1. Parses markdown-like syntax
-2. Renders structured sections with visual styling
-3. Integrates LaTeX math rendering
-4. Uses icons and colors for visual hierarchy
+The n8n AI Agent with `returnIntermediateSteps: true` returns data in a specific format. You need to add a debug node to see the actual structure.
 
-**Parsing Logic:**
-- `##` Headers: Large, colored, with bottom border
-- `**text**` Bold: Semibold weight
-- `- bullet` Lists: With colored bullet icons
-- `> quote` Blockquotes: With accent left border
-- `$math$` LaTeX: Inline/block math via KaTeX
-- Special patterns: 
-  - Checkmarks for correct answers
-  - X marks for incorrect answers
-  - Thumb icons for emphasis
+**Step 1: Add Debug Node**
 
-### File 2: Update `src/components/chat/ChatConversation.tsx`
+Add a Code node right after the Auto Agent, before Extract Tool Results:
 
-Replace `<RenderMath text={message.content} />` with `<RenderMarkdown content={message.content} />`
+```javascript
+// DEBUG: Inspect agent output structure
+const data = $input.first().json;
 
-### File 3: Update `tailwind.config.ts`
+console.log('=== AGENT OUTPUT DEBUG ===');
+console.log('Top-level keys:', Object.keys(data));
 
-Add the typography plugin for proper prose styling:
-```typescript
-plugins: [
-  require("tailwindcss-animate"),
-  require("@tailwindcss/typography")  // Add this
-],
-```
+// Check common locations
+const locations = [
+  'intermediateSteps',
+  'steps',
+  'toolCalls',
+  'actions',
+  'tool_calls',
+  '_intermediateSteps',
+  'data.intermediateSteps'
+];
 
-### File 4: Add chat-specific prose styles in `src/index.css`
-
-Custom styles for chat markdown:
-- Smaller text sizes
-- Compact spacing
-- Theme-aware colors
-- Proper dark mode support
-
----
-
-## Part 2: n8n Workflow Fix (Manual Steps)
-
-The key insight from your screenshots:
-- The **Supabase Retrieve Lecture Notes** node returns:
-  ```json
-  {
-    "type": "text",
-    "text": "{\"pageContent\":\"...\",\"metadata\":{\"source\":\"...\",\"filename\":\"07-Congestion_Control.pdf\",\"page_number\":\"07-\"}}"
+for (const key of Object.keys(data)) {
+  const value = data[key];
+  if (Array.isArray(value)) {
+    console.log(`${key}: Array[${value.length}]`);
+    if (value.length > 0) {
+      console.log(`  First item keys:`, Object.keys(value[0]));
+    }
+  } else if (typeof value === 'object' && value !== null) {
+    console.log(`${key}: Object with keys:`, Object.keys(value));
   }
-  ```
-- This data is NOT being captured by the Normalize Agent Output node
+}
 
-### Option A: Capture Tool Outputs via Agent Steps (Recommended)
+return [{ json: data }];
+```
 
-The n8n AI Agent node exposes tool call outputs. Add a **Code node** between the Agent and Normalize that:
+Run the workflow and check the console output to find where `intermediateSteps` actually lives.
 
-1. Reads from `$json.steps` (agent execution trace)
-2. Extracts tool outputs that look like vector search results
-3. Parses the metadata to build `retrieved_materials`
+**Step 2: Update Extract Tool Results Based on Debug Output**
 
-**New "Extract Tool Results" Node Code:**
+Based on n8n agent documentation, the steps are often directly in the output. Try this updated code:
+
 ```javascript
 const agentOutput = $input.first().json;
 
 // Get the answer text
 const answer = agentOutput.output ?? agentOutput.text ?? '';
 
-// Extract tool call results from agent steps
-const steps = agentOutput.steps || [];
+// n8n may return steps in different locations depending on version
+const steps = 
+  agentOutput.intermediateSteps ||  // Standard location
+  agentOutput.steps ||              // Alternative
+  agentOutput.toolCalls ||          // Some versions
+  (agentOutput.data && agentOutput.data.intermediateSteps) || // Nested
+  [];
+
 const retrieved_materials = [];
 
+console.log('Steps type:', typeof steps);
+console.log('Steps is array:', Array.isArray(steps));
+console.log('Steps length:', Array.isArray(steps) ? steps.length : 'N/A');
+
+// If steps is still empty, check if tool results are inline in the output
+if (steps.length === 0) {
+  // Sometimes n8n embeds tool results directly
+  // Try to extract from the agent's raw response
+  console.log('No steps found, checking for inline results...');
+}
+
 for (const step of steps) {
-  // Check if this step is a tool call
-  if (step.action?.tool === 'lecture_slides_course' || 
-      step.action?.tool === 'Elec3120Textbook') {
+  console.log('Step keys:', Object.keys(step));
+  
+  // n8n uses 'action' for the tool call details
+  const action = step.action || step;
+  const toolName = action.tool || action.name || '';
+  
+  console.log('Tool name:', toolName);
+  
+  // Check if this is a vector store retrieval
+  if (toolName.toLowerCase().includes('lecture') || 
+      toolName.toLowerCase().includes('textbook') || 
+      toolName.toLowerCase().includes('supabase')) {
     
-    const toolOutput = step.observation || '';
+    // Get the observation (tool output)
+    let toolOutput = step.observation || step.result || step.output || '';
     
-    // Parse the tool output (it's usually a JSON string)
+    console.log('Tool output type:', typeof toolOutput);
+    console.log('Tool output preview:', String(toolOutput).substring(0, 200));
+    
     try {
       const parsed = typeof toolOutput === 'string' 
         ? JSON.parse(toolOutput) 
         : toolOutput;
       
-      // Handle array of results
       const results = Array.isArray(parsed) ? parsed : [parsed];
       
       for (const result of results) {
-        const content = result.pageContent || result.text || '';
+        if (!result) continue;
+        
+        const content = result.pageContent || result.text || result.content || '';
         const metadata = result.metadata || {};
         
         retrieved_materials.push({
-          document_title: metadata.filename || metadata.source || 'Unknown',
-          chapter: metadata.chapter || 'Course Material',
-          page_number: metadata.page_number || 'unknown',
-          source: step.action?.tool || 'lecture_slides_course',
-          excerpt: content.substring(0, 500) + '...',
-          similarity: metadata.similarity || null
+          document_title: metadata.filename || metadata.source || 'Course Material',
+          chapter: metadata.chapter || metadata.section || 'Course Material',
+          page_number: metadata.page_number || metadata.page || 'unknown',
+          source: toolName.toLowerCase().includes('textbook') ? 'elec3120_textbook' : 'lecture_slides_course',
+          excerpt: content.length > 500 ? content.substring(0, 500) + '...' : content,
+          similarity: metadata.similarity || metadata.score || null
         });
       }
     } catch (e) {
-      // Skip unparseable results
-      console.log('Could not parse tool output:', e);
+      console.log('Parse error:', e.message);
     }
   }
 }
+
+console.log('Final retrieved_materials count:', retrieved_materials.length);
 
 return [{
   json: {
@@ -197,65 +166,97 @@ return [{
 }];
 ```
 
-### Option B: Simpler - Return Tool Outputs Directly
+**Step 3: Alternative Approach - Capture Tool Outputs Directly**
 
-If Option A is too complex, you can:
-1. Add a "Window Buffer Memory" node to capture tool outputs
-2. Or configure the Supabase vector store nodes to "Return All Results" and merge them
+If the above doesn't work, the most reliable solution is to capture tool outputs **before** they reach the agent. Add a Code node that intercepts the Supabase retrieval results:
 
----
+1. Disconnect the Supabase vector store nodes from the AI Agent
+2. Connect them to a "Capture Results" Code node first
+3. Then connect that node to the Agent
 
-## Files Summary
-
-| Action | File | Purpose |
-|--------|------|---------|
-| CREATE | `src/components/chat/RenderMarkdown.tsx` | Rich markdown renderer with LaTeX |
-| UPDATE | `src/components/chat/ChatConversation.tsx` | Use RenderMarkdown instead of RenderMath |
-| UPDATE | `tailwind.config.ts` | Add typography plugin |
-| UPDATE | `src/index.css` | Add chat prose styles |
+However, this requires restructuring the workflow. The simpler fix is finding where n8n puts `intermediateSteps`.
 
 ---
 
-## n8n Manual Steps Summary
+### Part 2: Frontend Fix (Code Changes)
 
-1. **Add "Extract Tool Results" Code Node** after the AI Agent nodes
-2. Connect it before "Normalize Agent Output" 
-3. Use the code provided above to extract materials from `$json.steps`
-4. Update "Build Citations" to use the extracted materials
+Update the citation display logic to use `retrieved_materials` directly if `citations` is empty/fallback, since the materials may exist even when citations formatting fails.
+
+**File: `src/components/chat/ChatConversation.tsx`**
+
+Change the citation rendering logic (lines 500-509):
+
+**Current:**
+```tsx
+{message.citations && message.citations.length > 0 && (
+  isNoCitationMessage(message.citations) ? (
+    <NoCitationNotice />
+  ) : (
+    <CitationSection ... />
+  )
+)}
+```
+
+**New:**
+```tsx
+{/* Show citations if available */}
+{message.citations && message.citations.length > 0 && !isNoCitationMessage(message.citations) && (
+  <CitationSection
+    citations={message.citations}
+    retrievedMaterials={message.retrieved_materials}
+  />
+)}
+
+{/* Show retrieved materials directly if we have them but citations failed */}
+{(!message.citations || message.citations.length === 0 || isNoCitationMessage(message.citations)) && 
+  message.retrieved_materials && message.retrieved_materials.length > 0 && (
+  <CitationSection
+    citations={message.retrieved_materials.map(m => 
+      `- ${m.document_title || 'Course Material'}, ${m.chapter || ''}, Page ${m.page_number || 'unknown'} (${m.source || 'course'})`
+    )}
+    retrievedMaterials={message.retrieved_materials}
+  />
+)}
+
+{/* Only show General Knowledge if truly no materials */}
+{message.citations && isNoCitationMessage(message.citations) && 
+  (!message.retrieved_materials || message.retrieved_materials.length === 0) && (
+  <NoCitationNotice />
+)}
+```
+
+This change:
+1. Shows `CitationSection` if valid citations exist
+2. Falls back to generating citations from `retrieved_materials` if they exist
+3. Only shows "General Knowledge" if there are truly NO materials
+
+---
+
+## Files to Modify
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/components/chat/ChatConversation.tsx` | UPDATE | Fix citation display logic to use retrieved_materials as fallback |
+
+---
+
+## Summary of Fixes
+
+### n8n (You do manually)
+1. Add debug node after Auto Agent to inspect output structure
+2. Find where `intermediateSteps` actually lives
+3. Update `Extract Tool Results` code to use correct path
+
+### Frontend (I will implement)
+1. Update ChatConversation to build citations from `retrieved_materials` if `citations` is empty
+2. Only show "General Knowledge" when both `citations` AND `retrieved_materials` are truly empty
 
 ---
 
 ## Expected Result
 
-### Before
-```
-Based on the lecture material retrieved, I can analyze the question 
-about what is true about flow control but not true about congestion 
-control.\n \n From the lecture slides:\n \n 1. Flow control is 
-defined as ensuring the window is "less than or equal to the...
-```
+After these fixes:
+- If n8n extracts materials correctly → Citations appear from `citations` array
+- If n8n fails to extract but materials exist → Citations built from `retrieved_materials` 
+- Only shows "General Knowledge" when the agent truly used no course materials
 
-### After
-```
-## Why this is correct (step-by-step)
-
-We're asked for something that is **true for flow control** but 
-**not true for congestion control**.
-
-**Flow control (receiver-side protection)**
-- Purpose: prevent the **receiver** from being overwhelmed
-- Mechanism: the receiver **advertises a window size**
-- This value is **explicitly encoded in the packet header**
-
-👍 This matches the correct option exactly.
-
----
-
-## Why the other options are wrong
-
-❌ **Computes a maximum window size using AIMD**
-- AIMD (Additive Increase, Multiplicative Decrease) is a 
-  **congestion control** mechanism
-```
-
-Plus clickable citations with the full excerpt visible!
