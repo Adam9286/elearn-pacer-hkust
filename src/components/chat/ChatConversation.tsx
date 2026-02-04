@@ -497,20 +497,27 @@ export const ChatConversation = ({
                           ))}
                         </div>
                       )}
-                      {/* NEW: Citation Section - for new backend format */}
-                      {message.citations && message.citations.length > 0 && (
-                        isNoCitationMessage(message.citations) ? (
-                          <NoCitationNotice />
-                        ) : (
-                          <CitationSection
-                            citations={message.citations}
-                            retrievedMaterials={message.retrieved_materials}
-                          />
-                        )
+                      {/* Citation Section - show if valid citations exist */}
+                      {message.citations && message.citations.length > 0 && !isNoCitationMessage(message.citations) && (
+                        <CitationSection
+                          citations={message.citations}
+                          retrievedMaterials={message.retrieved_materials}
+                        />
                       )}
-                      {/* Legacy fallback: old RAG materials format */}
-                      {!message.citations && message.retrieved_materials && message.retrieved_materials.length > 0 && (
-                        <LectureReferences materials={message.retrieved_materials as unknown as LegacyRetrievedMaterial[]} />
+                      {/* Fallback: build citations from retrieved_materials if citations empty/failed */}
+                      {(!message.citations || message.citations.length === 0 || isNoCitationMessage(message.citations)) && 
+                        message.retrieved_materials && message.retrieved_materials.length > 0 && (
+                        <CitationSection
+                          citations={message.retrieved_materials.map(m => 
+                            `- ${m.document_title || 'Course Material'}, ${m.chapter || ''}, Page ${m.page_number || 'unknown'} (${m.source_url || 'course'})`
+                          )}
+                          retrievedMaterials={message.retrieved_materials}
+                        />
+                      )}
+                      {/* Only show General Knowledge if truly no materials */}
+                      {message.citations && isNoCitationMessage(message.citations) && 
+                        (!message.retrieved_materials || message.retrieved_materials.length === 0) && (
+                        <NoCitationNotice />
                       )}
                       {/* Legacy fallback: source string */}
                       {!message.retrieved_materials && !message.citations && message.source && (
