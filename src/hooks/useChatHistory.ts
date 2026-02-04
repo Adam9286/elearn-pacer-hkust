@@ -1,37 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { externalSupabase } from '@/lib/externalSupabase';
+import type { 
+  ChatConversation, 
+  ChatMessage, 
+  RetrievedMaterial 
+} from '@/types/chatTypes';
 
-export interface ChatConversation {
-  id: string;
-  user_id: string;
-  title: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface RetrievedMaterial {
-  lecture_id: string;
-  lecture_title?: string;
-  slide_number: number;
-  slide_text?: string;
-  similarity?: number;
-}
-
-export interface ChatMessage {
-  id: string;
-  conversation_id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  source?: string; // Legacy - kept for backwards compatibility
-  retrieved_materials?: RetrievedMaterial[]; // New RAG-based materials
-  responseTime?: string; // Debug timer - local only, not persisted
-  attachments?: Array<{
-    name: string;
-    url: string;
-    type: string;
-  }>;
-  created_at: string;
-}
+// Re-export types for backwards compatibility
+export type { ChatConversation, ChatMessage, RetrievedMaterial };
 
 export const useChatHistory = (userId: string | null) => {
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -205,6 +181,8 @@ export const useChatHistory = (userId: string | null) => {
           role: message.role,
           content: message.content,
           source: message.source || null,
+          citations: message.citations || null,
+          retrieved_materials: message.retrieved_materials || null,
           attachments: message.attachments || null,
         })
         .select()
