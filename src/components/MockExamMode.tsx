@@ -76,6 +76,13 @@ const MockExamMode = () => {
   const [includeTopics, setIncludeTopics] = useState<string[]>([]);
   const [excludeTopics, setExcludeTopics] = useState<string[]>([]);
 
+  // Calculate selection summary for UI clarity
+  const totalLectures = LECTURE_TOPICS.length;
+  const hasCustomSelection = includeTopics.length > 0 || excludeTopics.length > 0;
+  const effectiveLectures = includeTopics.length > 0 
+    ? includeTopics.length 
+    : totalLectures - excludeTopics.length;
+
   const { toast } = useToast();
 
   // Elapsed time counter during loading (honest, not fake progress)
@@ -506,9 +513,18 @@ const MockExamMode = () => {
 
               {/* Lecture Selection Section */}
               <div className="space-y-3 pt-2 border-t">
-                <h4 className="font-semibold text-sm">Lecture Selection</h4>
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-sm">Lecture Topics</h4>
+                  {!hasCustomSelection && (
+                    <Badge variant="outline" className="text-xs bg-primary/10">
+                      All {totalLectures} lectures included
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  By default, questions come from all lectures. Customize to focus on specific topics.
+                </p>
                 <div>
-                  <Label>Lecture Topics (PDFs)</Label>
                   <div className="space-y-2 mt-2">
                     <Popover>
                       <PopoverTrigger asChild>
@@ -516,9 +532,25 @@ const MockExamMode = () => {
                           variant="outline"
                           role="combobox"
                           disabled={isLoadingQuestions}
-                          className="w-full justify-between"
+                          className={cn(
+                            "w-full justify-between",
+                            !hasCustomSelection && "border-primary/50"
+                          )}
                         >
-                          Select lectures to include/exclude
+                          {hasCustomSelection ? (
+                            <span>
+                              {includeTopics.length > 0 && `${includeTopics.length} included`}
+                              {includeTopics.length > 0 && excludeTopics.length > 0 && ", "}
+                              {excludeTopics.length > 0 && `${excludeTopics.length} excluded`}
+                              <span className="text-muted-foreground ml-1">(click to modify)</span>
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-primary" />
+                              All {totalLectures} lectures
+                              <span className="text-muted-foreground">(click to customize)</span>
+                            </span>
+                          )}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
@@ -567,6 +599,46 @@ const MockExamMode = () => {
                         </Command>
                       </PopoverContent>
                     </Popover>
+
+                    {/* Quick actions */}
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIncludeTopics([...LECTURE_TOPICS]);
+                          setExcludeTopics([]);
+                        }}
+                        disabled={isLoadingQuestions || includeTopics.length === totalLectures}
+                        className="text-xs"
+                      >
+                        Include All
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIncludeTopics([]);
+                          setExcludeTopics([]);
+                        }}
+                        disabled={isLoadingQuestions || !hasCustomSelection}
+                        className="text-xs"
+                      >
+                        Reset to Default
+                      </Button>
+                    </div>
+
+                    {/* Coverage summary when customized */}
+                    {hasCustomSelection && (
+                      <div className="p-3 rounded-lg bg-secondary/50 border">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Target className="h-4 w-4 text-primary" />
+                          <span>
+                            Exam will cover <strong>{effectiveLectures}</strong> of {totalLectures} lectures
+                          </span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Display selected topics as badges */}
                     {includeTopics.length > 0 && (
