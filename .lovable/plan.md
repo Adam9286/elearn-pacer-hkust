@@ -1,262 +1,176 @@
 
+# Improve Mock Exam Lecture Topic Selection Clarity
 
-# Fix Citation Display: Show Vector Database Results
+## Problem
+Students are confused by the lecture selection interface because:
+1. They don't realize that **by default, ALL 15 lectures are included**
+2. The button says "Select lectures to include/exclude" which implies they must manually select each one
+3. There's no visual feedback showing the current coverage status
 
-## Problem Analysis
+## Solution Overview
+Make the default behavior crystal clear with visual indicators and better labeling.
 
-From your screenshots:
-1. **n8n workflow** clearly shows "12 items total" flowing through the tools, indicating the vector database IS being queried successfully
-2. **Frontend** shows "General Knowledge" notice, meaning `citations` is either empty or contains the fallback message
-3. **Root cause**: The `Extract Tool Results` node cannot find tool outputs because the n8n AI Agent stores them in a different structure than expected
+## UI Changes
 
-### Data Flow Issue
+### 1. Add a Clear Default State Indicator
+Show a badge or text that explicitly states "All 15 lectures included" when no specific selection is made.
+
+### 2. Update Button Label
+Change the button text to be dynamic:
+- Default: "All 15 lectures (click to customize)"
+- With selections: "3 included, 2 excluded (click to modify)"
+
+### 3. Add Quick Action Buttons
+Add "Select All" and "Clear All" buttons for faster bulk operations.
+
+### 4. Add Helper Text
+Add a brief explanation below the label: "By default, questions can come from any lecture. Use this to focus on specific topics."
+
+## Visual Design
 
 ```text
-Auto Agent (12 items total)
-       │
-       ▼ output structure: { output: "...", ??? }
-       │
-Extract Tool Results
-       │ Looking for: intermediateSteps or steps
-       │ Finding: NOTHING (wrong key path)
-       │
-       ▼ returns: { answer: "...", retrieved_materials: [] }
-       │
-Build Citations
-       │ materials.length = 0, so:
-       │
-       ▼ returns: { citations: ["- No course materials were retrieved..."] }
-       │
-Frontend: isNoCitationMessage() = TRUE → Shows "General Knowledge"
+BEFORE:
+┌─────────────────────────────────────────┐
+│ Lecture Topics (PDFs)                   │
+│ [Select lectures to include/exclude ▼]  │
+│                                         │
+│ (nothing shown if no selection)         │
+└─────────────────────────────────────────┘
+
+AFTER:
+┌─────────────────────────────────────────┐
+│ Lecture Topics                          │
+│ By default, all 15 lectures are covered │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ ✓ All 15 lectures included          │ │
+│ │              (click to customize) ▼ │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ [Select All] [Clear Selection]          │
+│                                         │
+│ (badges shown only when customized)     │
+└─────────────────────────────────────────┘
 ```
 
----
+## Technical Implementation
 
-## Solution: Two-Part Fix
+### File to Modify
+`src/components/MockExamMode.tsx`
 
-### Part 1: n8n Workflow Fix (Manual Steps)
+### Changes
 
-The n8n AI Agent with `returnIntermediateSteps: true` returns data in a specific format. You need to add a debug node to see the actual structure.
-
-**Step 1: Add Debug Node**
-
-Add a Code node right after the Auto Agent, before Extract Tool Results:
-
-```javascript
-// DEBUG: Inspect agent output structure
-const data = $input.first().json;
-
-console.log('=== AGENT OUTPUT DEBUG ===');
-console.log('Top-level keys:', Object.keys(data));
-
-// Check common locations
-const locations = [
-  'intermediateSteps',
-  'steps',
-  'toolCalls',
-  'actions',
-  'tool_calls',
-  '_intermediateSteps',
-  'data.intermediateSteps'
-];
-
-for (const key of Object.keys(data)) {
-  const value = data[key];
-  if (Array.isArray(value)) {
-    console.log(`${key}: Array[${value.length}]`);
-    if (value.length > 0) {
-      console.log(`  First item keys:`, Object.keys(value[0]));
-    }
-  } else if (typeof value === 'object' && value !== null) {
-    console.log(`${key}: Object with keys:`, Object.keys(value));
-  }
-}
-
-return [{ json: data }];
-```
-
-Run the workflow and check the console output to find where `intermediateSteps` actually lives.
-
-**Step 2: Update Extract Tool Results Based on Debug Output**
-
-Based on n8n agent documentation, the steps are often directly in the output. Try this updated code:
-
-```javascript
-const agentOutput = $input.first().json;
-
-// Get the answer text
-const answer = agentOutput.output ?? agentOutput.text ?? '';
-
-// n8n may return steps in different locations depending on version
-const steps = 
-  agentOutput.intermediateSteps ||  // Standard location
-  agentOutput.steps ||              // Alternative
-  agentOutput.toolCalls ||          // Some versions
-  (agentOutput.data && agentOutput.data.intermediateSteps) || // Nested
-  [];
-
-const retrieved_materials = [];
-
-console.log('Steps type:', typeof steps);
-console.log('Steps is array:', Array.isArray(steps));
-console.log('Steps length:', Array.isArray(steps) ? steps.length : 'N/A');
-
-// If steps is still empty, check if tool results are inline in the output
-if (steps.length === 0) {
-  // Sometimes n8n embeds tool results directly
-  // Try to extract from the agent's raw response
-  console.log('No steps found, checking for inline results...');
-}
-
-for (const step of steps) {
-  console.log('Step keys:', Object.keys(step));
-  
-  // n8n uses 'action' for the tool call details
-  const action = step.action || step;
-  const toolName = action.tool || action.name || '';
-  
-  console.log('Tool name:', toolName);
-  
-  // Check if this is a vector store retrieval
-  if (toolName.toLowerCase().includes('lecture') || 
-      toolName.toLowerCase().includes('textbook') || 
-      toolName.toLowerCase().includes('supabase')) {
-    
-    // Get the observation (tool output)
-    let toolOutput = step.observation || step.result || step.output || '';
-    
-    console.log('Tool output type:', typeof toolOutput);
-    console.log('Tool output preview:', String(toolOutput).substring(0, 200));
-    
-    try {
-      const parsed = typeof toolOutput === 'string' 
-        ? JSON.parse(toolOutput) 
-        : toolOutput;
-      
-      const results = Array.isArray(parsed) ? parsed : [parsed];
-      
-      for (const result of results) {
-        if (!result) continue;
-        
-        const content = result.pageContent || result.text || result.content || '';
-        const metadata = result.metadata || {};
-        
-        retrieved_materials.push({
-          document_title: metadata.filename || metadata.source || 'Course Material',
-          chapter: metadata.chapter || metadata.section || 'Course Material',
-          page_number: metadata.page_number || metadata.page || 'unknown',
-          source: toolName.toLowerCase().includes('textbook') ? 'elec3120_textbook' : 'lecture_slides_course',
-          excerpt: content.length > 500 ? content.substring(0, 500) + '...' : content,
-          similarity: metadata.similarity || metadata.score || null
-        });
-      }
-    } catch (e) {
-      console.log('Parse error:', e.message);
-    }
-  }
-}
-
-console.log('Final retrieved_materials count:', retrieved_materials.length);
-
-return [{
-  json: {
-    answer,
-    retrieved_materials
-  }
-}];
-```
-
-**Step 3: Alternative Approach - Capture Tool Outputs Directly**
-
-If the above doesn't work, the most reliable solution is to capture tool outputs **before** they reach the agent. Add a Code node that intercepts the Supabase retrieval results:
-
-1. Disconnect the Supabase vector store nodes from the AI Agent
-2. Connect them to a "Capture Results" Code node first
-3. Then connect that node to the Agent
-
-However, this requires restructuring the workflow. The simpler fix is finding where n8n puts `intermediateSteps`.
-
----
-
-### Part 2: Frontend Fix (Code Changes)
-
-Update the citation display logic to use `retrieved_materials` directly if `citations` is empty/fallback, since the materials may exist even when citations formatting fails.
-
-**File: `src/components/chat/ChatConversation.tsx`**
-
-Change the citation rendering logic (lines 500-509):
-
-**Current:**
+**1. Add helper variables for display logic (around line 78):**
 ```tsx
-{message.citations && message.citations.length > 0 && (
-  isNoCitationMessage(message.citations) ? (
-    <NoCitationNotice />
+// Calculate selection summary
+const totalLectures = LECTURE_TOPICS.length; // 15
+const hasCustomSelection = includeTopics.length > 0 || excludeTopics.length > 0;
+const effectiveLectures = includeTopics.length > 0 
+  ? includeTopics.length 
+  : totalLectures - excludeTopics.length;
+```
+
+**2. Update the Label section (around line 510-511):**
+```tsx
+<div className="flex items-center justify-between">
+  <Label>Lecture Topics</Label>
+  {!hasCustomSelection && (
+    <Badge variant="outline" className="text-xs bg-primary/10">
+      All {totalLectures} lectures included
+    </Badge>
+  )}
+</div>
+<p className="text-xs text-muted-foreground mt-1">
+  By default, questions come from all lectures. Customize to focus on specific topics.
+</p>
+```
+
+**3. Update the Popover button text (around line 515-522):**
+```tsx
+<Button
+  variant="outline"
+  role="combobox"
+  disabled={isLoadingQuestions}
+  className={cn(
+    "w-full justify-between",
+    !hasCustomSelection && "border-primary/50"
+  )}
+>
+  {hasCustomSelection ? (
+    <span>
+      {includeTopics.length > 0 && `${includeTopics.length} included`}
+      {includeTopics.length > 0 && excludeTopics.length > 0 && ", "}
+      {excludeTopics.length > 0 && `${excludeTopics.length} excluded`}
+      <span className="text-muted-foreground ml-1">(click to modify)</span>
+    </span>
   ) : (
-    <CitationSection ... />
-  )
-)}
+    <span className="flex items-center gap-2">
+      <Check className="h-4 w-4 text-primary" />
+      All {totalLectures} lectures
+      <span className="text-muted-foreground">(click to customize)</span>
+    </span>
+  )}
+  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+</Button>
 ```
 
-**New:**
+**4. Add Quick Action buttons after the Popover (before the badges display):**
 ```tsx
-{/* Show citations if available */}
-{message.citations && message.citations.length > 0 && !isNoCitationMessage(message.citations) && (
-  <CitationSection
-    citations={message.citations}
-    retrievedMaterials={message.retrieved_materials}
-  />
-)}
+{/* Quick actions */}
+<div className="flex gap-2">
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={() => {
+      setIncludeTopics([...LECTURE_TOPICS]);
+      setExcludeTopics([]);
+    }}
+    disabled={isLoadingQuestions || includeTopics.length === totalLectures}
+    className="text-xs"
+  >
+    Include All
+  </Button>
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={() => {
+      setIncludeTopics([]);
+      setExcludeTopics([]);
+    }}
+    disabled={isLoadingQuestions || !hasCustomSelection}
+    className="text-xs"
+  >
+    Reset to Default
+  </Button>
+</div>
+```
 
-{/* Show retrieved materials directly if we have them but citations failed */}
-{(!message.citations || message.citations.length === 0 || isNoCitationMessage(message.citations)) && 
-  message.retrieved_materials && message.retrieved_materials.length > 0 && (
-  <CitationSection
-    citations={message.retrieved_materials.map(m => 
-      `- ${m.document_title || 'Course Material'}, ${m.chapter || ''}, Page ${m.page_number || 'unknown'} (${m.source || 'course'})`
-    )}
-    retrievedMaterials={message.retrieved_materials}
-  />
-)}
-
-{/* Only show General Knowledge if truly no materials */}
-{message.citations && isNoCitationMessage(message.citations) && 
-  (!message.retrieved_materials || message.retrieved_materials.length === 0) && (
-  <NoCitationNotice />
+**5. Update the selected topics display section (around line 571-610):**
+Add a visual summary when customized:
+```tsx
+{hasCustomSelection && (
+  <div className="p-3 rounded-lg bg-secondary/50 border">
+    <div className="flex items-center gap-2 text-sm">
+      <Target className="h-4 w-4 text-primary" />
+      <span>
+        Exam will cover <strong>{effectiveLectures}</strong> of {totalLectures} lectures
+      </span>
+    </div>
+  </div>
 )}
 ```
 
-This change:
-1. Shows `CitationSection` if valid citations exist
-2. Falls back to generating citations from `retrieved_materials` if they exist
-3. Only shows "General Knowledge" if there are truly NO materials
+## Summary of User Experience Improvements
 
----
+| Before | After |
+|--------|-------|
+| Unclear default state | "All 15 lectures included" badge shown by default |
+| Confusing button text | Dynamic text showing current selection state |
+| No way to quickly reset | "Reset to Default" button available |
+| Must click each lecture | "Include All" for bulk selection |
+| No coverage summary | Shows "X of 15 lectures" when customized |
 
-## Files to Modify
-
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/chat/ChatConversation.tsx` | UPDATE | Fix citation display logic to use retrieved_materials as fallback |
-
----
-
-## Summary of Fixes
-
-### n8n (You do manually)
-1. Add debug node after Auto Agent to inspect output structure
-2. Find where `intermediateSteps` actually lives
-3. Update `Extract Tool Results` code to use correct path
-
-### Frontend (I will implement)
-1. Update ChatConversation to build citations from `retrieved_materials` if `citations` is empty
-2. Only show "General Knowledge" when both `citations` AND `retrieved_materials` are truly empty
-
----
-
-## Expected Result
-
-After these fixes:
-- If n8n extracts materials correctly → Citations appear from `citations` array
-- If n8n fails to extract but materials exist → Citations built from `retrieved_materials` 
-- Only shows "General Knowledge" when the agent truly used no course materials
-
+This makes it immediately clear that:
+- By default, the exam covers ALL lectures (no action needed for full coverage)
+- Users only need to customize if they want to focus on specific topics
+- The current selection state is always visible
