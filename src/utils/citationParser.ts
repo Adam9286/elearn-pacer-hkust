@@ -128,6 +128,53 @@ export function truncateText(text: string, maxLength: number = 150): string {
  * Get the content from a retrieved material, normalizing between 'excerpt' and 'content' fields
  * n8n returns 'excerpt', but older code may use 'content'
  */
-export function getMaterialContent(material: RetrievedMaterial): string {
+export function getMaterialContent(material: RetrievedMaterial | null | undefined): string {
+  if (!material) return '';
   return material.excerpt || material.content || '';
+}
+
+/**
+ * Check if content looks like valid readable text (not JSON or metadata)
+ */
+export function isValidQuote(content: string): boolean {
+  if (!content || content.trim().length === 0) return false;
+  
+  // Reject if it looks like JSON
+  const trimmed = content.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) return false;
+  if (trimmed.includes('"pageContent"') || trimmed.includes('"metadata"')) return false;
+  if (trimmed.includes('"source":') || trimmed.includes('"has_ocr"')) return false;
+  
+  // Reject if too short (less than 20 chars of actual content)
+  if (trimmed.length < 20) return false;
+  
+  return true;
+}
+
+/**
+ * Format lecture name from document title or material metadata
+ * "10-IP.pdf" -> "Lecture 10: IP"
+ * "Course Material" -> Try to extract from source_url
+ */
+export function formatLectureName(docTitle: string, material?: RetrievedMaterial | null): string {
+  // If generic title, try to extract from material filename
+  if (!docTitle || docTitle === 'Course Material' || docTitle === 'Unknown Source') {
+    const filename = material?.source_url || '';
+    const lectureMatch = filename.match(/(\d+)-([^.]+)/);
+    if (lectureMatch) {
+      return `Lecture ${parseInt(lectureMatch[1])}: ${lectureMatch[2].replace(/_/g, ' ')}`;
+    }
+  }
+  
+  // Check if it's already formatted with lecture
+  if (docTitle.toLowerCase().includes('lecture')) {
+    return docTitle;
+  }
+  
+  // Check for textbook
+  if (docTitle.toLowerCase().includes('textbook')) {
+    return 'Textbook';
+  }
+  
+  return docTitle;
 }
