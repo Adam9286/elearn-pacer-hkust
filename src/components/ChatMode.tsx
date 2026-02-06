@@ -174,6 +174,11 @@ const ChatMode = () => {
       
       clearTimeout(timeoutId);
 
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
       const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
       
@@ -205,12 +210,28 @@ const ChatMode = () => {
       // Determine error message based on error type
       const isTimeout = error instanceof Error && error.name === 'AbortError';
       const isNetworkError = error instanceof TypeError && (error as TypeError).message === 'Failed to fetch';
+      const isHttpError = error instanceof Error && error.message.startsWith('HTTP');
       const timeoutSecs = chatMode === 'quick' ? 30 : 120;
-      const errorContent = isTimeout
-        ? `The request timed out after ${timeoutSecs} seconds. The AI is experiencing high load. Please try again with a simpler question or try again later.`
-        : isNetworkError
-        ? "Could not connect to the AI server. This may be a network or CORS issue. Please check your connection and try again."
-        : "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.";
+      
+      let errorContent: string;
+      if (isTimeout) {
+        errorContent = `The request timed out after ${timeoutSecs} seconds. The AI is experiencing high load. Please try again with a simpler question or try again later.`;
+      } else if (isHttpError) {
+        // Extract status code from error message
+        const statusMatch = error.message.match(/HTTP (\d+)/);
+        const statusCode = statusMatch ? statusMatch[1] : 'unknown';
+        if (statusCode === '404') {
+          errorContent = "The AI service endpoint was not found. Please check your webhook configuration.";
+        } else if (statusCode === '500' || statusCode === '502' || statusCode === '503') {
+          errorContent = "The AI server is experiencing issues. Please try again in a few moments.";
+        } else {
+          errorContent = `Server error (${statusCode}). Please try again or contact support if the issue persists.`;
+        }
+      } else if (isNetworkError) {
+        errorContent = "Could not connect to the AI server. This may be a network or CORS issue. Please check your connection and try again.";
+      } else {
+        errorContent = "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.";
+      }
       
       // Save error message
       const errorMessage = await saveMessage(conversationId, {

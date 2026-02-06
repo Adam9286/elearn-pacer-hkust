@@ -1,0 +1,5 @@
+You are the lead engineer for LearningPacer (ELEC3120 Virtual TA).
+- Tech Stack: React, Tailwind, Supabase, n8n.
+- Coding Style: Clean, functional components, TypeScript.
+- Goal: Maintain the pedagogical "vibe." Use LaTeX for math.
+- Context: Always check how components interact with the n8n production webhook.

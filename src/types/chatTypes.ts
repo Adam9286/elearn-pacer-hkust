@@ -10,11 +10,15 @@ export interface ParsedCitation {
 
 export interface RetrievedMaterial {
   content: string;
-  excerpt?: string;           // NEW - n8n returns excerpt, normalize with getMaterialContent()
+  excerpt?: string;           // n8n may return excerpt, normalize with getMaterialContent()
   page_number?: number;
+  slide_number?: number;      // For lecture_slides_course
+  lecture_id?: string;        // For lecture_slides_course
+  lecture_title?: string;     // For lecture_slides_course
   chapter?: string;
   document_title: string;
-  source_url: string;
+  source_type?: string;       // "Textbook" or "Lecture Slides"
+  source_url?: string;        // Optional; n8n may not send it
   similarity?: number;
 }
 

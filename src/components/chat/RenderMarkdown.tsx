@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { InlineMath, BlockMath } from 'react-katex';
-import { Check, X, ThumbsUp, AlertCircle } from 'lucide-react';
+import { Check, X, ThumbsUp, AlertCircle, Lightbulb } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface RenderMarkdownProps {
   content: string;
@@ -85,6 +86,12 @@ const parseInline = (text: string, keyPrefix: string): ReactNode[] => {
   return elements.length > 0 ? elements : [<span key={`${keyPrefix}-plain`}>{text}</span>];
 };
 
+// Check if a line is an analogy (starts with analogy phrases)
+const isAnalogy = (text: string): boolean => {
+  const analogyPatterns = /^(Like|Think of|Imagine|Similar to|As if|Picture|Consider|Visualize)/i;
+  return analogyPatterns.test(text.trim());
+};
+
 // Render special indicators (checkmarks, x marks, thumbs up, etc.)
 const renderIndicator = (line: string, key: string): ReactNode | null => {
   const trimmed = line.trim();
@@ -92,7 +99,7 @@ const renderIndicator = (line: string, key: string): ReactNode | null => {
   // ✅ or ✓ - Correct answer indicator
   if (trimmed.startsWith('✅') || trimmed.startsWith('✓')) {
     return (
-      <div key={key} className="flex items-start gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 my-2">
+      <div key={key} className="flex items-start gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 my-4">
         <Check className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
         <span className="text-foreground font-medium">
           {parseInline(trimmed.replace(/^[✅✓]\s*/, ''), key)}
@@ -104,7 +111,7 @@ const renderIndicator = (line: string, key: string): ReactNode | null => {
   // ❌ or ✗ - Incorrect answer indicator
   if (trimmed.startsWith('❌') || trimmed.startsWith('✗')) {
     return (
-      <div key={key} className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 my-2">
+      <div key={key} className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 my-4">
         <X className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
         <span className="text-foreground">
           {parseInline(trimmed.replace(/^[❌✗]\s*/, ''), key)}
@@ -116,7 +123,7 @@ const renderIndicator = (line: string, key: string): ReactNode | null => {
   // 👍 - Emphasis/confirmation
   if (trimmed.startsWith('👍')) {
     return (
-      <div key={key} className="flex items-start gap-2 p-2 rounded-lg bg-primary/10 my-2">
+      <div key={key} className="flex items-start gap-2 p-2 rounded-lg bg-primary/10 my-4">
         <ThumbsUp className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
         <span className="text-foreground text-sm">
           {parseInline(trimmed.replace(/^👍\s*/, ''), key)}
@@ -128,7 +135,7 @@ const renderIndicator = (line: string, key: string): ReactNode | null => {
   // ⚠️ - Warning
   if (trimmed.startsWith('⚠️') || trimmed.startsWith('⚠')) {
     return (
-      <div key={key} className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 my-2">
+      <div key={key} className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 my-4">
         <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
         <span className="text-foreground text-sm">
           {parseInline(trimmed.replace(/^[⚠️⚠]\s*/, ''), key)}
@@ -138,6 +145,78 @@ const renderIndicator = (line: string, key: string): ReactNode | null => {
   }
   
   return null;
+};
+
+// Parse markdown table
+const parseTable = (lines: string[], startIndex: number): { table: ReactNode; endIndex: number } | null => {
+  if (startIndex >= lines.length) return null;
+  
+  const headerLine = lines[startIndex].trim();
+  if (!headerLine.startsWith('|') || !headerLine.endsWith('|')) return null;
+  
+  // Parse header row
+  const headers = headerLine
+    .split('|')
+    .map(h => h.trim())
+    .filter(h => h.length > 0);
+  
+  if (headers.length === 0) return null;
+  
+  // Check for separator row
+  if (startIndex + 1 >= lines.length) return null;
+  const separatorLine = lines[startIndex + 1].trim();
+  if (!separatorLine.startsWith('|') || !separatorLine.match(/^\|[\s\-:]+\|/)) return null;
+  
+  // Parse data rows
+  const rows: string[][] = [];
+  let rowIndex = startIndex + 2;
+  
+  while (rowIndex < lines.length) {
+    const rowLine = lines[rowIndex].trim();
+    if (!rowLine.startsWith('|') || !rowLine.endsWith('|')) break;
+    
+    const cells = rowLine
+      .split('|')
+      .map(c => c.trim())
+      .filter((c, idx) => idx > 0 && idx < rowLine.split('|').length - 1); // Skip empty first/last
+    
+    if (cells.length === headers.length) {
+      rows.push(cells);
+    }
+    rowIndex++;
+  }
+  
+  if (rows.length === 0) return null;
+  
+  // Render table
+  const table = (
+    <div key={`table-${startIndex}`} className="my-4 overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {headers.map((header, idx) => (
+              <TableHead key={idx} className="font-semibold">
+                {parseInline(header, `table-header-${startIndex}-${idx}`)}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row, rowIdx) => (
+            <TableRow key={rowIdx}>
+              {row.map((cell, cellIdx) => (
+                <TableCell key={cellIdx}>
+                  {parseInline(cell, `table-cell-${startIndex}-${rowIdx}-${cellIdx}`)}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+  
+  return { table, endIndex: rowIndex };
 };
 
 export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
@@ -195,7 +274,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       elements.push(
         <h3
           key={`h3-${i}`}
-          className="text-base font-semibold text-foreground mt-4 mb-2"
+          className="text-base font-semibold text-foreground mt-5 mb-3"
         >
           {parseInline(trimmed.slice(3).trim(), `h3-${i}`)}
         </h3>
@@ -208,7 +287,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       elements.push(
         <h2
           key={`h2-${i}`}
-          className="text-lg font-semibold text-primary mt-5 mb-2 pb-1 border-b border-primary/20"
+          className="text-lg font-semibold text-primary mt-6 mb-3 pb-2 border-b border-primary/20"
         >
           {parseInline(trimmed.slice(2).trim(), `h2-${i}`)}
         </h2>
@@ -220,7 +299,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
     // Horizontal rule: ---
     if (trimmed === '---' || trimmed === '***' || trimmed === '___') {
       elements.push(
-        <hr key={`hr-${i}`} className="my-4 border-border/50" />
+        <hr key={`hr-${i}`} className="my-6 border-border/50" />
       );
       i++;
       continue;
@@ -236,7 +315,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       elements.push(
         <blockquote
           key={`quote-${i}`}
-          className="border-l-4 border-primary/40 pl-4 py-2 my-3 bg-muted/30 rounded-r-lg italic text-muted-foreground"
+          className="border-l-4 border-primary/40 pl-4 py-2 my-4 bg-muted/30 rounded-r-lg italic text-muted-foreground"
         >
           {quoteLines.map((ql, qi) => (
             <p key={qi} className="my-1">
@@ -256,6 +335,14 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       continue;
     }
     
+    // Markdown table: | col1 | col2 |
+    const tableResult = parseTable(lines, i);
+    if (tableResult) {
+      elements.push(tableResult.table);
+      i = tableResult.endIndex;
+      continue;
+    }
+    
     // Unordered list: - item or * item
     if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
       const listItems: string[] = [];
@@ -267,7 +354,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
         i++;
       }
       elements.push(
-        <ul key={`ul-${i}`} className="my-2 space-y-1.5 pl-1">
+        <ul key={`ul-${i}`} className="my-4 space-y-2 pl-1">
           {listItems.map((item, idx) => (
             <li key={idx} className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
@@ -287,7 +374,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
         i++;
       }
       elements.push(
-        <ol key={`ol-${i}`} className="my-2 space-y-1.5 pl-1">
+        <ol key={`ol-${i}`} className="my-4 space-y-2 pl-1">
           {listItems.map((item, idx) => (
             <li key={idx} className="flex items-start gap-2">
               <span className="text-primary font-medium text-sm mt-0.5 flex-shrink-0 w-5">
@@ -314,7 +401,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       elements.push(
         <pre
           key={`code-block-${i}`}
-          className="my-3 p-3 rounded-lg bg-muted overflow-x-auto"
+          className="my-4 p-3 rounded-lg bg-muted overflow-x-auto"
         >
           <code className="text-sm font-mono text-foreground">
             {codeLines.join('\n')}
@@ -324,14 +411,31 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       continue;
     }
     
+    // Analogy detection and highlighting
+    if (isAnalogy(trimmed)) {
+      elements.push(
+        <div
+          key={`analogy-${i}`}
+          className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 my-4"
+        >
+          <Lightbulb className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+          <p className="text-foreground leading-relaxed">
+            {parseInline(trimmed, `analogy-${i}`)}
+          </p>
+        </div>
+      );
+      i++;
+      continue;
+    }
+    
     // Regular paragraph
     elements.push(
-      <p key={`p-${i}`} className="my-2 text-foreground leading-relaxed">
+      <p key={`p-${i}`} className="my-3 text-foreground leading-relaxed">
         {parseInline(trimmed, `p-${i}`)}
       </p>
     );
     i++;
   }
   
-  return <div className="chat-markdown space-y-1">{elements}</div>;
+  return <div className="chat-markdown space-y-3">{elements}</div>;
 };

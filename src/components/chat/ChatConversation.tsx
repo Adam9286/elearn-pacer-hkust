@@ -332,6 +332,11 @@ export const ChatConversation = ({
         setLocalLoadingStage('Generating response');
         setEstimatedTime(5);
 
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => 'Unknown error');
+          throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
         const data = await response.json();
 
         setLocalLoadingProgress(90);
@@ -366,13 +371,35 @@ export const ChatConversation = ({
         });
       } catch (error) {
         console.error('Error calling n8n webhook:', error);
+        
+        // Determine error message based on error type
+        const isHttpError = error instanceof Error && error.message.startsWith('HTTP');
+        const isNetworkError = error instanceof TypeError && (error as TypeError).message === 'Failed to fetch';
+        
+        let errorContent: string;
+        if (isHttpError) {
+          // Extract status code from error message
+          const statusMatch = error.message.match(/HTTP (\d+)/);
+          const statusCode = statusMatch ? statusMatch[1] : 'unknown';
+          if (statusCode === '404') {
+            errorContent = "The AI service endpoint was not found. Please check your webhook configuration.";
+          } else if (statusCode === '500' || statusCode === '502' || statusCode === '503') {
+            errorContent = "The AI server is experiencing issues. Please try again in a few moments.";
+          } else {
+            errorContent = `Server error (${statusCode}). Please try again or contact support if the issue persists.`;
+          }
+        } else if (isNetworkError) {
+          errorContent = "Could not connect to the AI server. This may be a network or CORS issue. Please check your connection and try again.";
+        } else {
+          errorContent = "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.";
+        }
+        
         setLocalMessages((prev) => {
           const withoutLoading = prev.filter((msg) => msg.id !== loadingMessage.id);
           const errorMessage: LocalMessage = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content:
-              "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.",
+            content: errorContent,
           };
           return [...withoutLoading, errorMessage];
         });
@@ -509,9 +536,7 @@ export const ChatConversation = ({
                       {(!message.citations || message.citations.length === 0 || isNoCitationMessage(message.citations)) && 
                         message.retrieved_materials && message.retrieved_materials.length > 0 && (
                         <CitationSection
-                          citations={message.retrieved_materials.map(m => 
-                            `- ${m.document_title || 'Course Material'}, ${m.chapter || ''}, Page ${m.page_number || 'unknown'} (${m.source_url || 'course'})`
-                          )}
+                          citations={message.retrieved_materials.map(m => m.document_title || 'Course Material')}
                           retrievedMaterials={message.retrieved_materials}
                         />
                       )}

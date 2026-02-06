@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { RetrievedMaterial } from '@/types/chatTypes';
-import { parseCitation, matchMaterialToCitation, isNoCitationMessage } from '@/utils/citationParser';
+import { parseCitation, matchMaterialToCitation, isNoCitationMessage, buildCitationFromMaterial } from '@/utils/citationParser';
 import { CitationCard } from './CitationCard';
 
 interface CitationSectionProps {
@@ -15,13 +15,51 @@ interface CitationSectionProps {
 export const CitationSection = ({ citations, retrievedMaterials = [] }: CitationSectionProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Don't render if no citations or if it's a "no materials" message
-  if (!citations || citations.length === 0 || isNoCitationMessage(citations)) {
+  // Normalize: API may send string[] or mixed (e.g. objects); only use strings for parsing
+  const citationStrings = Array.isArray(citations)
+    ? citations.filter((c): c is string => typeof c === 'string')
+    : [];
+
+  const hasCitations = citationStrings.length > 0 && !isNoCitationMessage(citationStrings);
+
+  // Parse citation strings and match to materials
+  const parsedCitations = hasCitations
+    ? citationStrings.map((raw) => {
+        const parsed = parseCitation(raw);
+        const material = matchMaterialToCitation(parsed, retrievedMaterials);
+        return { parsed, material };
+      })
+    : [];
+
+  // Find materials that weren't matched to any citation string
+  const matchedMaterialIds = new Set(
+    parsedCitations
+      .filter(c => c.material)
+      .map(c => {
+        const m = c.material!;
+        return `${m.document_title || ''}-${m.page_number ?? ''}-${m.slide_number ?? ''}`;
+      })
+  );
+
+  const unmatchedMaterials = (retrievedMaterials || []).filter(m => {
+    if (!m || !m.document_title) return false;
+    const key = `${m.document_title}-${m.page_number ?? ''}-${m.slide_number ?? ''}`;
+    return !matchedMaterialIds.has(key);
+  });
+
+  // Build citation cards for unmatched materials (they have full data, just no citation string)
+  const unmatchedCards = unmatchedMaterials.map(m => ({
+    parsed: buildCitationFromMaterial(m),
+    material: m,
+  }));
+
+  // Combine: parsed citations first, then unmatched materials
+  const allCards = [...parsedCitations, ...unmatchedCards];
+
+  // Don't render if nothing to show
+  if (allCards.length === 0) {
     return null;
   }
-
-  // Parse all citations
-  const parsedCitations = citations.map(raw => parseCitation(raw));
 
   return (
     <div className="mt-4 pt-3 border-t border-border/30">
@@ -33,7 +71,7 @@ export const CitationSection = ({ citations, retrievedMaterials = [] }: Citation
             variant="secondary" 
             className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-0"
           >
-            {parsedCitations.length}
+            {allCards.length}
           </Badge>
           <ChevronDown 
             className={cn(
@@ -44,17 +82,13 @@ export const CitationSection = ({ citations, retrievedMaterials = [] }: Citation
         </CollapsibleTrigger>
         
         <CollapsibleContent className="mt-3 space-y-2">
-          {parsedCitations.map((citation, index) => {
-            const matchedMaterial = matchMaterialToCitation(citation, retrievedMaterials);
-            
-            return (
-              <CitationCard 
-                key={`${citation.documentTitle}-${citation.pageNumber || citation.slideNumber || index}`}
-                citation={citation}
-                material={matchedMaterial}
-              />
-            );
-          })}
+          {allCards.map((card, index) => (
+            <CitationCard 
+              key={`${card.parsed.documentTitle}-${card.parsed.pageNumber || card.parsed.slideNumber || index}`}
+              citation={card.parsed}
+              material={card.material}
+            />
+          ))}
         </CollapsibleContent>
       </Collapsible>
     </div>
