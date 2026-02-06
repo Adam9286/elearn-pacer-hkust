@@ -5,7 +5,7 @@ import { useChatHistory } from '@/hooks/useChatHistory';
 import type { ChatMessage } from '@/types/chatTypes';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
-import { WEBHOOKS } from '@/constants/api';
+import { WEBHOOKS, TIMEOUTS } from '@/constants/api';
 import type { ChatWorkflowMode } from '@/components/chat/DeepThinkToggle';
 import { uploadAttachments } from '@/services/attachmentService';
 
@@ -153,7 +153,8 @@ const ChatMode = () => {
     // Call n8n webhook for AI response with timeout
     const startTime = Date.now();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
+    const timeoutMs = chatMode === 'quick' ? 30000 : TIMEOUTS.CHAT; // 30s quick, 120s agent
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
       const webhookUrl = chatMode === 'quick' ? WEBHOOKS.CHAT_QUICK : WEBHOOKS.CHAT_RESEARCH;
@@ -203,8 +204,12 @@ const ChatMode = () => {
       
       // Determine error message based on error type
       const isTimeout = error instanceof Error && error.name === 'AbortError';
+      const isNetworkError = error instanceof TypeError && (error as TypeError).message === 'Failed to fetch';
+      const timeoutSecs = chatMode === 'quick' ? 30 : 120;
       const errorContent = isTimeout
-        ? "The request timed out after 90 seconds. The AI is experiencing high load. Please try again with a simpler question or try again later."
+        ? `The request timed out after ${timeoutSecs} seconds. The AI is experiencing high load. Please try again with a simpler question or try again later.`
+        : isNetworkError
+        ? "Could not connect to the AI server. This may be a network or CORS issue. Please check your connection and try again."
         : "Hmm, I couldn't retrieve a course-specific answer right now. Please try rephrasing your question or check back later.";
       
       // Save error message
