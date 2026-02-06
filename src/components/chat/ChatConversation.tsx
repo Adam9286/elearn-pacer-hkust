@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { DeepThinkToggle } from './DeepThinkToggle';
+import { DeepThinkToggle, type ChatWorkflowMode } from './DeepThinkToggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,8 +44,8 @@ interface ChatConversationProps {
   isLoadingMessages: boolean;
   isAuthenticated: boolean;
   isWaitingForAI?: boolean;
-  deepThinkMode?: boolean;
-  onToggleDeepThink?: (enabled: boolean) => void;
+  chatMode?: ChatWorkflowMode;
+  onChatModeChange?: (mode: ChatWorkflowMode) => void;
   onSendMessage: (
     content: string,
     attachments: File[]
@@ -64,8 +64,8 @@ export const ChatConversation = ({
   isLoadingMessages,
   isAuthenticated,
   isWaitingForAI = false,
-  deepThinkMode = false,
-  onToggleDeepThink,
+  chatMode = 'quick',
+  onChatModeChange,
   onSendMessage,
 }: ChatConversationProps) => {
   const { toast } = useToast();
@@ -314,7 +314,8 @@ export const ChatConversation = ({
         setLocalLoadingStage('Searching course materials');
         setEstimatedTime(10);
 
-        const response = await fetch(WEBHOOKS.CHAT, {
+        const webhookUrl = chatMode === 'research' ? WEBHOOKS.CHAT_RESEARCH : WEBHOOKS.CHAT_QUICK;
+        const response = await fetch(webhookUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -323,7 +324,7 @@ export const ChatConversation = ({
             query: userInput,
             sessionId: `session_${Date.now()}`,
             attachments: uploadedUrls,
-            mode: deepThinkMode ? 'deepthink' : 'auto',
+            mode: chatMode,
           }),
         });
 
@@ -548,11 +549,11 @@ export const ChatConversation = ({
 
           {/* Input Area */}
           <div className="p-4 border-t bg-background/50 space-y-3">
-            {/* DeepThink Toggle */}
-            {onToggleDeepThink && (
+            {/* Chat Mode Toggle */}
+            {onChatModeChange && (
               <DeepThinkToggle
-                enabled={deepThinkMode}
-                onToggle={onToggleDeepThink}
+                mode={chatMode}
+                onModeChange={onChatModeChange}
                 disabled={activeIsWaitingForAI}
               />
             )}

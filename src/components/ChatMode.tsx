@@ -6,6 +6,7 @@ import type { ChatMessage } from '@/types/chatTypes';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
 import { WEBHOOKS } from '@/constants/api';
+import type { ChatWorkflowMode } from '@/components/chat/DeepThinkToggle';
 import { uploadAttachments } from '@/services/attachmentService';
 
 const ChatMode = () => {
@@ -13,7 +14,7 @@ const ChatMode = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [deepThinkMode, setDeepThinkMode] = useState(false);
+  const [chatMode, setChatMode] = useState<ChatWorkflowMode>('quick');
   
   const sessionId = useMemo(
     () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -155,7 +156,8 @@ const ChatMode = () => {
     const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
 
     try {
-      const response = await fetch(WEBHOOKS.CHAT, {
+      const webhookUrl = chatMode === 'research' ? WEBHOOKS.CHAT_RESEARCH : WEBHOOKS.CHAT_QUICK;
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -164,7 +166,7 @@ const ChatMode = () => {
           query: content,
           sessionId,
           attachments: uploadedUrls,
-          mode: deepThinkMode ? 'deepthink' : 'auto',
+          mode: chatMode,
         }),
         signal: controller.signal,
       });
@@ -256,8 +258,8 @@ const ChatMode = () => {
           isLoadingMessages={isLoadingMessages}
           isAuthenticated={isAuthenticated}
           isWaitingForAI={isWaitingForAI}
-          deepThinkMode={deepThinkMode}
-          onToggleDeepThink={setDeepThinkMode}
+          chatMode={chatMode}
+          onChatModeChange={setChatMode}
           onSendMessage={handleSendMessage}
         />
       </div>

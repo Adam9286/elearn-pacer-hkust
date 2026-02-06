@@ -1,4 +1,4 @@
-import { Brain, Zap } from 'lucide-react';
+import { Zap, Search } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -7,62 +7,58 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+export type ChatWorkflowMode = 'quick' | 'research';
+
 interface DeepThinkToggleProps {
-  enabled: boolean;
-  onToggle: (enabled: boolean) => void;
+  mode: ChatWorkflowMode;
+  onModeChange: (mode: ChatWorkflowMode) => void;
   disabled?: boolean;
 }
 
 export const DeepThinkToggle = ({
-  enabled,
-  onToggle,
+  mode,
+  onModeChange,
   disabled = false,
 }: DeepThinkToggleProps) => {
-  const mode = enabled ? 'deepthink' : 'auto';
-
-  const handleModeChange = (newMode: string) => {
-    onToggle(newMode === 'deepthink');
-  };
-
   return (
-    <Select value={mode} onValueChange={handleModeChange} disabled={disabled}>
+    <Select value={mode} onValueChange={(v) => onModeChange(v as ChatWorkflowMode)} disabled={disabled}>
       <SelectTrigger 
-        className={`w-[140px] h-8 text-sm border-border/50 bg-background/50 hover:bg-background/80 transition-colors ${
+        className={`w-[160px] h-8 text-sm border-border/50 bg-background/50 hover:bg-background/80 transition-colors ${
           disabled ? 'opacity-50 cursor-not-allowed' : ''
         }`}
       >
         <SelectValue>
           <div className="flex items-center gap-2">
-            {mode === 'auto' ? (
+            {mode === 'quick' ? (
               <>
                 <Zap className="w-3.5 h-3.5 text-muted-foreground" />
-                <span>Auto</span>
+                <span>Quick Answer</span>
               </>
             ) : (
               <>
-                <Brain className="w-3.5 h-3.5 text-primary" />
-                <span className="text-primary font-medium">DeepThink</span>
+                <Search className="w-3.5 h-3.5 text-primary" />
+                <span className="text-primary font-medium">Deep Research</span>
               </>
             )}
           </div>
         </SelectValue>
       </SelectTrigger>
-      <SelectContent className="min-w-[200px]">
-        <SelectItem value="auto" className="cursor-pointer">
+      <SelectContent className="min-w-[240px]">
+        <SelectItem value="quick" className="cursor-pointer">
           <div className="flex items-center gap-3 py-1">
             <Zap className="w-4 h-4 text-muted-foreground flex-shrink-0" />
             <div className="flex flex-col">
-              <span className="font-medium">Auto</span>
-              <span className="text-xs text-muted-foreground">Quick answers (2-5s) for simple questions</span>
+              <span className="font-medium">Quick Answer</span>
+              <span className="text-xs text-muted-foreground">Fast responses (2-5s) for simple questions</span>
             </div>
           </div>
         </SelectItem>
-        <SelectItem value="deepthink" className="cursor-pointer">
+        <SelectItem value="research" className="cursor-pointer">
           <div className="flex items-center gap-3 py-1">
-            <Brain className="w-4 h-4 text-primary flex-shrink-0" />
+            <Search className="w-4 h-4 text-primary flex-shrink-0" />
             <div className="flex flex-col">
-              <span className="font-medium text-primary">DeepThink</span>
-              <span className="text-xs text-muted-foreground">Thorough answers (10-20s) with textbook citations</span>
+              <span className="font-medium text-primary">Deep Research</span>
+              <span className="text-xs text-muted-foreground">Thorough answers (10-30s) with textbook citations</span>
             </div>
           </div>
         </SelectItem>
