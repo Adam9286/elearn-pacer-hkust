@@ -1,45 +1,60 @@
 
 
-# Three Chat Modes Using Two Workflows
+# Fix Chat Integration: Production URL, Timeout, and Response Parsing
 
-## The Problem
-You have two n8n workflows:
-1. **AI Agent workflow** (`CHAT_RESEARCH` webhook) with two internal paths based on `json.mode`: `"auto"` and `"deepthink"`
-2. **LangChain workflow** (`CHAT_QUICK` webhook) for fast, no-memory answers
+## Changes Overview
 
-The current UI only has "Quick Answer" and "Deep Research" -- this maps 1:1 to webhooks, meaning the `deepthink` path inside the Agent workflow is never triggered.
+Three targeted fixes to resolve the "Smart Answer" mode failing to display responses.
 
-## Solution
-Expand the selector to **3 user-friendly modes**, mapping to the correct webhook + mode parameter:
+---
 
-| User sees | Webhook used | `mode` sent | Description |
-|-----------|-------------|-------------|-------------|
-| Quick Answer | `CHAT_QUICK` (LangChain) | `"quick"` | Instant, no memory, ~2-5s |
-| Smart Answer | `CHAT_RESEARCH` (Agent) | `"auto"` | Agent with tools, ~10-20s |
-| Deep Research | `CHAT_RESEARCH` (Agent) | `"deepthink"` | Thorough agent reasoning, ~20-40s |
+## 1. Switch CHAT_RESEARCH to Production URL
 
-## Technical Changes
+**File:** `src/constants/api.ts` (line 9)
 
-### 1. Update type and selector (`DeepThinkToggle.tsx`)
-- Change `ChatWorkflowMode` from `'quick' | 'research'` to `'quick' | 'auto' | 'deepthink'`
-- Add a third `SelectItem` for "Smart Answer" between Quick and Deep Research
-- Icons: Zap (quick), Brain (auto/smart), Search (deepthink/deep research)
-
-### 2. Update webhook routing (`ChatMode.tsx`)
-Change the webhook selection logic from:
+Change from:
 ```
-chatMode === 'research' ? CHAT_RESEARCH : CHAT_QUICK
+https://n8n.learningpacer.org/webhook-test/6f2a40a0-765a-44f0-a012-b24f418869bb
 ```
-to:
+To:
 ```
-chatMode === 'quick' ? CHAT_QUICK : CHAT_RESEARCH
+https://n8n.learningpacer.org/webhook/6f2a40a0-765a-44f0-a012-b24f418869bb
 ```
 
-The `mode` field already sends `chatMode` in the body (`mode: chatMode`), so the Agent workflow will correctly receive `"auto"` or `"deepthink"`.
+This eliminates the need for the "Listen for test event" button to be active in n8n, which was likely causing the "Failed to fetch" errors.
 
-### 3. Update default mode
-Change the default state from `'quick'` to `'auto'` so most users land on the balanced option.
+---
 
-### Files Modified
-- `src/components/chat/DeepThinkToggle.tsx` -- add third option, update type
-- `src/components/ChatMode.tsx` -- update webhook routing logic, change default mode
+## 2. Increase Timeout for Agent Modes (auto/deepthink)
+
+**File:** `src/components/ChatMode.tsx` (line 156)
+
+Currently hardcoded to 90 seconds for all modes. Change to use mode-aware timeouts:
+- Quick Answer: 30 seconds (LangChain is fast)
+- Smart Answer / Deep Research: 120 seconds (Agent needs time for RAG + reasoning)
+
+The `TIMEOUTS.CHAT` constant (already 120000ms) will be used for agent modes. The error message will also update to reflect the correct timeout duration.
+
+---
+
+## 3. Response Parsing and Error Handling
+
+**File:** `src/components/ChatMode.tsx` (lines 176-184)
+
+The existing parsing logic already handles `answer`, `citations`, and `retrieved_materials` correctly:
+```typescript
+const answer = payload.answer ?? payload.output ?? "fallback";
+const citations = payload.citations ?? [];
+const retrievedMaterials = payload.retrieved_materials ?? [];
+```
+
+No changes needed here -- the rendering (Markdown + LaTeX via `RenderMarkdown`, citations via `CitationSection`) is already wired up.
+
+**Error handling improvement** (lines 200-229): Add differentiation for network/CORS errors vs timeouts, with clearer user-facing messages for each case.
+
+---
+
+## Files Modified
+- `src/constants/api.ts` -- production webhook URL
+- `src/components/ChatMode.tsx` -- mode-aware timeout + better error messages
+
