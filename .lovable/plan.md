@@ -1,213 +1,173 @@
 
-
-# Replace Lecture Topic Dropdown with 2-Column Checkbox Grid
+# Simplify Citation Sources Display
 
 ## Problem
-The current dropdown/popover interface requires users to:
-1. Click to open the popover
-2. Scroll through a list to find lectures
-3. Click each lecture one-by-one (with confusing include/exclude toggle states)
-
-This is cumbersome and not intuitive for selecting multiple lectures.
+Looking at the screenshot, the current sources display has issues:
+1. Document titles show generic "Course Material" instead of "Lecture 10: IP" or "Textbook Page 74"
+2. The "Why this source?" section shows raw JSON metadata instead of readable quotes
+3. Too much visual clutter with redundant information
 
 ## Solution
-Replace the entire popover-based selection with a visible 2-column grid of checkboxes. All 15 lectures will be displayed at once, and users can simply check/uncheck to include them.
+Create a cleaner, simpler source display that:
+1. Shows just the lecture number/name OR textbook page
+2. Only displays quotes if there's actual readable text (not JSON)
+3. Stays blank/minimal if no valid quote content
 
 ## New Design
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│ Lecture Topics                    [Select All] [Clear All] │
-│ Check the lectures you want to include in your exam        │
-│                                                             │
-│ ┌─────────────────────────────┬─────────────────────────────┐
-│ │ ☑ Lecture 1: Introduction  │ ☑ Lecture 9: Network Layer  │
-│ │ ☑ Lecture 2: Physical Layer│ ☑ Lecture 10: Transport UDP │
-│ │ ☑ Lecture 3: Transmission  │ ☑ Lecture 11: Transport TCP │
-│ │ ☑ Lecture 4: Error Detect  │ ☑ Lecture 12: HTTP          │
-│ │ ☑ Lecture 5: Multiple Acc  │ ☑ Lecture 13: DNS           │
-│ │ ☑ Lecture 6: Switched LANs │ ☑ Lecture 14: Email         │
-│ │ ☑ Lecture 7: Network Over  │ ☑ Lecture 15: Security      │
-│ │ ☑ Lecture 8: Routing Alg   │                             │
-│ └─────────────────────────────┴─────────────────────────────┘
-│                                                             │
-│ ✓ 15 of 15 lectures selected                               │
-└─────────────────────────────────────────────────────────────┘
+BEFORE (current - cluttered with raw JSON):
+┌──────────────────────────────────────────────────────────┐
+│ 📄 Course Material                              [View]   │
+│    Course Material                                       │
+│ ▼ Why this source?                                      │
+│   ┌────────────────────────────────────────────────────┐│
+│   │ 📄 "{"pageContent":"74How IP addresses are...      ││
+│   │      {"source":"pypdf2_ingest_v2",...}}"           ││
+│   └────────────────────────────────────────────────────┘│
+└──────────────────────────────────────────────────────────┘
+
+AFTER (clean and minimal):
+┌──────────────────────────────────────────────────────────┐
+│ 📄 Lecture 10: IP                           Page 74     │
+│                                                          │
+│ "DHCP is commonly used in wireless networks where       │
+│  devices associate with an access point..."              │
+└──────────────────────────────────────────────────────────┘
+
+OR (if no valid quote):
+┌──────────────────────────────────────────────────────────┐
+│ 📄 Lecture 10: IP                           Page 74     │
+└──────────────────────────────────────────────────────────┘
 ```
-
-## Simplified Logic
-
-**Current (complex):** Include/exclude toggle with 3 states per lecture
-**New (simple):** Binary selected/unselected with checkboxes
-
-- By default: All lectures are selected (all checkboxes checked)
-- User unchecks lectures they want to exclude
-- Simple "Select All" / "Clear All" buttons for bulk actions
 
 ## Technical Implementation
 
-### File to Modify
-`src/components/MockExamMode.tsx`
+### Files to Modify
 
-### Changes
+**1. `src/utils/citationParser.ts`**
+- Add `isValidQuote()` function to detect JSON vs readable text
+- Add `extractLectureInfo()` to parse lecture numbers from filenames
+- Improve `getMaterialContent()` to extract text from JSON if needed
 
-**1. Simplify state management (lines 76-77):**
+**2. `src/components/chat/CitationCard.tsx`**
+- Simplify to single-line format: Icon + Lecture Name + Page Badge
+- Show quote directly (not in collapsible) if valid
+- Remove the "View" button and complex nesting
 
-Replace include/exclude logic with a single "selected" array:
-```tsx
-// Old:
-const [includeTopics, setIncludeTopics] = useState<string[]>([]);
-const [excludeTopics, setExcludeTopics] = useState<string[]>([]);
+**3. Remove `src/components/chat/MaterialPreview.tsx`**
+- Replace with inline quote display in CitationCard
 
-// New: All lectures selected by default
-const [selectedTopics, setSelectedTopics] = useState<string[]>([...LECTURE_TOPICS]);
-```
+### Code Changes
 
-**2. Update helper variables (lines 79-84):**
-```tsx
-const totalLectures = LECTURE_TOPICS.length;
-const selectedCount = selectedTopics.length;
-const allSelected = selectedCount === totalLectures;
-const noneSelected = selectedCount === 0;
-```
+**citationParser.ts - Add helper functions:**
+```typescript
+/**
+ * Check if content looks like valid readable text (not JSON or metadata)
+ */
+export function isValidQuote(content: string): boolean {
+  if (!content || content.trim().length === 0) return false;
+  
+  // Reject if it looks like JSON
+  const trimmed = content.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) return false;
+  if (trimmed.includes('"pageContent"') || trimmed.includes('"metadata"')) return false;
+  if (trimmed.includes('"source":') || trimmed.includes('"has_ocr"')) return false;
+  
+  // Reject if too short (less than 20 chars of actual content)
+  if (trimmed.length < 20) return false;
+  
+  return true;
+}
 
-**3. Replace the Popover section (lines 515-684) with a 2-column checkbox grid:**
-```tsx
-{/* Lecture Selection Section */}
-<div className="space-y-3 pt-2 border-t">
-  <div className="flex items-center justify-between">
-    <h4 className="font-semibold text-sm">Lecture Topics</h4>
-    <div className="flex gap-2">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setSelectedTopics([...LECTURE_TOPICS])}
-        disabled={isLoadingQuestions || allSelected}
-        className="text-xs h-7"
-      >
-        Select All
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setSelectedTopics([])}
-        disabled={isLoadingQuestions || noneSelected}
-        className="text-xs h-7"
-      >
-        Clear All
-      </Button>
-    </div>
-  </div>
-  <p className="text-xs text-muted-foreground">
-    Check the lectures you want to include in your exam.
-  </p>
-
-  {/* 2-Column Checkbox Grid */}
-  <div className="grid grid-cols-2 gap-2 p-3 border rounded-lg bg-background/50">
-    {LECTURE_TOPICS.map((lecture) => {
-      const isSelected = selectedTopics.includes(lecture);
-      // Extract short name: "Lecture 1: Introduction..." -> "L1: Introduction..."
-      const shortName = lecture.replace(/Lecture (\d+):/, 'L$1:');
-      
-      return (
-        <label
-          key={lecture}
-          className={cn(
-            "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors text-sm",
-            "hover:bg-secondary/50",
-            isSelected && "bg-primary/10",
-            isLoadingQuestions && "opacity-50 cursor-not-allowed"
-          )}
-        >
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={(checked) => {
-              if (checked) {
-                setSelectedTopics([...selectedTopics, lecture]);
-              } else {
-                setSelectedTopics(selectedTopics.filter(t => t !== lecture));
-              }
-            }}
-            disabled={isLoadingQuestions}
-          />
-          <span className={cn(
-            "truncate",
-            !isSelected && "text-muted-foreground"
-          )}>
-            {shortName}
-          </span>
-        </label>
-      );
-    })}
-  </div>
-
-  {/* Selection summary */}
-  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-    <Target className="h-4 w-4" />
-    <span>
-      {allSelected ? (
-        <span className="text-primary font-medium">All {totalLectures} lectures selected</span>
-      ) : noneSelected ? (
-        <span className="text-destructive">No lectures selected - please select at least one</span>
-      ) : (
-        <span><strong>{selectedCount}</strong> of {totalLectures} lectures selected</span>
-      )}
-    </span>
-  </div>
-</div>
-```
-
-**4. Add Checkbox import (line 1):**
-```tsx
-import { Checkbox } from "@/components/ui/checkbox";
-```
-
-**5. Remove unused imports:**
-Remove `Popover`, `PopoverContent`, `PopoverTrigger`, `Command`, `CommandEmpty`, `CommandGroup`, `CommandInput`, `CommandItem`, `CommandList`, `ChevronsUpDown` if no longer used elsewhere.
-
-**6. Update the API call (around line 180-200):**
-
-Map `selectedTopics` to the `includeTopics` array sent to the backend:
-```tsx
-// When sending to backend:
-const includeTopics = selectedTopics.length === totalLectures 
-  ? [] // Empty means "all lectures" 
-  : selectedTopics;
-
-// In the fetch body:
-body: JSON.stringify({
-  topic: courseName,
-  numMultipleChoice: parseInt(numMCQ),
-  numOpenEnded: parseInt(numOpenEnded),
-  difficulty,
-  includeTopics,
-  excludeTopics: [], // No longer used
-  sessionId: `exam-${Date.now()}`,
-})
-```
-
-**7. Add validation before generating:**
-```tsx
-if (selectedTopics.length === 0) {
-  toast({
-    title: "No lectures selected",
-    description: "Please select at least one lecture to generate an exam.",
-    variant: "destructive",
-  });
-  return;
+/**
+ * Extract lecture number from document title or filename
+ * "10-IP.pdf" -> "Lecture 10: IP"
+ * "Lecture Notes - TCP" -> "Lecture Notes: TCP"
+ */
+export function formatLectureName(docTitle: string, material?: RetrievedMaterial): string {
+  if (!docTitle || docTitle === 'Course Material') {
+    // Try to extract from material filename if available
+    const filename = material?.source_url || '';
+    const lectureMatch = filename.match(/(\d+)-([^.]+)/);
+    if (lectureMatch) {
+      return `Lecture ${parseInt(lectureMatch[1])}: ${lectureMatch[2].replace(/_/g, ' ')}`;
+    }
+  }
+  
+  // Check if it's already formatted
+  if (docTitle.toLowerCase().includes('lecture')) {
+    return docTitle;
+  }
+  
+  // Check for textbook
+  if (docTitle.toLowerCase().includes('textbook')) {
+    return 'Textbook';
+  }
+  
+  return docTitle;
 }
 ```
 
-## Summary of Changes
+**CitationCard.tsx - Simplified component:**
+```tsx
+export const CitationCard = ({ citation, material }: CitationCardProps) => {
+  const Icon = citation.sourceType === 'textbook' ? Book : FileText;
+  
+  // Get clean lecture/source name
+  const sourceName = formatLectureName(citation.documentTitle, material);
+  
+  // Get page/slide location
+  const location = citation.pageNumber 
+    ? `Page ${citation.pageNumber}` 
+    : citation.slideNumber 
+      ? `Slide ${citation.slideNumber}` 
+      : null;
+  
+  // Get quote content if valid
+  const rawContent = getMaterialContent(material);
+  const quote = rawContent && isValidQuote(rawContent) ? truncateText(rawContent, 150) : null;
+
+  return (
+    <div className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
+      {/* Source header: Icon + Name + Page badge */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4 text-primary flex-shrink-0" />
+          <span className="text-sm font-medium text-foreground">
+            {sourceName}
+          </span>
+        </div>
+        
+        {location && (
+          <Badge 
+            variant="secondary" 
+            className="text-[11px] px-2 py-0.5 bg-primary/10 text-primary border-0 font-medium"
+          >
+            {location}
+          </Badge>
+        )}
+      </div>
+      
+      {/* Quote - only shown if valid readable content */}
+      {quote && (
+        <p className="text-xs text-muted-foreground italic mt-2 leading-relaxed">
+          "{quote}"
+        </p>
+      )}
+    </div>
+  );
+};
+```
+
+### Summary of Changes
 
 | Aspect | Before | After |
 |--------|--------|-------|
-| Visibility | Hidden in dropdown | All 15 lectures visible |
-| Interaction | Click dropdown → search → click item | Direct checkbox click |
-| States per lecture | 3 (default/include/exclude) | 2 (selected/unselected) |
-| Default behavior | All included (confusing) | All checked (clear) |
-| Bulk actions | Hidden in dropdown | Visible "Select All / Clear All" buttons |
-| Layout | Single column list in popover | 2-column grid, always visible |
+| Title | "Course Material" | "Lecture 10: IP" |
+| Structure | Collapsible "Why this source?" | Inline quote (if valid) |
+| JSON content | Shows raw JSON | Hidden (shows nothing) |
+| View button | Always shown | Removed |
+| Visual weight | Heavy, nested | Light, single card |
 
-This is much clearer and faster for students to use!
-
+This makes sources clean and useful - showing only the lecture name, page number, and actual quotes when available.
