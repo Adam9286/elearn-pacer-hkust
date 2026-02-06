@@ -314,7 +314,7 @@ export const ChatConversation = ({
         setLocalLoadingStage('Searching course materials');
         setEstimatedTime(10);
 
-        const webhookUrl = chatMode === 'research' ? WEBHOOKS.CHAT_RESEARCH : WEBHOOKS.CHAT_QUICK;
+        const webhookUrl = chatMode === 'quick' ? WEBHOOKS.CHAT_QUICK : WEBHOOKS.CHAT_RESEARCH;
         const response = await fetch(webhookUrl, {
           method: 'POST',
           headers: {
