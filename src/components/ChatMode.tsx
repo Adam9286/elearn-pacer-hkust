@@ -14,7 +14,7 @@ const ChatMode = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [chatMode, setChatMode] = useState<ChatWorkflowMode>('quick');
+  const [chatMode, setChatMode] = useState<ChatWorkflowMode>('auto');
   
   const sessionId = useMemo(
     () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -156,7 +156,7 @@ const ChatMode = () => {
     const timeoutId = setTimeout(() => controller.abort(), 90000); // 90 second timeout
 
     try {
-      const webhookUrl = chatMode === 'research' ? WEBHOOKS.CHAT_RESEARCH : WEBHOOKS.CHAT_QUICK;
+      const webhookUrl = chatMode === 'quick' ? WEBHOOKS.CHAT_QUICK : WEBHOOKS.CHAT_RESEARCH;
       const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
