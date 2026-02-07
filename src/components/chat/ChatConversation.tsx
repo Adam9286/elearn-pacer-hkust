@@ -59,12 +59,13 @@ const WELCOME_MESSAGE: LocalMessage = {
     "Hello! I'm LearningPacer, your AI teaching assistant for ELEC3120. I can answer questions about Computer Networks based on your course materials. What would you like to learn today?",
 };
 
+// Default chatMode must match ChatMode.tsx initial state so Smart Answer is used when parent doesn't override
 export const ChatConversation = ({
   messages,
   isLoadingMessages,
   isAuthenticated,
   isWaitingForAI = false,
-  chatMode = 'quick',
+  chatMode = 'auto',
   onChatModeChange,
   onSendMessage,
 }: ChatConversationProps) => {
