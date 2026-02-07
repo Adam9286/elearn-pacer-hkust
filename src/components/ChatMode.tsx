@@ -153,7 +153,7 @@ const ChatMode = () => {
     // Call n8n webhook for AI response with timeout
     const startTime = Date.now();
     const controller = new AbortController();
-    const timeoutMs = chatMode === 'quick' ? 30000 : TIMEOUTS.CHAT; // 30s quick, 120s agent
+    const timeoutMs = chatMode === 'quick' ? TIMEOUTS.CHAT_QUICK : TIMEOUTS.CHAT;
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
@@ -211,7 +211,7 @@ const ChatMode = () => {
       const isTimeout = error instanceof Error && error.name === 'AbortError';
       const isNetworkError = error instanceof TypeError && (error as TypeError).message === 'Failed to fetch';
       const isHttpError = error instanceof Error && error.message.startsWith('HTTP');
-      const timeoutSecs = chatMode === 'quick' ? 30 : 120;
+      const timeoutSecs = Math.round(timeoutMs / 1000);
       
       let errorContent: string;
       if (isTimeout) {

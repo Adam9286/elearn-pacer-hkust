@@ -3,7 +3,7 @@
 
 export const WEBHOOKS = {
   // Chat AI webhook - Quick Answer (LangChain) - TEST MODE
-  CHAT_QUICK: "https://n8n.learningpacer.org/webhook/e6c27aaa-0aa0-42a6-b497-337430e319f8",
+  CHAT_QUICK: "https://n8n.learningpacer.org/webhook-test/e6c27aaa-0aa0-42a6-b497-337430e319f8",
 
   // Chat AI webhook - Deep Research (AI Agent) - TEST MODE
   CHAT_RESEARCH: "https://n8n.learningpacer.org/webhook/6f2a40a0-765a-44f0-a012-b24f418869bb",
@@ -21,7 +21,8 @@ export const WEBHOOKS = {
 
 // Request timeouts in milliseconds
 export const TIMEOUTS = {
-  CHAT: 120000, // 2 minutes for chat responses
+  CHAT_QUICK: 120000, // 2 minutes for Quick Answer
+  CHAT: 120000, // 2 minutes for Smart Answer / Deep Research (agent with tools)
   EXAM_GENERATION: 180000, // 3 minutes for exam generation
   SLIDE_EXPLANATION: 60000, // 60 seconds for slide explanations
 } as const;
