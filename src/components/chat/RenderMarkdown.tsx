@@ -219,11 +219,49 @@ const parseTable = (lines: string[], startIndex: number): { table: ReactNode; en
   return { table, endIndex: rowIndex };
 };
 
+/** Renumber consecutive "1. ..." lines to 1., 2., 3. so LLM output displays correctly */
+function normalizeNumberedListLines(text: string): string {
+  const lines = text.split('\n');
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    const match = line.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
+    if (!match) {
+      out.push(line);
+      i++;
+      continue;
+    }
+    const [, indent, num, space, rest] = match;
+    let run = [line];
+    let j = i + 1;
+    while (j < lines.length) {
+      const m = lines[j].match(/^(\s*)(\d+)\.(\s+)(.*)$/);
+      if (!m) break;
+      run.push(lines[j]);
+      j++;
+    }
+    if (run.length > 1) {
+      run.forEach((ln, idx) => {
+        const m = ln.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
+        if (m) out.push(`${m[1]}${idx + 1}.${m[3]}${m[4]}`);
+        else out.push(ln);
+      });
+      i = j;
+    } else {
+      out.push(line);
+      i++;
+    }
+  }
+  return out.join('\n');
+}
+
 export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
   if (!content) return null;
-  
+
+  const normalizedContent = normalizeNumberedListLines(content);
   const elements: ReactNode[] = [];
-  const lines = content.split('\n');
+  const lines = normalizedContent.split('\n');
   
   let i = 0;
   while (i < lines.length) {
@@ -236,11 +274,56 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       continue;
     }
     
+    // Block math: \[ ... \] (LaTeX display)
+    if (trimmed.includes('\\[')) {
+      const startIdx = trimmed.indexOf('\\[');
+      let mathContent = trimmed.slice(startIdx + 2);
+      let j = i;
+
+      if (!mathContent.includes('\\]')) {
+        while (j < lines.length - 1 && !lines[j].trim().includes('\\]')) {
+          j++;
+          mathContent += '\n' + lines[j].trim();
+        }
+        if (j < lines.length) mathContent += '\n' + lines[j].trim();
+      }
+
+      const endIdx = mathContent.indexOf('\\]');
+      const math = (endIdx >= 0 ? mathContent.slice(0, endIdx) : mathContent).trim();
+
+      try {
+        elements.push(
+          <div key={`block-math-bracket-${i}`} className="my-4 overflow-x-auto">
+            <BlockMath math={math} />
+          </div>
+        );
+      } catch {
+        elements.push(
+          <div key={`block-math-err-bracket-${i}`} className="text-destructive text-xs my-2">
+            Invalid math: {math.slice(0, 80)}…
+          </div>
+        );
+      }
+
+      if (endIdx >= 0) {
+        const rest = mathContent.slice(endIdx + 2).trim();
+        if (rest) {
+          elements.push(
+            <p key={`p-after-math-${i}`} className="my-3 text-foreground leading-relaxed">
+              {parseInline(rest, `p-am-${i}`)}
+            </p>
+          );
+        }
+      }
+      i = j + 1;
+      continue;
+    }
+
     // Block math: $$...$$
     if (trimmed.startsWith('$$')) {
       let mathContent = trimmed.slice(2);
       let j = i;
-      
+
       // Multi-line block math
       if (!mathContent.endsWith('$$')) {
         while (j < lines.length - 1 && !lines[j].trim().endsWith('$$')) {
@@ -248,9 +331,9 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
           mathContent += '\n' + lines[j].trim();
         }
       }
-      
+
       mathContent = mathContent.replace(/\$\$$/, '').trim();
-      
+
       try {
         elements.push(
           <div key={`block-math-${i}`} className="my-4 overflow-x-auto">
@@ -264,7 +347,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
           </div>
         );
       }
-      
+
       i = j + 1;
       continue;
     }

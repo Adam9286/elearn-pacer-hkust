@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/lib/utils';
 import { RetrievedMaterial } from '@/types/chatTypes';
-import { parseCitation, matchMaterialToCitation, isNoCitationMessage, buildCitationFromMaterial } from '@/utils/citationParser';
+import { parseCitation, matchMaterialToCitation, isNoCitationMessage, buildCitationFromMaterial, getCitationDedupeKey } from '@/utils/citationParser';
 import { CitationCard } from './CitationCard';
 
 interface CitationSectionProps {
@@ -54,7 +54,16 @@ export const CitationSection = ({ citations, retrievedMaterials = [] }: Citation
   }));
 
   // Combine: parsed citations first, then unmatched materials
-  const allCards = [...parsedCitations, ...unmatchedCards];
+  const combinedCards = [...parsedCitations, ...unmatchedCards];
+
+  // Dedupe by exact same source + slide/page + content (keep first occurrence)
+  const seenKeys = new Set<string>();
+  const allCards = combinedCards.filter((card) => {
+    const key = getCitationDedupeKey(card.parsed, card.material);
+    if (seenKeys.has(key)) return false;
+    seenKeys.add(key);
+    return true;
+  });
 
   // Don't render if nothing to show
   if (allCards.length === 0) {

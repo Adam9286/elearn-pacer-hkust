@@ -299,6 +299,24 @@ export function formatLectureName(docTitle: string, material?: RetrievedMaterial
 }
 
 /**
+ * Build a dedupe key for a citation card: same source + slide/page + content = duplicate.
+ * Used to filter duplicate sources in the UI.
+ */
+export function getCitationDedupeKey(
+  parsed: { documentTitle: string; slideNumber?: number; pageNumber?: number; sourceType?: string },
+  material?: RetrievedMaterial | null
+): string {
+  const source = (material?.document_title ?? material?.lecture_title ?? parsed.documentTitle) || 'unknown';
+  const slide = material?.slide_number ?? parsed.slideNumber;
+  const page = material?.page_number ?? parsed.pageNumber;
+  const slideOrPage = parsed.sourceType === 'textbook' || material?.source_type === 'Textbook'
+    ? `p${page ?? ''}`
+    : `s${slide ?? ''}`;
+  const content = getMaterialContent(material);
+  return `${source}|${slideOrPage}|${content}`;
+}
+
+/**
  * Label for collapsed source list only: "lecture number, then the name" (e.g. "15-LAN_Routing").
  * Used in Sources list; expanded view shows full details.
  */
