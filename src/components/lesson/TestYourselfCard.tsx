@@ -46,7 +46,7 @@ const TestYourselfCard = ({
   onAnswer,
   className
 }: TestYourselfCardProps) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
@@ -71,7 +71,7 @@ const TestYourselfCard = ({
     setSelectedOption(null);
     setHasSubmitted(false);
     setIsCorrect(false);
-    setIsExpanded(false);
+    setIsExpanded(true);
     setIsRetryAttempt(false);
     setAttemptCount(0);
   }, [question?.question, pageNumber]);
@@ -191,7 +191,7 @@ const TestYourselfCard = ({
             <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
               <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
               <div className="flex-1 text-sm text-muted-foreground">
-                <p>Answer questions to track your mastery. You need 80% correct to complete this lecture.</p>
+                <p>Answer questions to track your progress.</p>
               </div>
               <button onClick={dismissTip} className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />

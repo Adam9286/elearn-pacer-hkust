@@ -16,14 +16,13 @@ import { useUserProgress } from "@/contexts/UserProgressContext";
 import { toast } from "sonner";
 import { chapters, findLesson } from "@/data/courseContent";
 import GuidedLearning from "@/components/lesson/GuidedLearning";
-import PdfViewer from "@/components/lesson/PdfViewer";
 
 const Lesson = () => {
   const { lessonId } = useParams();
   const navigate = useNavigate();
   const [lessonProgress, setLessonProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState("ai-tutor");
-  const { user, loading, markLessonComplete, getChapterProgress, isChapterUnlocked, getLessonsCompleted, getTotalLessons } = useUserProgress();
+  const [activeTab, setActiveTab] = useState("overview");
+  const { user, loading, markLessonComplete, markLessonIncomplete, getChapterProgress, isChapterUnlocked, getLessonsCompleted, getTotalLessons } = useUserProgress();
   
   // Hide sidebar in AI Tutor mode for more horizontal space
   const showSidebar = activeTab === "overview";
@@ -59,16 +58,14 @@ const Lesson = () => {
       toast.success("Lesson completed!");
     }
     setLessonProgress(100);
-    
-    if (nextLesson) {
-      navigate(`/platform/lesson/${nextLesson.id}`);
-    } else {
-      // Last lesson in section
-      if (user) {
-        toast.success(`Section ${currentChapter.id} completed! Next section unlocked!`);
-      }
-      navigate("/platform", { state: { mode: "course" } });
+  };
+
+  const handleMarkIncomplete = async () => {
+    if (user && currentChapter && currentLesson) {
+      await markLessonIncomplete(currentChapter.id, currentLesson.id);
+      toast.success("Lesson marked as incomplete");
     }
+    setLessonProgress(0);
   };
 
   const chapterProgress = currentChapter ? getChapterProgress(currentChapter.id) : undefined;
@@ -200,30 +197,62 @@ const Lesson = () => {
                 <CardContent className="pt-0">
                   <TabsContent value="overview" className="mt-0">
                     <div className="space-y-6">
-                      {/* Topics covered in this lesson */}
-                      <div>
-                        <h3 className="text-lg font-semibold mb-3 text-foreground">Topics Covered</h3>
-                        <ul className="space-y-2">
-                          {currentChapter.topics.slice(0, 4).map((topic, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <CheckCircle className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-                              <span className="text-foreground">{topic}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                      {/* Lesson Info Card */}
+                      <Card className="glass-card">
+                        <CardContent className="pt-6">
+                          <div className="flex flex-col items-center text-center space-y-4">
+                            {/* Lesson Number and Title */}
+                            <div className="space-y-2">
+                              <div className="text-sm font-medium text-muted-foreground">
+                                {currentLesson.number}
+                              </div>
+                              <CardTitle className="text-2xl">{currentLesson.title}</CardTitle>
+                            </div>
 
-                      {/* PDF Viewer using abstracted component */}
-                      {currentLesson.pdfUrl && (
-                        <div>
-                          <h3 className="text-lg font-semibold mb-3 text-foreground">Lecture Slides</h3>
-                          <PdfViewer
-                            pdfUrl={currentLesson.pdfUrl}
-                            currentPage={1}
-                            title={`${currentLesson.title} Lecture Slides`}
-                          />
-                        </div>
-                      )}
+                            {/* Lesson Metadata */}
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                <span>~{currentLesson.estimatedMinutes} min</span>
+                              </div>
+                              {currentLesson.textbookSections && (
+                                <>
+                                  <Separator orientation="vertical" className="h-4" />
+                                  <span>Textbook: {currentLesson.textbookSections}</span>
+                                </>
+                              )}
+                            </div>
+
+                            {/* Mark As Complete/Incomplete Button */}
+                            <div className="pt-4">
+                              {chapterProgress?.lessons_completed?.includes(currentLesson.id) ? (
+                                <div className="space-y-5">
+                                  <Badge variant="default" className="bg-green-600 text-white px-4 py-2 text-sm">
+                                    <CheckCircle className="h-4 w-4 mr-2" />
+                                    Completed
+                                  </Badge>
+                                  <Button 
+                                    size="sm" 
+                                    variant="ghost"
+                                    onClick={handleMarkIncomplete}
+                                    className="text-muted-foreground hover:text-foreground"
+                                  >
+                                    Mark As Incomplete
+                                  </Button>
+                                </div>
+                              ) : (
+                                <Button 
+                                  size="lg" 
+                                  onClick={handleMarkComplete}
+                                  className="px-8"
+                                >
+                                  Mark As Complete
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
 
                       {/* Navigation */}
                       <div className="flex justify-between pt-4">
@@ -235,13 +264,11 @@ const Lesson = () => {
                           <div />
                         )}
                         {nextLesson ? (
-                          <Button onClick={handleMarkComplete}>
+                          <Button variant="outline" onClick={() => navigate(`/platform/lesson/${nextLesson.id}`)}>
                             Next: {nextLesson.title}
                           </Button>
                         ) : (
-                          <Button onClick={handleMarkComplete}>
-                            Complete Section
-                          </Button>
+                          <div />
                         )}
                       </div>
                     </div>

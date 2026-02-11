@@ -25,6 +25,7 @@ interface UserProgressContextType {
   getLessonsCompleted: (chapterId: number) => number;
   getTotalLessons: (chapterId: number) => number;
   markLessonComplete: (chapterId: number, lessonId: string) => Promise<{ success?: boolean; error?: string }>;
+  markLessonIncomplete: (chapterId: number, lessonId: string) => Promise<{ success?: boolean; error?: string }>;
   refetch: () => Promise<void>;
 }
 
@@ -115,10 +116,9 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
   }, [progress]);
 
   const isChapterUnlocked = useCallback((chapterId: number): boolean => {
-    if (devMode) return true;
-    if (chapterId === 1) return true;
-    return isSectionComplete(chapterId - 1);
-  }, [devMode, isSectionComplete]);
+    // All chapters are unlocked - no progression gating
+    return true;
+  }, []);
 
   const setDevMode = useCallback((enabled: boolean) => {
     if (!isAdmin && enabled) return; // Block non-admins from enabling
@@ -176,6 +176,37 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
     return { success: true };
   }, [user, progress, fetchProgress]);
 
+  const markLessonIncomplete = useCallback(async (chapterId: number, lessonId: string) => {
+    if (!user) return { error: "Not authenticated" };
+
+    const existing = progress.find(p => p.chapter_id === chapterId);
+    const currentLessons = existing?.lessons_completed || [];
+
+    if (!currentLessons.includes(lessonId)) {
+      return { success: true }; // Already incomplete
+    }
+
+    const updatedLessons = currentLessons.filter(id => id !== lessonId);
+
+    if (existing) {
+      // If no lessons remain, we can either delete the record or keep it with empty array
+      // Keeping it with empty array is safer for data consistency
+      const { error } = await externalSupabase
+        .from("user_progress")
+        .update({
+          lessons_completed: updatedLessons,
+          updated_at: new Date().toISOString()
+        })
+        .eq("user_id", user.id)
+        .eq("chapter_id", chapterId);
+
+      if (error) return { error: error.message };
+    }
+
+    await fetchProgress();
+    return { success: true };
+  }, [user, progress, fetchProgress]);
+
   const value: UserProgressContextType = {
     user,
     progress,
@@ -189,6 +220,7 @@ export const UserProgressProvider = ({ children }: { children: ReactNode }) => {
     getLessonsCompleted,
     getTotalLessons,
     markLessonComplete,
+    markLessonIncomplete,
     refetch: fetchProgress
   };
 

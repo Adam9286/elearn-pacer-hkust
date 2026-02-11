@@ -718,7 +718,11 @@ const MockExamMode = () => {
                 </div>
               </div>
             ) : (
-              <Button onClick={handleStartExam} className="w-full gradient-primary shadow-glow text-lg py-6">
+              <Button 
+                onClick={handleStartExam} 
+                disabled={noneSelected}
+                className="w-full gradient-primary shadow-glow text-lg py-6"
+              >
                 <FileText className="w-5 h-5 mr-2" />
                 Generate & Download Exam PDF
               </Button>

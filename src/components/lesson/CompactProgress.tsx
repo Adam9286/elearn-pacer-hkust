@@ -75,10 +75,10 @@ const CompactProgress = ({
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-[250px] text-center">
                     <p className="text-sm">
-                      Answer 80% of the questions correctly to master this lecture.
+                      Track your progress answering questions.
                       <br />
                       <span className="text-muted-foreground text-xs">
-                        ({requiredCorrect} out of {totalPages} total pages)
+                        ({questionsCorrect} correct out of {questionsAnswered} answered)
                       </span>
                     </p>
                   </TooltipContent>

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Lock, CheckCircle, Circle, LogIn, Sparkles } from "lucide-react";
+import { CheckCircle, Circle, LogIn, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -34,9 +34,7 @@ const CourseMode = () => {
   }, [user]);
 
   const handleUnitClick = (unitId: number) => {
-    if (isChapterUnlocked(unitId)) {
-      navigate(`/platform/lesson/${unitId}-1`);
-    }
+    navigate(`/platform/lesson/${unitId}-1`);
   };
 
   // Calculate overall progress based on completed sections
@@ -109,7 +107,7 @@ const CourseMode = () => {
                 Your Learning Path
               </CardTitle>
             </div>
-            <CardDescription>Complete all lectures to unlock the next section</CardDescription>
+            <CardDescription>All sections are accessible</CardDescription>
           </CardHeader>
           
           <CardContent className="relative z-10">
@@ -172,7 +170,6 @@ const CourseMode = () => {
                 <div className="flex items-center justify-center lg:justify-start gap-2 flex-wrap">
                   {chapters.map((chapter, index) => {
                     const isComplete = isSectionComplete(chapter.id);
-                    const isUnlocked = isChapterUnlocked(chapter.id);
                     return (
                       <motion.div
                         key={chapter.id}
@@ -185,11 +182,9 @@ const CourseMode = () => {
                           className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 cursor-pointer
                             ${isComplete 
                               ? "bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg shadow-green-500/30" 
-                              : isUnlocked 
-                                ? "bg-gradient-to-br from-primary to-accent text-white shadow-lg shadow-primary/30"
-                                : "bg-muted/30 text-muted-foreground"
+                              : "bg-muted/40 text-muted-foreground border border-muted-foreground/20"
                             }`}
-                          onClick={() => isUnlocked && handleUnitClick(chapter.id)}
+                          onClick={() => handleUnitClick(chapter.id)}
                         >
                           {isComplete ? "✓" : chapter.id}
                         </div>
@@ -234,7 +229,6 @@ const CourseMode = () => {
       {/* Sections */}
       <div className="grid gap-6">
         {chapters.map((chapter) => {
-          const unlocked = isChapterUnlocked(chapter.id);
           const complete = isSectionComplete(chapter.id);
           const lessonsCompleted = getLessonsCompleted(chapter.id);
           const totalLessons = getTotalLessons(chapter.id);
@@ -243,11 +237,7 @@ const CourseMode = () => {
           return (
             <Card
               key={chapter.id}
-              className={`transition-smooth glass-card ${
-                !unlocked
-                  ? "opacity-60 cursor-not-allowed"
-                  : "hover:shadow-glow cursor-pointer"
-              }`}
+              className="transition-smooth glass-card hover:shadow-glow cursor-pointer"
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -255,8 +245,6 @@ const CourseMode = () => {
                     <div className="flex items-center gap-3 mb-2">
                       {complete ? (
                         <CheckCircle className="w-6 h-6 text-green-500" />
-                      ) : !unlocked ? (
-                        <Lock className="w-6 h-6 text-muted-foreground" />
                       ) : (
                         <Circle className="w-6 h-6 text-primary" />
                       )}
@@ -272,11 +260,9 @@ const CourseMode = () => {
                     </div>
                     <CardDescription>{chapter.description}</CardDescription>
                   </div>
-                  {unlocked && (
-                    <Button variant="outline" className="ml-4" onClick={() => handleUnitClick(chapter.id)}>
-                      {complete ? "Review" : lessonsCompleted > 0 ? "Continue" : "Start"}
-                    </Button>
-                  )}
+                  <Button variant="outline" className="ml-4" onClick={() => handleUnitClick(chapter.id)}>
+                    {complete ? "Review" : lessonsCompleted > 0 ? "Continue" : "Start"}
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -293,7 +279,7 @@ const CourseMode = () => {
                   {chapter.topics.map((topic, idx) => (
                     <Badge
                       key={idx}
-                      variant={!unlocked ? "outline" : "secondary"}
+                      variant="secondary"
                       className="transition-smooth"
                     >
                       {topic}
@@ -303,25 +289,6 @@ const CourseMode = () => {
                 <div className="text-xs text-muted-foreground">
                   {totalLessons} lecture{totalLessons !== 1 ? 's' : ''}
                 </div>
-                {!unlocked && (
-                  <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground pt-2 border-t">
-                    <div className="flex items-center gap-2">
-                      <Lock className="w-4 h-4" />
-                      <span>Recommended: Complete Section {chapter.id - 1} first</span>
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="text-primary hover:text-primary/80"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/platform/lesson/${chapter.id}-1`);
-                      }}
-                    >
-                      Skip ahead →
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           );

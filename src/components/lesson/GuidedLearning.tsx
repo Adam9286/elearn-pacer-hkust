@@ -2,7 +2,7 @@
 // currentSlide is the single source of truth for all dependent UI
 // Uses explicit contentState for deterministic loading behavior
 // REDESIGNED: Side-by-side layout, user-controlled questions, Page terminology
-// MASTERY: 80% accuracy on questions required to mark lecture complete
+// Progress tracking: Questions answered are tracked for progress display only
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { toast } from "sonner";
@@ -15,7 +15,7 @@ import {
   estimateTotalSlides, 
   shouldGenerateQuestion 
 } from "@/services/courseApi";
-import { useLessonMastery, MASTERY_THRESHOLD } from "@/hooks/useLessonMastery";
+import { useLessonMastery } from "@/hooks/useLessonMastery";
 import { useUserProgress } from "@/contexts/UserProgressContext";
 
 // Sub-components
@@ -59,21 +59,18 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
     return found?.lesson.lectureFile || undefined;
   }, [lesson.id]);
   
-  // ============ Mastery Tracking ============
+  // ============ Mastery Tracking (for progress display only) ============
   const {
     questionsAnswered: masteryAnswered,
     questionsCorrect: masteryCorrect,
     requiredCorrect,
     hasPassed,
-    isComplete: masteryComplete,
     hasAnsweredPage,
     wasPageCorrect,
     recordAnswer,
     setTotalQuestions,
   } = useLessonMastery(lesson.id, user?.id);
   
-  // Track if we've already triggered completion for this session
-  const [hasTriggeredComplete, setHasTriggeredComplete] = useState(false);
   
   // ============ Core State ============
   // currentPage is the SINGLE SOURCE OF TRUTH
@@ -248,22 +245,11 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
 
   // ============ Question Handler ============
   const handleQuestionAnswer = useCallback(async (correct: boolean, isRetry: boolean = false) => {
-    // Record to database via mastery hook with page tracking
+    // Record to database via mastery hook with page tracking (for progress tracking only)
     await recordAnswer(currentPage, correct, isRetry);
     
-    // Check if this answer achieved mastery (count-based: need 80% of pages correct)
-    const newCorrect = masteryCorrect + (correct ? 1 : 0);
-    const required = Math.ceil(totalPages * (MASTERY_THRESHOLD / 100));
-    
-    // Only trigger completion on first correct for this page (not on retry getting same result)
-    const wasAlreadyCorrect = wasPageCorrect(currentPage);
-    if (!wasAlreadyCorrect && correct && newCorrect >= required && !hasTriggeredComplete && !masteryComplete) {
-      setHasTriggeredComplete(true);
-      toast.success(`🎉 ${required} correct answers! Lecture marked complete.`);
-      await markLessonComplete(chapter.id, lesson.id);
-      onComplete?.();
-    }
-  }, [recordAnswer, currentPage, masteryCorrect, totalPages, hasTriggeredComplete, masteryComplete, wasPageCorrect, markLessonComplete, chapter.id, lesson.id, onComplete]);
+    // No automatic completion - users can mark lessons complete manually via the "Mark complete" button
+  }, [recordAnswer, currentPage]);
 
   // Retry resets contentState to 'idle', triggering re-fetch
   const handleRetry = useCallback(() => {
