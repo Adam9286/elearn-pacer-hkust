@@ -338,7 +338,16 @@ export const ChatConversation = ({
           throw new Error(`HTTP ${response.status}: ${errorText}`);
         }
 
-        const data = await response.json();
+        const text = await response.text();
+        if (!text || text.trim().length === 0) {
+          throw new Error('Empty response from AI server. Check that your n8n webhook is configured to return a JSON response body.');
+        }
+        let data: any;
+        try {
+          data = JSON.parse(text);
+        } catch {
+          throw new Error(`Invalid JSON response from AI server: ${text.slice(0, 200)}`);
+        }
 
         setLocalLoadingProgress(90);
         setLocalLoadingStage('Finalizing answer');
