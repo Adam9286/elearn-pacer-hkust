@@ -9,7 +9,7 @@ export const WEBHOOKS = {
   CHAT_RESEARCH: "https://n8n.learningpacer.org/webhook/6f2a40a0-765a-44f0-a012-b24f418869bb",
 
   // Mock exam generator webhook - PRODUCTION
-  EXAM_GENERATOR: "https://n8n.learningpacer.org/webhook/bfdb1a10-c848-4bd1-8f50-5dbca106ccdb",
+  EXAM_GENERATOR: "https://n8n.learningpacer.org/webhook-test/bfdb1a10-c848-4bd1-8f50-5dbca106ccdb",
 
   // Course Mode AI Tutor - slide explanations
   COURSE_SLIDE_EXPLAIN:
