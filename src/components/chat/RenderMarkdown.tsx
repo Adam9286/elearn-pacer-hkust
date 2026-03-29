@@ -1,7 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, lazy, Suspense } from 'react';
 import { InlineMath, BlockMath } from 'react-katex';
 import { Check, X, ThumbsUp, AlertCircle, Lightbulb } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+
+const MermaidDiagram = lazy(() => import('./MermaidDiagram').then(m => ({ default: m.MermaidDiagram })));
 
 interface RenderMarkdownProps {
   content: string;
@@ -473,7 +475,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
     
     // Code block: ``` (fenced)
     if (trimmed.startsWith('```')) {
-      const language = trimmed.slice(3).trim();
+      const language = trimmed.slice(3).trim().toLowerCase();
       const codeLines: string[] = [];
       i++;
       while (i < lines.length && !lines[i].trim().startsWith('```')) {
@@ -481,6 +483,21 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
         i++;
       }
       i++; // Skip closing ```
+
+      // Mermaid diagram
+      if (language === 'mermaid') {
+        elements.push(
+          <Suspense key={`mermaid-${i}`} fallback={
+            <div className="my-4 p-4 rounded-lg bg-muted/30 border border-border/50 text-center text-muted-foreground text-sm">
+              Loading diagram...
+            </div>
+          }>
+            <MermaidDiagram chart={codeLines.join('\n')} />
+          </Suspense>
+        );
+        continue;
+      }
+
       elements.push(
         <pre
           key={`code-block-${i}`}

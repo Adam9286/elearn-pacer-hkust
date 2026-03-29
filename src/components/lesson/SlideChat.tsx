@@ -1,17 +1,19 @@
-// SlideChat - Follow-up Q&A for the current slide
+// SlideChat - Context-aware study assistant for course mode
+// Keeps conversation across slide changes within the same lesson
 // Uses n8n chat workflow with slide context for RAG-based answers
 
 import { useState, useRef, useEffect } from "react";
-import { Send, MessageSquare, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { Send, MessageSquare, Loader2, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { WEBHOOKS, TIMEOUTS } from "@/constants/api";
 
 interface ChatMessage {
   id: string;
-  role: 'user' | 'assistant';
+  role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: Date;
 }
@@ -21,23 +23,30 @@ interface SlideChatProps {
   lessonTitle: string;
   slideNumber: number;
   slideContext?: string; // Current slide explanation for context
+  keyPoints?: string[]; // Current slide key points
+  chapterTitle?: string;
+  textbookSections?: string;
   lectureId?: string;
 }
 
-const SlideChat = ({ 
-  lessonId, 
-  lessonTitle, 
-  slideNumber, 
+const SlideChat = ({
+  lessonId,
+  lessonTitle,
+  slideNumber,
   slideContext,
-  lectureId 
+  keyPoints,
+  chapterTitle,
+  textbookSections,
+  lectureId
 }: SlideChatProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(slideNumber);
+  const [currentLessonId, setCurrentLessonId] = useState(lessonId);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  
+
   // Expand when there are messages or user is typing
   const isExpanded = isFocused || messages.length > 0 || input.length > 0;
 
@@ -48,11 +57,32 @@ const SlideChat = ({
     }
   }, [messages]);
 
-  // Reset chat when slide changes
+  // Reset chat when lesson changes (different lesson = fresh conversation)
   useEffect(() => {
-    setMessages([]);
-    setInput("");
-  }, [slideNumber, lessonId]);
+    if (lessonId !== currentLessonId) {
+      setMessages([]);
+      setInput("");
+      setCurrentLessonId(lessonId);
+      setCurrentSlide(slideNumber);
+    }
+  }, [lessonId]);
+
+  // Add divider when slide changes within the same lesson
+  useEffect(() => {
+    if (slideNumber !== currentSlide && lessonId === currentLessonId) {
+      // Only add divider if there are existing messages
+      if (messages.length > 0) {
+        const divider: ChatMessage = {
+          id: `divider-${Date.now()}`,
+          role: 'system',
+          content: `Now studying Page ${slideNumber}`,
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, divider]);
+      }
+      setCurrentSlide(slideNumber);
+    }
+  }, [slideNumber]);
 
   const handleSend = async () => {
     const trimmedInput = input.trim();
@@ -78,15 +108,18 @@ const SlideChat = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: trimmedInput,
-          conversationId: `slide-chat-${lessonId}-${slideNumber}`,
+          sessionId: `lesson-${lessonId}`,
           slideContext: {
             lessonId,
             lessonTitle,
             slideNumber,
             lectureId,
-            currentExplanation: slideContext?.slice(0, 1000), // Limit context size
+            chapterTitle,
+            textbookSections,
+            currentExplanation: slideContext?.slice(0, 1500),
+            keyPoints: keyPoints?.slice(0, 5),
           },
-          isSlideChat: true, // Flag to indicate slide-specific context
+          isSlideChat: true,
         }),
         signal: controller.signal,
       });
@@ -98,18 +131,18 @@ const SlideChat = ({
       }
 
       const data = await response.json();
-      
+
       const assistantMessage: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
-        content: data.response || data.output || data.message || "I couldn't generate a response. Please try again.",
+        content: data.response || data.output || data.answer || data.message || "I couldn't generate a response. Please try again.",
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('[SlideChat] Error:', error);
-      
+
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -134,13 +167,21 @@ const SlideChat = ({
 
   return (
     <div className="border rounded-lg bg-card overflow-hidden">
-      {/* Compact input - always visible */}
-      <div className="p-3">
+      {/* Header with context badge */}
+      <div className="px-3 pt-3 pb-1 flex items-center gap-2">
+        <MessageSquare className="h-4 w-4 text-primary shrink-0" />
+        <span className="text-sm font-medium">Ask your TA</span>
+        <Badge variant="outline" className="text-xs ml-auto">
+          <BookOpen className="h-3 w-3 mr-1" />
+          Page {slideNumber}
+        </Badge>
+      </div>
+
+      {/* Input area */}
+      <div className="p-3 pt-2">
         <div className="flex items-center gap-2">
-          <MessageSquare className="h-4 w-4 text-primary shrink-0" />
           <div className="flex-1 relative">
             <Textarea
-              ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -154,8 +195,8 @@ const SlideChat = ({
               disabled={isLoading}
             />
           </div>
-          <Button 
-            onClick={handleSend} 
+          <Button
+            onClick={handleSend}
             disabled={!input.trim() || isLoading}
             size="icon"
             className={cn(
@@ -175,28 +216,41 @@ const SlideChat = ({
       {/* Messages - shown when expanded */}
       {isExpanded && messages.length > 0 && (
         <div className="border-t">
-          <ScrollArea className="h-48 p-3" ref={scrollRef}>
+          <ScrollArea className="h-56 p-3" ref={scrollRef}>
             <div className="space-y-3">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn(
-                    "flex",
-                    msg.role === 'user' ? "justify-end" : "justify-start"
-                  )}
-                >
+              {messages.map((msg) => {
+                // Render system dividers differently
+                if (msg.role === 'system') {
+                  return (
+                    <div key={msg.id} className="flex items-center gap-2 py-1">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground px-2">{msg.content}</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                  );
+                }
+
+                return (
                   <div
+                    key={msg.id}
                     className={cn(
-                      "max-w-[85%] rounded-lg px-3 py-2",
-                      msg.role === 'user'
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                      "flex",
+                      msg.role === 'user' ? "justify-end" : "justify-start"
                     )}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    <div
+                      className={cn(
+                        "max-w-[85%] rounded-lg px-3 py-2",
+                        msg.role === 'user'
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      )}
+                    >
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {isLoading && (
                 <div className="flex justify-start">
                   <div className="bg-muted rounded-lg px-3 py-2">

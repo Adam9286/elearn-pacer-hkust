@@ -307,6 +307,9 @@ const GuidedLearning = ({ lesson, chapter, onComplete }: GuidedLearningProps) =>
             lessonTitle={lesson.title}
             slideNumber={currentPage}
             slideContext={currentSlideData?.explanation}
+            keyPoints={currentSlideData?.keyPoints}
+            chapterTitle={chapter.title}
+            textbookSections={lesson.textbookSections}
             lectureId={lectureId}
           />
 

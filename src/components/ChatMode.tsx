@@ -6,7 +6,6 @@ import type { ChatMessage } from '@/types/chatTypes';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
 import { WEBHOOKS, TIMEOUTS } from '@/constants/api';
-import type { ChatWorkflowMode } from '@/components/chat/DeepThinkToggle';
 import { uploadAttachments } from '@/services/attachmentService';
 
 const ChatMode = () => {
@@ -14,8 +13,7 @@ const ChatMode = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [chatMode, setChatMode] = useState<ChatWorkflowMode>('auto');
-  
+
   const sessionId = useMemo(
     () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
     []
@@ -153,12 +151,11 @@ const ChatMode = () => {
     // Call n8n webhook for AI response with timeout
     const startTime = Date.now();
     const controller = new AbortController();
-    const timeoutMs = chatMode === 'quick' ? TIMEOUTS.CHAT_QUICK : TIMEOUTS.CHAT;
+    const timeoutMs = TIMEOUTS.CHAT;
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const webhookUrl = chatMode === 'quick' ? WEBHOOKS.CHAT_QUICK : WEBHOOKS.CHAT_RESEARCH;
-      const response = await fetch(webhookUrl, {
+      const response = await fetch(WEBHOOKS.CHAT_RESEARCH, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,7 +164,7 @@ const ChatMode = () => {
           query: content,
           sessionId,
           attachments: uploadedUrls,
-          mode: chatMode,
+          mode: 'auto',
         }),
         signal: controller.signal,
       });
@@ -293,8 +290,6 @@ const ChatMode = () => {
           isLoadingMessages={isLoadingMessages}
           isAuthenticated={isAuthenticated}
           isWaitingForAI={isWaitingForAI}
-          chatMode={chatMode}
-          onChatModeChange={setChatMode}
           onSendMessage={handleSendMessage}
         />
       </div>

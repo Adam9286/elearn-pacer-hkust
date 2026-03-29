@@ -337,3 +337,12 @@ export const findLesson = (lessonId: string): { chapter: Chapter; lesson: Lesson
   }
   return null;
 };
+
+// Helper to find lesson by lectureFile (e.g. "08-AdvancedCC")
+export const findLessonByLectureFile = (lectureFile: string): Lesson | null => {
+  for (const chapter of chapters) {
+    const lesson = chapter.lessons.find((l) => l.lectureFile === lectureFile);
+    if (lesson) return lesson;
+  }
+  return null;
+};

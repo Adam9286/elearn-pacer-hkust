@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wc -l /c/Users/adamb/OneDrive/Desktop/FYP/elearn-pacer-hkust/src/**/*.tsx)",
+      "Bash(claude mcp:*)"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ],
+  "enableAllProjectMcpServers": true
+}

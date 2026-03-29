@@ -1,0 +1,419 @@
+﻿import { useCallback, useMemo, useState } from 'react';
+import { AlertTriangle, RotateCcw, ShieldAlert } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { SimulationCanvas } from './SimulationCanvas';
+
+type SwitchId = 'S1' | 'S2' | 'S3' | 'S4';
+
+interface StpSwitchState {
+  rootId: number;
+  costToRoot: number;
+  parent: SwitchId | '-';
+  changed: boolean;
+}
+
+type StpStateMap = Record<SwitchId, StpSwitchState>;
+
+interface Link {
+  id: string;
+  a: SwitchId;
+  b: SwitchId;
+  cost: number;
+  active: boolean;
+}
+
+interface RoundComputation {
+  nextState: StpStateMap;
+  updates: string[];
+}
+
+interface SimulatorState {
+  round: number;
+  switches: StpStateMap;
+  links: Link[];
+  updates: string[];
+  failureEvents: string[];
+  converged: boolean;
+}
+
+const SWITCH_IDS: SwitchId[] = ['S1', 'S2', 'S3', 'S4'];
+
+const BRIDGE_ID: Record<SwitchId, number> = {
+  S1: 10,
+  S2: 20,
+  S3: 30,
+  S4: 40,
+};
+
+const BASE_LINKS: Link[] = [
+  { id: 'L12', a: 'S1', b: 'S2', cost: 1, active: true },
+  { id: 'L23', a: 'S2', b: 'S3', cost: 1, active: true },
+  { id: 'L34', a: 'S3', b: 'S4', cost: 1, active: true },
+  { id: 'L41', a: 'S4', b: 'S1', cost: 1, active: true },
+  { id: 'L24', a: 'S2', b: 'S4', cost: 1, active: true },
+];
+
+const initialSwitchState = (): StpStateMap => {
+  const state = {} as StpStateMap;
+  for (const id of SWITCH_IDS) {
+    state[id] = {
+      rootId: BRIDGE_ID[id],
+      costToRoot: 0,
+      parent: '-',
+      changed: false,
+    };
+  }
+  return state;
+};
+
+const activeNeighbors = (switchId: SwitchId, links: Link[]) =>
+  links
+    .filter((link) => link.active && (link.a === switchId || link.b === switchId))
+    .map((link) => ({
+      neighbor: link.a === switchId ? link.b : link.a,
+      cost: link.cost,
+    }));
+
+const findRootSwitch = (state: StpStateMap): SwitchId =>
+  SWITCH_IDS.reduce((best, current) => {
+    const currentRoot = state[current].rootId;
+    const bestRoot = state[best].rootId;
+    if (currentRoot < bestRoot) return current;
+    if (currentRoot === bestRoot && BRIDGE_ID[current] < BRIDGE_ID[best]) return current;
+    return best;
+  }, 'S1');
+
+const compareCandidate = (
+  left: { rootId: number; cost: number; senderBridgeId: number },
+  right: { rootId: number; cost: number; senderBridgeId: number }
+) => {
+  if (left.rootId !== right.rootId) return left.rootId < right.rootId;
+  if (left.cost !== right.cost) return left.cost < right.cost;
+  return left.senderBridgeId < right.senderBridgeId;
+};
+
+const computeElectionRound = (current: StpStateMap, links: Link[]): RoundComputation => {
+  const next = {} as StpStateMap;
+  const updates: string[] = [];
+
+  for (const sw of SWITCH_IDS) {
+    const currentInfo = current[sw];
+    let best = {
+      rootId: currentInfo.rootId,
+      cost: currentInfo.costToRoot,
+      senderBridgeId: currentInfo.parent === '-' ? BRIDGE_ID[sw] : BRIDGE_ID[currentInfo.parent],
+      parent: currentInfo.parent,
+    };
+
+    const neighbors = activeNeighbors(sw, links);
+    for (const item of neighbors) {
+      const neighborState = current[item.neighbor];
+      const candidate = {
+        rootId: neighborState.rootId,
+        cost: neighborState.costToRoot + item.cost,
+        senderBridgeId: BRIDGE_ID[item.neighbor],
+        parent: item.neighbor as SwitchId,
+      };
+      if (compareCandidate(candidate, best)) best = candidate;
+    }
+
+    const changed =
+      currentInfo.rootId !== best.rootId ||
+      currentInfo.costToRoot !== best.cost ||
+      currentInfo.parent !== best.parent;
+
+    next[sw] = {
+      rootId: best.rootId,
+      costToRoot: best.cost,
+      parent: best.parent,
+      changed,
+    };
+
+    if (changed) {
+      const prevParent = currentInfo.parent === '-' ? 'self' : currentInfo.parent;
+      const nextParent = best.parent === '-' ? 'self' : best.parent;
+      updates.push(
+        `${sw}: root ${currentInfo.rootId} cost ${currentInfo.costToRoot} via ${prevParent} -> root ${best.rootId} cost ${best.cost} via ${nextParent}`
+      );
+    }
+  }
+
+  return { nextState: next, updates };
+};
+
+const normalizeLinkKey = (a: SwitchId, b: SwitchId) => [a, b].sort().join('-');
+
+const computeTreeStatus = (state: StpStateMap, links: Link[]) => {
+  const rootSwitch = findRootSwitch(state);
+  const forwardingEdges = new Set<string>();
+
+  for (const sw of SWITCH_IDS) {
+    if (sw === rootSwitch) continue;
+    const parent = state[sw].parent;
+    if (parent !== '-') forwardingEdges.add(normalizeLinkKey(sw, parent));
+  }
+
+  const linkStatus = links.map((link) => {
+    if (!link.active) return { ...link, status: 'down' as const };
+    const key = normalizeLinkKey(link.a, link.b);
+    if (forwardingEdges.has(key)) return { ...link, status: 'forwarding' as const };
+    return { ...link, status: 'blocked' as const };
+  });
+
+  return {
+    rootSwitch,
+    forwardingEdges,
+    linkStatus,
+    blockedCount: linkStatus.filter((link) => link.status === 'blocked').length,
+  };
+};
+
+const createSimulatorState = (): SimulatorState => ({
+  round: 0,
+  switches: initialSwitchState(),
+  links: BASE_LINKS.map((link) => ({ ...link })),
+  updates: ['Initial BPDU state: each switch advertises itself as root bridge.'],
+  failureEvents: [],
+  converged: false,
+});
+
+export const StpSimulator = () => {
+  const [sim, setSim] = useState<SimulatorState>(createSimulatorState);
+
+  const runOneRound = useCallback(() => {
+    setSim((prev) => {
+      const result = computeElectionRound(prev.switches, prev.links);
+      const converged = result.updates.length === 0;
+      return {
+        ...prev,
+        round: prev.round + 1,
+        switches: result.nextState,
+        updates: converged ? ['No BPDU improvements this round. Tree is stable.'] : result.updates,
+        converged,
+      };
+    });
+  }, []);
+
+  const runUntilStable = useCallback(() => {
+    setSim((prev) => {
+      let round = prev.round;
+      let current = prev.switches;
+      let updates: string[] = [];
+      let converged = false;
+
+      for (let i = 0; i < 20; i++) {
+        const result = computeElectionRound(current, prev.links);
+        round += 1;
+        current = result.nextState;
+        updates = result.updates;
+        if (updates.length === 0) {
+          converged = true;
+          break;
+        }
+      }
+
+      return {
+        ...prev,
+        round,
+        switches: current,
+        updates: converged ? ['Converged: no further BPDU improvements.'] : updates,
+        converged,
+      };
+    });
+  }, []);
+
+  const failRootLink = useCallback(() => {
+    setSim((prev) => {
+      const tree = computeTreeStatus(prev.switches, prev.links);
+      const root = tree.rootSwitch;
+      const activeRootForwardingLinks = tree.linkStatus.filter(
+        (link) => link.status === 'forwarding' && (link.a === root || link.b === root)
+      );
+      if (activeRootForwardingLinks.length === 0) {
+        return {
+          ...prev,
+          updates: ['No active forwarding root link available to fail.'],
+        };
+      }
+
+      const failed = activeRootForwardingLinks[0];
+      const nextLinks = prev.links.map((link) =>
+        link.id === failed.id
+          ? {
+              ...link,
+              active: false,
+            }
+          : link
+      );
+
+      return {
+        round: 0,
+        switches: initialSwitchState(),
+        links: nextLinks,
+        updates: [`Root link ${failed.id} failed. Run rounds again to recompute spanning tree.`],
+        failureEvents: [
+          `Failed ${failed.id} (${failed.a}-${failed.b}) while ${root} was root bridge.`,
+          ...prev.failureEvents,
+        ].slice(0, 8),
+        converged: false,
+      };
+    });
+  }, []);
+
+  const resetSimulation = useCallback(() => {
+    setSim(createSimulatorState());
+  }, []);
+
+  const tree = useMemo(() => computeTreeStatus(sim.switches, sim.links), [sim.switches, sim.links]);
+  const activePhysicalLinks = tree.linkStatus.filter((link) => link.active).length;
+  const forwardingLinks = tree.linkStatus.filter((link) => link.status === 'forwarding').length;
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-foreground">Spanning Tree Protocol (STP) Simulator</h2>
+        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+          Exchange BPDUs in rounds to elect the root bridge, block loop-causing links, and recompute after root-link failure.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-foreground">Controls</h3>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={runOneRound}>Run 1 BPDU Round</Button>
+          <Button variant="outline" onClick={runUntilStable}>
+            Run Until Stable
+          </Button>
+          <Button variant="destructive" onClick={failRootLink}>
+            Fail a Root Link
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={resetSimulation}>
+            <RotateCcw className="h-4 w-4" />
+            Reset
+          </Button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Badge className="bg-primary/10 text-primary border-primary/30">Round {sim.round}</Badge>
+          <Badge variant="outline">Root Bridge: {tree.rootSwitch} (ID {BRIDGE_ID[tree.rootSwitch]})</Badge>
+          {sim.converged && <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40">Converged</Badge>}
+        </div>
+      </div>
+
+      <SimulationCanvas isLive={sim.round > 0}>
+        <div className="grid gap-3 md:grid-cols-2">
+          {SWITCH_IDS.map((sw) => {
+            const state = sim.switches[sw];
+            return (
+              <div key={sw} className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-foreground">
+                    {sw} (Bridge ID {BRIDGE_ID[sw]})
+                  </div>
+                  {sw === tree.rootSwitch && (
+                    <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/40">Root</Badge>
+                  )}
+                </div>
+                <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded bg-muted/40 px-2 py-1">
+                    <div className="text-zinc-600 dark:text-zinc-400">Root ID</div>
+                    <div className="text-foreground">{state.rootId}</div>
+                  </div>
+                  <div className="rounded bg-muted/40 px-2 py-1">
+                    <div className="text-zinc-600 dark:text-zinc-400">Cost</div>
+                    <div className="text-foreground">{state.costToRoot}</div>
+                  </div>
+                  <div className="rounded bg-muted/40 px-2 py-1">
+                    <div className="text-zinc-600 dark:text-zinc-400">Root Port</div>
+                    <div className="text-foreground">{state.parent === '-' ? 'self' : state.parent}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-2">
+          <h3 className="text-sm font-semibold text-foreground">Physical Links vs Logical Tree</h3>
+          <div className="grid grid-cols-4 gap-2 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+            <div>Link</div>
+            <div>Cost</div>
+            <div>State</div>
+            <div>Role</div>
+          </div>
+          {tree.linkStatus.map((link) => (
+            <div key={link.id} className="grid grid-cols-4 gap-2 text-xs rounded px-1 py-1">
+              <div className="text-foreground">
+                {link.id}: {link.a}-{link.b}
+              </div>
+              <div className="text-zinc-600 dark:text-zinc-400">{link.cost}</div>
+              <div
+                className={
+                  link.status === 'forwarding'
+                    ? 'text-emerald-400'
+                    : link.status === 'blocked'
+                      ? 'text-amber-400'
+                      : 'text-red-400'
+                }
+              >
+                {link.status.toUpperCase()}
+              </div>
+              <div className="text-zinc-600 dark:text-zinc-400">
+                {link.status === 'forwarding'
+                  ? 'In logical tree'
+                  : link.status === 'blocked'
+                    ? 'Loop mitigation'
+                    : 'Failed'}
+              </div>
+            </div>
+          ))}
+          <div className="pt-1 text-xs text-zinc-600 dark:text-zinc-400">
+            Active physical links: {activePhysicalLinks} | Forwarding links in logical tree: {forwardingLinks} | Blocked links:{' '}
+            {tree.blockedCount}
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-2">
+          <h3 className="text-sm font-semibold text-foreground">Round Updates</h3>
+          {sim.updates.map((line, index) => (
+            <div key={`${line}-${index}`} className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
+              {line}
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-2">
+          <h3 className="text-sm font-semibold text-foreground">Failure Events</h3>
+          {sim.failureEvents.length === 0 ? (
+            <div className="text-sm text-zinc-600 dark:text-zinc-400">No root-link failure triggered yet.</div>
+          ) : (
+            sim.failureEvents.map((event) => (
+              <div key={event} className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
+                {event}
+              </div>
+            ))
+          )}
+        </div>
+
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200/90">
+          <div className="flex items-center gap-2">
+            <ShieldAlert className="h-4 w-4 text-amber-400" />
+            <span>Blocked links prevent layer-2 loops and broadcast storms while preserving backup paths.</span>
+          </div>
+        </div>
+
+        {tree.blockedCount > 0 && (
+          <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200/90">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-emerald-300" />
+              <span>Logical spanning tree is loop-free. Failing a root link forces STP recomputation.</span>
+            </div>
+          </div>
+        )}
+      </SimulationCanvas>
+    </div>
+  );
+};
+
+
+

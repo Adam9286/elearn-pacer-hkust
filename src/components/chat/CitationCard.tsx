@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Book, FileText, ChevronDown } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Book, FileText, ChevronDown, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ParsedCitation, RetrievedMaterial } from '@/types/chatTypes';
 import { getMaterialContent, isValidQuote, getCollapsedSourceLabel } from '@/utils/citationParser';
+import { findLessonByLectureFile } from '@/data/courseContent';
 
 interface CitationCardProps {
   citation: ParsedCitation;
@@ -27,6 +28,18 @@ export const CitationCard = ({ citation, material }: CitationCardProps) => {
 
   const rawContent = getMaterialContent(material);
   const hasContent = isValidQuote(rawContent);
+
+  // Build PDF link from lecture_id → courseContent pdfUrl
+  const pdfLink = useMemo(() => {
+    const lectureId = material?.lecture_id || material?.document_title;
+    if (!lectureId || isTextbook) return null;
+    const lesson = findLessonByLectureFile(lectureId);
+    if (!lesson?.pdfUrl) return null;
+    // Convert Google Drive preview URL to page-specific view
+    const pageNum = validSlideNum ?? validPageNum;
+    const baseUrl = lesson.pdfUrl.replace('/preview', '/view');
+    return pageNum ? `${baseUrl}#page=${pageNum}` : baseUrl;
+  }, [material, isTextbook, validSlideNum, validPageNum]);
 
   return (
     <div 
@@ -81,6 +94,19 @@ export const CitationCard = ({ citation, material }: CitationCardProps) => {
               </>
             )}
           </dl>
+
+          {pdfLink && (
+            <a
+              href={pdfLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline font-medium"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              View {validSlideNum ? `Slide ${validSlideNum}` : 'Lecture'} PDF
+            </a>
+          )}
 
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-1.5 uppercase tracking-wide">Content</div>

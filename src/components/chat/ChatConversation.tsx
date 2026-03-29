@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
-import { DeepThinkToggle, type ChatWorkflowMode } from './DeepThinkToggle';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -44,8 +43,6 @@ interface ChatConversationProps {
   isLoadingMessages: boolean;
   isAuthenticated: boolean;
   isWaitingForAI?: boolean;
-  chatMode?: ChatWorkflowMode;
-  onChatModeChange?: (mode: ChatWorkflowMode) => void;
   onSendMessage: (
     content: string,
     attachments: File[]
@@ -59,14 +56,11 @@ const WELCOME_MESSAGE: LocalMessage = {
     "Hello! I'm LearningPacer, your AI teaching assistant for ELEC3120. I can answer questions about Computer Networks based on your course materials. What would you like to learn today?",
 };
 
-// Default chatMode must match ChatMode.tsx initial state so Smart Answer is used when parent doesn't override
 export const ChatConversation = ({
   messages,
   isLoadingMessages,
   isAuthenticated,
   isWaitingForAI = false,
-  chatMode = 'auto',
-  onChatModeChange,
   onSendMessage,
 }: ChatConversationProps) => {
   const { toast } = useToast();
@@ -315,8 +309,7 @@ export const ChatConversation = ({
         setLocalLoadingStage('Searching course materials');
         setEstimatedTime(10);
 
-        const webhookUrl = chatMode === 'quick' ? WEBHOOKS.CHAT_QUICK : WEBHOOKS.CHAT_RESEARCH;
-        const response = await fetch(webhookUrl, {
+        const response = await fetch(WEBHOOKS.CHAT_RESEARCH, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -325,7 +318,7 @@ export const ChatConversation = ({
             query: userInput,
             sessionId: `session_${Date.now()}`,
             attachments: uploadedUrls,
-            mode: chatMode,
+            mode: 'auto',
           }),
         });
 
@@ -584,15 +577,6 @@ export const ChatConversation = ({
 
           {/* Input Area */}
           <div className="p-4 border-t bg-background/50 space-y-3">
-            {/* Chat Mode Toggle */}
-            {onChatModeChange && (
-              <DeepThinkToggle
-                mode={chatMode}
-                onModeChange={onChatModeChange}
-                disabled={activeIsWaitingForAI}
-              />
-            )}
-
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {attachments.map((file, index) => (

@@ -8,7 +8,6 @@ import type {
 } from '@/types/courseTypes';
 import { examSupabase } from '@/lib/examSupabase';
 import { findLesson } from '@/data/courseContent';
-import { WEBHOOKS, TIMEOUTS } from '@/constants/api';
 
 // Feature flag - set to true to always use n8n (skip pre-generated)
 const FORCE_REALTIME_GENERATION = false;
@@ -23,17 +22,69 @@ function getLectureId(lessonId: string): string | null {
 }
 
 /**
- * Fallback when pre-generated content is not available
- * No longer calls n8n - throws user-friendly error instead
+ * Fallback: generate explanation in real-time via Supabase Edge Function (Gemini API)
+ * Also caches the result in slide_explanations table for future requests
  */
 async function fallbackToRealTimeGeneration(
   request: SlideExplanationRequest
 ): Promise<SlideExplanationResponse> {
-  console.log('[CourseAPI] No approved content found for slide', request.slideNumber);
-  
-  throw new Error(
-    'This slide explanation is pending admin review. Please check back later or try another slide.'
-  );
+  console.log('[CourseAPI] No approved content found for slide', request.slideNumber, '— generating in real-time');
+
+  const { data, error } = await examSupabase.functions.invoke('explain-slide', {
+    body: {
+      lessonId: request.lessonId,
+      slideNumber: request.slideNumber,
+      totalSlides: request.totalSlides,
+      lessonTitle: request.lessonTitle,
+      chapterTitle: request.chapterTitle,
+      chapterTopics: request.chapterTopics,
+      textbookSections: request.textbookSections,
+      previousContext: request.previousContext,
+      generateQuestion: request.generateQuestion,
+    },
+  });
+
+  if (error) {
+    console.error('[CourseAPI] Edge function error:', error);
+    throw new Error('Failed to generate slide explanation. Please try again.');
+  }
+
+  if (!data || !data.explanation) {
+    // Check if data contains an error message from the edge function
+    if (data?.error) {
+      throw new Error(data.error);
+    }
+    throw new Error('No explanation returned from AI. Please try again.');
+  }
+
+  const result: SlideExplanationResponse = {
+    explanation: data.explanation,
+    keyPoints: data.keyPoints || [],
+    comprehensionQuestion: data.comprehensionQuestion || undefined,
+  };
+
+  // Cache the result in the database for future requests
+  const lectureId = getLectureId(request.lessonId);
+  if (lectureId) {
+    try {
+      await examSupabase.from('slide_explanations').upsert({
+        lecture_id: lectureId,
+        slide_number: request.slideNumber,
+        explanation: result.explanation,
+        key_points: result.keyPoints,
+        comprehension_question: result.comprehensionQuestion || null,
+        status: 'auto-generated',
+      }, {
+        onConflict: 'lecture_id,slide_number',
+      });
+      console.log('[CourseAPI] Cached auto-generated explanation for slide', request.slideNumber);
+    } catch (cacheError) {
+      // Caching failure is non-critical — the explanation was still generated
+      console.warn('[CourseAPI] Failed to cache explanation:', cacheError);
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -61,13 +112,13 @@ export async function fetchSlideExplanation(
     slideNumber: request.slideNumber 
   });
 
-  // Query pre-generated explanation from examSupabase (only approved content)
+  // Query pre-generated or cached explanation from examSupabase
   const { data, error } = await examSupabase
     .from('slide_explanations')
     .select('explanation, key_points, comprehension_question')
     .eq('lecture_id', lectureId)
     .eq('slide_number', request.slideNumber)
-    .eq('status', 'approved')
+    .in('status', ['approved', 'auto-generated'])
     .maybeSingle();
 
   if (error) {
@@ -113,7 +164,7 @@ export async function fetchActualSlideCount(lessonId: string): Promise<number | 
     .from('slide_explanations')
     .select('*', { count: 'exact', head: true })
     .eq('lecture_id', lectureId)
-    .eq('status', 'approved');
+    .in('status', ['approved', 'auto-generated']);
     
   if (error) {
     console.error('[CourseAPI] Error fetching slide count:', error);
