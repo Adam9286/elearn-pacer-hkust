@@ -1,12 +1,36 @@
 {
   "permissions": {
     "allow": [
+      "Bash(npm run build*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run dev*)",
       "Bash(wc -l /c/Users/adamb/OneDrive/Desktop/FYP/elearn-pacer-hkust/src/**/*.tsx)",
-      "Bash(claude mcp:*)"
+      "Bash(claude mcp:*)",
+      "Bash(xargs grep:*)",
+      "Bash(ls -1 /c/Users/adamb/OneDrive/Desktop/FYP/elearn-pacer-hkust/src/components/simulations/*.tsx)",
+      "Bash(ls -1 /c/Users/adamb/OneDrive/Desktop/FYP/elearn-pacer-hkust/src/components/ui/*.tsx)",
+      "mcp__n8n-mcp__n8n_list_workflows",
+      "Read(//c/Users/adamb/OneDrive/Desktop/FYP/elearn-pacer-hkust/$APPDATA/Claude/**)",
+      "Read(//c/Users/adamb/AppData/Roaming/Claude/**)",
+      "mcp__n8n-mcp__n8n_get_workflow"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase"
   ],
-  "enableAllProjectMcpServers": true
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /c/Users/adamb/OneDrive/Desktop/FYP/elearn-pacer-hkust && npx tsc --noEmit --pretty 2>&1 | head -30",
+            "timeout": 30000
+          }
+        ]
+      }
+    ]
+  }
 }

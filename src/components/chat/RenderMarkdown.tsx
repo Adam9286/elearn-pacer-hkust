@@ -140,7 +140,7 @@ const renderIndicator = (line: string, key: string): ReactNode | null => {
       <div key={key} className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 my-4">
         <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
         <span className="text-foreground text-sm">
-          {parseInline(trimmed.replace(/^[⚠️⚠]\s*/, ''), key)}
+          {parseInline(trimmed.replace(/^(?:⚠️|⚠)\s*/, ''), key)}
         </span>
       </div>
     );
@@ -235,7 +235,7 @@ function normalizeNumberedListLines(text: string): string {
       continue;
     }
     const [, indent, num, space, rest] = match;
-    let run = [line];
+    const run = [line];
     let j = i + 1;
     while (j < lines.length) {
       const m = lines[j].match(/^(\s*)(\d+)\.(\s+)(.*)$/);
@@ -488,7 +488,8 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       if (language === 'mermaid') {
         elements.push(
           <Suspense key={`mermaid-${i}`} fallback={
-            <div className="my-4 p-4 rounded-lg bg-muted/30 border border-border/50 text-center text-muted-foreground text-sm">
+            <div className="my-4 p-4 rounded-lg bg-slate-900/60 border border-slate-700/60 text-center text-slate-400 text-sm">
+              <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent mr-2 align-middle" />
               Loading diagram...
             </div>
           }>
