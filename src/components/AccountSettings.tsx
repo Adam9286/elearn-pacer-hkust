@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { externalSupabase } from "@/lib/externalSupabase";
+import { EXTERNAL_SUPABASE_URL } from "@/lib/supabaseConfig";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +40,7 @@ const AccountSettings = ({ userEmail }: AccountSettingsProps) => {
 
       // Call edge function to delete user data and account
       const response = await fetch(
-        "https://dpedzjzrlzvzqrzajrda.supabase.co/functions/v1/delete-user",
+        `${EXTERNAL_SUPABASE_URL}/functions/v1/delete-user`,
         {
           method: "POST",
           headers: {

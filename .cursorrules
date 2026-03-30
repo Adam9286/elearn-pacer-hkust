@@ -1,5 +1,9 @@
-You are the lead engineer for LearningPacer (ELEC3120 Virtual TA).
-- Tech Stack: React, Tailwind, Supabase, n8n.
-- Coding Style: Clean, functional components, TypeScript.
-- Goal: Maintain the pedagogical "vibe." Use LaTeX for math.
-- Context: Always check how components interact with the n8n production webhook.
+# AI Agent Instructions
+ALWAYS begin every response by silently reading `AI_SYNC.md` to understand the current project state, architectural rules, and active goals. 
+
+When you finish a major coding task, you MUST update `AI_SYNC.md` by:
+1. Moving completed items from "Active Goal" to "Recently Completed".
+2. Writing a brief summary of what you did in the "Handoff Notes" section so the next AI agent knows exactly where you left off.
+3. Updating the "Active Goal" if the user has provided a new one.
+
+Do not ask for permission to update the sync file; do it automatically at the end of your execution loops.

@@ -12,7 +12,10 @@
       "mcp__n8n-mcp__n8n_list_workflows",
       "Read(//c/Users/adamb/OneDrive/Desktop/FYP/elearn-pacer-hkust/$APPDATA/Claude/**)",
       "Read(//c/Users/adamb/AppData/Roaming/Claude/**)",
-      "mcp__n8n-mcp__n8n_get_workflow"
+      "mcp__n8n-mcp__n8n_get_workflow",
+      "Bash(python -c \":*)",
+      "mcp__n8n-mcp__n8n_update_partial_workflow",
+      "mcp__n8n-mcp__n8n_validate_workflow"
     ]
   },
   "enableAllProjectMcpServers": true,

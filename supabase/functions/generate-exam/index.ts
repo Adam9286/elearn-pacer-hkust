@@ -6,45 +6,131 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const DEFAULT_WEBHOOK_URL =
+  "https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const parseJsonResponse = async (response: Response) => {
+  const responseText = await response.text();
+
+  if (!responseText || responseText.trim() === "") {
+    throw new Error("n8n returned an empty response.");
+  }
+
+  try {
+    return JSON.parse(responseText);
+  } catch (error) {
+    console.error("[generate-exam] Invalid JSON from n8n:", responseText);
+    throw new Error(`Invalid JSON response from n8n: ${responseText.substring(0, 120)}`);
+  }
+};
+
+const normalizePdfArtifacts = (value: unknown) => {
+  const record = isRecord(value) ? value : {};
+  const pdfRecord = isRecord(record.pdf) ? record.pdf : null;
+  const source = pdfRecord ?? record;
+
+  let fileId = typeof source.fileId === "string" ? source.fileId.trim() : null;
+  let link = typeof source.link === "string" ? source.link.trim() : null;
+  let downloadLink =
+    typeof source.downloadLink === "string" ? source.downloadLink.trim() : null;
+
+  if (!fileId && typeof source.id === "string") {
+    fileId = source.id.trim();
+  }
+
+  if (!link && typeof source.webViewLink === "string") {
+    link = source.webViewLink.trim();
+  }
+
+  if (!downloadLink && typeof source.webContentLink === "string") {
+    downloadLink = source.webContentLink.trim();
+  }
+
+  if (!fileId && link) {
+    const match = link.match(/\/d\/([^/]+)/);
+    if (match) {
+      fileId = match[1];
+    }
+  }
+
+  if (fileId && (!link || !link.startsWith("http"))) {
+    link = `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
+  }
+
+  if (fileId && (!downloadLink || !downloadLink.startsWith("http"))) {
+    downloadLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+
+  return {
+    fileId: fileId || null,
+    link: link && link.startsWith("http") ? link : null,
+    downloadLink:
+      downloadLink && downloadLink.startsWith("http") ? downloadLink : null,
+  };
+};
+
+const extractStructuredPayload = (value: unknown): Record<string, unknown> | null => {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const mcqs = Array.isArray(value.mcqs) ? value.mcqs : null;
+  const longForm = Array.isArray(value.longForm) ? value.longForm : null;
+
+  if (mcqs || longForm) {
+    return {
+      mcqs: mcqs ?? [],
+      longForm: longForm ?? [],
+      metadata: isRecord(value.metadata) ? value.metadata : undefined,
+    };
+  }
+
+  for (const key of ["exam", "structuredExam", "examData", "data", "payload"]) {
+    const nested = value[key];
+    if (isRecord(nested)) {
+      const extracted = extractStructuredPayload(nested);
+      if (extracted) {
+        return extracted;
+      }
+    }
+  }
+
+  return null;
+};
+
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log("Generate exam function called");
-
+    const requestBody = await req.json();
     const {
+      mode = "exam_simulation",
       topic = "Computer Networks - General",
       numMultipleChoice = 10,
       numOpenEnded = 5,
       difficulty = "medium",
       includeTopics = [],
       excludeTopics = [],
-    } = await req.json();
+      sessionId = `exam-${Date.now()}`,
+    } = requestBody;
 
-    const sessionId = `exam-${Date.now()}`;
-
-    console.log("Request params:", { topic, numMultipleChoice, numOpenEnded, difficulty, includeTopics, excludeTopics, sessionId });
-
-    // Call the n8n webhook with timeout
-    const webhookUrl = "https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator";
-
-    // Create AbortController for timeout (120 seconds)
+    const webhookUrl = Deno.env.get("N8N_EXAM_GENERATOR_URL") || DEFAULT_WEBHOOK_URL;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
 
     try {
-      console.log("Calling n8n webhook...");
-      const startTime = Date.now();
-
       const webhookResponse = await fetch(webhookUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          mode,
           topic,
           numMultipleChoice,
           numOpenEnded,
@@ -56,73 +142,53 @@ serve(async (req) => {
         signal: controller.signal,
       });
 
-      const endTime = Date.now();
-      console.log(`n8n response time: ${endTime - startTime}ms`);
-
       clearTimeout(timeoutId);
 
       if (!webhookResponse.ok) {
-        console.error("Webhook error:", webhookResponse.status, webhookResponse.statusText);
-        throw new Error(`Webhook returned status ${webhookResponse.status}`);
+        throw new Error(`n8n returned status ${webhookResponse.status}`);
       }
 
-      // Parse JSON response containing Google Drive link
-      const result = await webhookResponse.json();
-      console.log("n8n response:", result);
+      const result = await parseJsonResponse(webhookResponse);
+      const structured = extractStructuredPayload(result);
+      const pdf = normalizePdfArtifacts(result);
 
-      // Extract and validate fields with fallbacks
-      let fileId = result.fileId || result.id;
-      let link = result.link || result.webViewLink;
-      let downloadLink = result.downloadLink || result.webContentLink;
-
-      // Extract fileId from link if not provided
-      if (!fileId && link) {
-        const fileIdMatch = link.match(/\/d\/([^\/]+)/);
-        if (fileIdMatch) fileId = fileIdMatch[1];
+      if (!structured && !pdf.link) {
+        console.error("[generate-exam] n8n returned neither structured exam data nor a PDF link:", result);
+        throw new Error("n8n returned neither structured exam data nor a PDF link.");
       }
 
-      // Build links from fileId if missing
-      if (fileId && (!link || link.startsWith("={{"))) {
-        link = `https://drive.google.com/file/d/${fileId}/view?usp=sharing`;
-      }
-      if (fileId && (!downloadLink || downloadLink.startsWith("={{"))) {
-        downloadLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
-      }
-
-      // Final validation - throw error if link is still invalid
-      if (!link || link.startsWith("={{")) {
-        console.error("Invalid link returned from n8n:", result);
-        throw new Error('n8n returned invalid or unevaluated template string. Check "Make File Public" node configuration.');
-      }
-
-      // Return the Google Drive link as JSON
       return new Response(
-        JSON.stringify({ 
-          link,
-          downloadLink: downloadLink || null,
-          fileId: fileId || null,
-          success: true 
+        JSON.stringify({
+          success: true,
+          mode,
+          sessionId:
+            (isRecord(result) && typeof result.sessionId === "string" && result.sessionId) ||
+            sessionId,
+          pdf,
+          exam: structured,
+          raw: result,
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         },
       );
-    } catch (fetchError: any) {
+    } catch (fetchError) {
       clearTimeout(timeoutId);
 
-      if (fetchError.name === "AbortError") {
-        console.error("Request timeout after 120 seconds");
-        throw new Error("PDF generation timed out. Please try again.");
+      if (fetchError instanceof Error && fetchError.name === "AbortError") {
+        throw new Error("Exam generation timed out after 120 seconds.");
       }
+
       throw fetchError;
     }
   } catch (error) {
-    console.error("Error in generate-exam function:", error);
+    console.error("[generate-exam] Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+
     return new Response(
       JSON.stringify({
         error: errorMessage,
-        details: "Failed to generate exam PDF. Please try again.",
+        details: "Failed to generate mock exam.",
       }),
       {
         status: 500,
