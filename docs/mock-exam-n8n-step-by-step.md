@@ -8,6 +8,12 @@ Use this together with:
 
 This guide is written against the workflow you pasted.
 
+Update 2026-03-31:
+
+- For the current diagram/PDF reliability fix, use [`docs/mock-exam-n8n-robust-workflow.md`](/c:/Users/adamb/OneDrive/Desktop/FYP/elearn-pacer-hkust/docs/mock-exam-n8n-robust-workflow.md).
+- This older guide is still useful for the structured exam split, but it does not reflect the latest hardening decision:
+  no Code-node HTTP, no external diagram URLs inside PDF HTML, and structured exam JSON must survive PDF failure.
+
 ---
 
 ## What We Are Fixing

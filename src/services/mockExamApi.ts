@@ -1,16 +1,19 @@
 import { WEBHOOKS } from "@/constants/api";
 import type {
   MockExamDifficulty,
-  MockExamMcq,
   MockExamNormalizedResponse,
   MockExamPdfArtifacts,
   MockExamRequest,
   MockExamRunnerQuestion,
   MockExamStructuredPayload,
 } from "@/types/mockExam";
-
-const isRecord = (value: unknown): value is Record<string, any> =>
-  typeof value === "object" && value !== null;
+import {
+  extractMockExamRequiresReview,
+  extractMockExamSuccess,
+  extractMockExamWarnings,
+  extractStructuredPayload,
+  isRecord,
+} from "@/utils/mockExamResponse";
 
 const parseJsonResponse = async (response: Response) => {
   const responseText = await response.text();
@@ -74,37 +77,6 @@ const normalizePdfArtifacts = (value: unknown): MockExamPdfArtifacts => {
   };
 };
 
-const extractStructuredPayload = (value: unknown): MockExamStructuredPayload | null => {
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  const mcqs = Array.isArray(value.mcqs) ? value.mcqs : null;
-  const longForm = Array.isArray(value.longForm) ? value.longForm : null;
-
-  if (mcqs || longForm) {
-    return {
-      mcqs: (mcqs ?? []) as MockExamMcq[],
-      longForm: (longForm ?? []) as MockExamStructuredPayload["longForm"],
-      metadata: isRecord(value.metadata) ? value.metadata : undefined,
-    };
-  }
-
-  const nestedCandidates = ["exam", "structuredExam", "examData", "data", "payload"];
-
-  for (const key of nestedCandidates) {
-    const nested = value[key];
-    if (isRecord(nested)) {
-      const extracted = extractStructuredPayload(nested);
-      if (extracted) {
-        return extracted;
-      }
-    }
-  }
-
-  return null;
-};
-
 const correctAnswerLetterToIndex = (answer?: string) => {
   if (!answer) {
     return undefined;
@@ -160,6 +132,9 @@ export const requestMockExam = async (
   const structured = extractStructuredPayload(result);
   const pdf = normalizePdfArtifacts(result);
   const practiceQuestions = toPracticeQuestions(structured, payload.difficulty, payload.topic);
+  const warnings = extractMockExamWarnings(result);
+  const requiresReview = extractMockExamRequiresReview(result);
+  const success = extractMockExamSuccess(result);
 
   return {
     mode: payload.mode,
@@ -169,6 +144,9 @@ export const requestMockExam = async (
     pdf,
     structured,
     practiceQuestions,
+    warnings,
+    requiresReview,
+    success,
     raw: result,
   };
 };

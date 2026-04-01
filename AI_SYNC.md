@@ -1,13 +1,114 @@
 # AI Project Sync & Memory
 **Project:** LearningPacer (ELEC3120)
-**Last Updated:** 2026-03-31
-**Current Stage:** n8n exam quality sprint complete (Steps 1-5). Remaining: per-question retrieval (Step 6) and verifier agent (Step 7) are future work. Next priority: test the upgraded workflow end-to-end.
+**Last Updated:** 2026-04-01
+**Current Stage:** n8n exam quality sprint complete (Steps 1-5) and the critical Mermaid/JSON handoff is now fixed. The exam branch returns sanitized Mermaid in structured exam JSON, while remote diagram/PDF rendering stays best-effort. Remaining: per-question retrieval (Step 6), verifier agent (Step 7).
 
 ---
 
 ## Active Goal
 - [ ] **n8n Exam Quality Upgrade Sprint** (see detailed plan below)
+- [x] **Mock Exam diagram/PDF reliability hardening** (inline assets, HTTP Request renderer, structured exam always returned) ✅ DONE
 - [ ] Fix Gemini Vision API call in n8n (Code node -> HTTP Request node swap)
+
+## Mock Exam Model Routing (2026-04-01)
+- Mock-exam generation and repair in workflow `FterurcXSRyrQ4Xq` now use `Claude 4.6 Sonnet` again for the active exam branch.
+- Reason: live failed execution `299` on 2026-03-31 terminated at `Basic LLM Chain` while using `DeepSeek Chat Model`, so DeepSeek was not just a cheaper equivalent for this workflow path.
+- To let MCP save workflow edits cleanly, disconnected legacy nodes were removed from the workflow: `DeepSeek Chat Model`, `Chat Memory`, `Google Gemini Chat Model`, and `Google Gemini Chat Model1`.
+- Recommendation going forward: keep Claude on the exam-generation critical path until the flow is stable end-to-end; treat DeepSeek only as a later cost-optimization pass after prompt/context reduction.
+
+## Mock Exam Mermaid Handoff Fix (2026-04-01)
+- `Render Diagrams` in workflow `FterurcXSRyrQ4Xq` now writes the cleaned Mermaid from `Prepare Diagram Jobs.diagramSource` back into `exam.longForm[].diagram`.
+- This was the missing handoff fix for local draft printing: the frontend renders Mermaid from `question.diagram`, not from `diagramSvg`.
+- Result: even if `mermaid.ink` is flaky, the structured exam JSON now carries sanitized Mermaid that the frontend can render locally.
+- Live webhook smoke test on 2026-04-01 (`exam_simulation`, `5 MCQ + 3 OE`, session `codex-smoke-2`) returned clean Mermaid strings for the diagram questions plus `diagramSvg` / `diagramDataUri` for the remote path.
+
+## Structured Draft Editing (2026-03-31)
+- Exam simulations now support app-side draft editing instead of direct binary PDF editing.
+- Users can open `Edit Draft` from the latest exam card or from a saved exam-simulation entry.
+- Draft edits persist back into `mock_exam_sessions` via `updateSavedMockExamDraft(...)`, clear stale PDF links, and rebuild `mock_exam_questions`.
+- Local `Print Draft` renders Mermaid diagrams client-side and opens a fresh browser print flow for the edited draft.
+- Structured draft questions now also support optional `images[]` arrays with `url`, `alt`, `caption`, and `widthPercent`, editable in the draft dialog and rendered in local print output.
+- Built-in warnings/autofixes cover the specific live bugs found during review:
+  - remove `Refer to the diagram below.` when no diagram exists
+  - redact visible `Seq=` / `Ack=` values in TCP fill-in diagrams
+  - convert directed arrows to undirected links when the question text says the topology is symmetric
+- Built-in draft warnings now also flag:
+  - stop-and-wait contradictions where a sequence diagram sends multiple data segments before an ACK
+  - queue-buildup / overflow prompts whose stated link rates make buildup impossible
+  - plain-text / invalid Mermaid diagrams that will likely render as unprofessional fallback text
+  - question stems that still contain inline sub-part markers instead of keeping them only in `sub_parts`
+
+## Mock Exam Diagram/PDF Reliability Decision (2026-03-31)
+- **Correction:** The exported mock-exam workflow reviewed on 2026-03-31 still uses external `mermaid.ink` URLs inside the student HTML and still sends PDFShift a blind `delay: 3000`. Do **not** assume the previously claimed base64-inline PDF fix is live until the workflow JSON is re-exported and verified.
+- **Do not use HTTP inside Code nodes:** Official n8n docs say Code nodes shouldn't make HTTP requests. Any diagram fetching/rendering must use `HTTP Request` nodes or a separate renderer service.
+- **Source of truth:** Structured exam JSON is the primary artifact. The PDF is a secondary artifact. If PDF generation/upload fails, the workflow should still return the structured exam with `pdf: null` and an optional warning.
+- **Rendering rule:** Student HTML sent to PDFShift must contain only inline assets for diagrams (`<svg>...</svg>` or data URIs). No external image URLs inside the HTML.
+- **Preferred diagram approach:** Use Mermaid for sequence/protocol/topology diagrams and plain HTML tables for TCP seq/ack fill-ins. Do not use Nano Banana or other image-generation models for grading-critical network exam diagrams.
+- **Preferred workflow shape:** Question generation -> structured validation -> diagram render jobs via `HTTP Request` -> attach inline SVG/data URIs -> best-effort PDF branch. Keep the renderer backend swappable so `mermaid.ink` can be replaced later by a self-hosted renderer without redesigning the workflow.
+- **Implementation guide:** Use `docs/mock-exam-n8n-robust-workflow.md` for the concrete node-by-node revision plan.
+- **Runtime bug confirmed from real execution (2026-03-31):**
+  - Q6 and Q7 had no diagrams because their blueprint items correctly used `requiredDiagram: "none"`.
+  - Q8 should have rendered a diagram and did not.
+  - `Prepare Diagram Jobs` created the Q8 job correctly.
+  - `Render Diagram SVG` returned valid raw SVG, but the item no longer carried `questionIndex`.
+  - `Render Diagrams` therefore failed to reattach `diagramSvg` / `diagramDataUri` to Q8.
+  - Separate generator/validation bug: Q6 text said `Refer to the diagram below.` while `diagram` was `null`.
+  - Required fix: patch `Render Diagrams` to recover metadata from `Prepare Diagram Jobs` by item position, and patch `Validate Structured Exam` to reject missing required diagrams and false diagram references.
+  - Additional runtime issue found while applying the validator: the LLM can sometimes place long-form questions inside `mcqs`, causing errors like `Expected 5 MCQs but received 8`. Recommended safety net: add a `Normalize Exam Shape` Code node between `Parse Questions` and `Validate Structured Exam` to move malformed long-form items into `longForm` before validation.
+  - Additional runtime issue found after that: `Render Diagram SVG` can receive `503 Service Temporarily Unavailable` from `mermaid.ink`. Required fix: configure the HTTP Request node as best-effort (`Never Error` + retry), and let `Render Diagrams` attach `diagramFallbackText` when SVG rendering fails.
+
+## Long-Term Mock Exam Hardening Roadmap (2026-03-31)
+- **Principle:** Treat mock-exam quality as a layered system problem, not a prompt-tuning problem. Generation, validation, diagram rendering, export policy, and corpus strategy all need explicit hardening.
+- **Phase 1: Domain-consistency audit**
+  - Add deterministic checks for protocol correctness and numerical sanity, not just JSON shape.
+  - Critical checks now confirmed from live outputs:
+    - stop-and-wait questions cannot show multiple different data sends before an ACK
+    - queue-buildup / overflow questions must use link rates that make buildup possible, unless the intended conclusion is explicitly "no queue forms"
+    - question wording and diagram semantics must agree on protocol behavior, directionality, and link meaning
+  - App-side draft QA began on 2026-03-31 with new warnings for stop-and-wait contradictions, impossible queue-buildup setups, and plain-text/non-renderable diagrams.
+- **Phase 1.5: Structural normalization before validation**
+  - Add a dedicated `Normalize Long-Form Formatting` node before `Validate Structured Exam`.
+  - This node should deterministically remove false diagram references and strip leaked inline sub-part markers from the `question` field.
+  - The same normalization must run again after any repaired questions are merged back in, before re-validation.
+  - This is specifically required because live runs keep recurring on two recoverable errors:
+    - `Refer to the diagram below.` left in the stem while `diagram` is empty
+    - inline `(a)` / `a)` markers leaking into the `question` field instead of staying only in `sub_parts`
+  - These should not be treated as prompt-only problems. They are expected normalization cases in a scalable generation pipeline.
+- **Phase 2: Final-export gating**
+  - Student-facing final PDFs must not contain raw text fallback "diagrams" for questions whose blueprint requires a real diagram.
+  - Text fallback remains acceptable only in draft/review/debug flows.
+  - Final export should block or force manual review when required diagrams fail render or when unresolved critical warnings remain.
+- **Phase 3: Renderer hardening**
+  - `mermaid.ink` is acceptable for prototyping but not robust enough for production exam generation.
+  - Long-term target: self-hosted Mermaid rendering service (Node + Mermaid + Puppeteer or Mermaid CLI wrapper) with fixed fonts/theme/retries.
+  - No paid Mermaid subscription is required; this is a reliability/infrastructure decision.
+- **Phase 4: Diagram quality by archetype**
+  - Do not rely on generic Mermaid alone for all exam visuals.
+  - Preferred mapping:
+    - routing/topology/path questions -> polished graph templates
+    - TCP seq/ack fill-ins -> tables or standardized ladder templates with blanks
+    - throughput/bottleneck questions -> standardized path diagrams
+  - Goal: final PDFs should look like actual university exam papers, not diagnostic output.
+- **Phase 5: Repair loop**
+  - Add a post-generation `Open-Ended Consistency Audit` node in n8n.
+  - If only some long-form questions fail, regenerate or repair only those items instead of restarting the whole exam.
+  - This is the preferred scalable design over endlessly tightening one monolithic prompt.
+- **Phase 6: Content scalability / anti-repetition**
+  - More past papers will help, but retrieval scale alone is not enough.
+  - Long-term content strategy should combine:
+    - more source material (past papers, homework, tutorials, quizzes, sample tests)
+    - structured professor-authored originals
+    - parameterized original question templates
+    - similarity controls to prevent near-duplicate generations
+  - Goal: preserve past-paper style for student practice while also supporting original exam authoring for faculty use.
+- **Phase 7: Professor authoring workflow**
+  - Keep the structured draft, not the binary PDF, as the source of truth.
+  - Planned capabilities:
+    - regenerate this question
+    - regenerate diagram only
+    - upload/replace question images
+    - approve/reject final export
+  - This keeps the system reviewable, editable, and scalable for real academic use.
 
 ## n8n Exam Quality Upgrade Plan (execute in order)
 > **Context:** The workflow already has the correct pipeline structure (Parse Request → Question Generator → Parse Questions → Validate → Render Diagrams → mode split → responses). The upgrade targets are about *quality*, not plumbing.
@@ -55,8 +156,26 @@
 - [x] Step 3: Structural difficulty — `difficultyStructure` object drives sub-part counts, diagram ratios, open-ended defaults per difficulty level
 - [x] Step 4: Professional HTML — estimated time, cleaner instructions
 - [x] Step 5: Table-format — TCP seq/ack archetype generates `tableData`, HTML renderer produces fill-in tables
+- [x] Mermaid robustness: `Render Diagrams` v2 with 3-tier fallback (clean → minimal structure → text description), line-by-line graph LR fixing, no more "[Diagram unavailable]"
+- [x] Frontend: Removed outdated "workflow gaps" warning and "current workflow reality" alert from MockExamMode.tsx, replaced with accurate feature cards (professor-style questions, difficulty-driven structure, diagrams & tables, exam PDF)
+- [x] LLM models: Chatbot uses GPT-4o, Mock Exam uses Claude 3.5 Sonnet (both via OpenRouter)
+- [x] PDF hardening fully reworked: diagram fetching moved to `HTTP Request` node (`Render Diagram SVG`), inline SVG/data URIs embedded in HTML, PDFShift uses `wait_for: "isPdfShiftReady"` instead of blind delay
+- [x] Best-effort PDF: `Convert HTML to PDF` has `onError: continueRegularOutput`, `Has PDF Binary?` IF node routes failures to response node directly, structured exam JSON always returned even when PDF fails
+- [x] Difficulty no longer overrides user-selected question counts — only affects structure (sub-parts, diagrams, depth)
+- [x] Robust diagram pipeline: `Prepare Diagram Jobs` → `Has Diagram Jobs?` → `Render Diagram SVG` (HTTP Request) → `Render Diagrams` (reassembly with inline SVG + base64 data URIs)
+- [x] Best-effort PDF pipeline: `Convert HTML to PDF` (continueRegularOutput) → `Has PDF Binary?` → true: upload path / false: direct to response
+- [x] `Build Exam Simulation Response` is resilient: try/catch for Drive upload + PDF nodes, returns `pdf: null` with warnings on failure
+- [x] `Build Student Exam HTML` uses `escapeHtml()`, `renderTable()`, inline SVG rendering, `isPdfShiftReady` JS function, no external image URLs
 
 ## Recently Completed
+- n8n Mock Exam: Workflow `FterurcXSRyrQ4Xq` active exam branch now uses `Claude 4.6 Sonnet` for both `Basic LLM Chain` and `Repair Bad Open-Ended Questions`; disconnected legacy model/memory nodes were removed so MCP edits can save again
+- Mock Exam: App-side draft QA now flags stop-and-wait sequence contradictions, impossible queue-buildup / overflow setups, and plain-text / invalid Mermaid diagrams that would likely print as unprofessional fallback text
+- Mock Exam: Added a unified per-user "Saved Mock Exams" library in `MockExamMode.tsx` that lists both `quick_practice` and `exam_simulation` sessions, with clear UI separation between reopening an existing exam and generating a new one
+- Mock Exam: Existing session storage is now surfaced as a product feature rather than a hidden backend detail; saved quick-practice sessions can be reopened/reviewed, and saved exam simulations can be reopened from their stored PDF links
+- Mock Exam: `MockExamMode.tsx` studio UX simplified for beginners; `Saved Mock Exams` and `Generate New Mock Exam` now default closed, the old "latest exam ready" card is removed, `Open Exam` is the primary saved-exam CTA, and the newest/current history item gets a glow highlight instead
+- Mock Exam: Quick Practice open-ended selector is now disabled/greyed out when `quick_practice` mode is selected; request payload sends `0` open-ended questions in that mode while preserving the exam-simulation selection
+- Mock Exam: Quick Practice now uses free navigation + confirm-to-submit instead of forced linear next-only answering, so students can change a tentative choice before confirming and jump between questions safely
+- Mock Exam: Completed Quick Practice attempts now persist final answers/result summaries back into `mock_exam_answers` + `mock_exam_sessions`, and the UI can load saved attempts for later review from in-app history
 - n8n Exam Quality Sprint (2026-03-31): Steps 1-5 all applied to workflow `FterurcXSRyrQ4Xq`. Validation passed (no errors in modified nodes). Old legacy pipeline (`Parse Exam Request` → `Exam Generator Agent` → etc.) is now disconnected/unreachable — the `Exam Request Webhook` routes directly to the new `Parse Request` pipeline.
 - Chat Mode: Mermaid diagram toolbar (copy, fullscreen, download SVG, source toggle, error fallback)
 - Chat Mode: Adaptive 7-type response format in AI Agent system prompt
@@ -70,7 +189,7 @@
 - n8n: Removed 5 disconnected unused LLM nodes, connected Chat Memory
 - Mock Exam: Architecture direction chosen -> Approach B (Quick Practice + Exam Simulation split)
 - Mock Exam: Question sourcing strategy chosen -> Remix engine based on past paper / homework lineage
-- Mock Exam: Navigation model chosen -> Hybrid UX (Quick Practice linear, Exam Simulation free navigation)
+- Mock Exam: Navigation model updated -> Quick Practice now uses free navigation with confirm-to-submit; Exam Simulation remains PDF-first until the in-app simulation runner exists
 - Mock Exam: `examSupabase` inspected through the existing anon client; confirmed accessible `question_bank` and `mock_exams` tables
 - Mock Exam: `question_bank` already stores source lineage metadata (`file`, `section`, `exam_type`, `exam_period`) suitable for modular future ingestion
 - Mock Exam: Step 1 runtime SQL added for `mock_exam_sessions`, `mock_exam_questions`, `mock_exam_answers`, and `user_mock_exam_weaknesses`
@@ -116,11 +235,21 @@
 ## Handoff Notes (Read Before Coding)
 - **Simulations tab**: UI locked in. Do not alter simulator layouts unless explicitly instructed.
 - **Chat Mode**: Feature-complete for FYP. Remaining work is polish (streaming, retry).
-- **Mock Exam decisions locked in**: Use Approach B. `Quick Practice` should be fast, JSON-first, and linear. `Exam Simulation` should be richer, timed, free-navigation, and still support PDF export.
+- **Mock Exam decisions locked in**: Use Approach B. `Quick Practice` should be fast, JSON-first, in-app, and free-navigation with confirm-to-submit. `Exam Simulation` should be richer, timed, free-navigation, and still support PDF export.
 - **Question generation strategy**: Use remix-based generation from past papers / homework already stored in `question_bank`, with lineage metadata so future uploads stay modular and scalable.
 - **Current mock exam reality**: The app side is ahead of the generator. `src/components/MockExamMode.tsx` can already detect legacy PDF responses vs structured exam JSON, and generated sessions now save into `externalSupabase` when authenticated.
+- **Quick Practice UX status (2026-03-31)**: The in-app quick-practice runner now supports free question navigation, per-question confirm-to-submit, history-backed review of completed attempts, and disables open-ended selection in `quick_practice` mode.
+- **Saved exam library status (2026-03-31)**: `MockExamMode.tsx` now has a unified "Saved Mock Exams" section that surfaces all generated sessions for the signed-in user across both modes. The library uses `mock_exam_sessions` as the v1 saved-exam source of truth and makes "choose existing exam" vs "generate new exam" visually explicit.
+- **Saved exam library UX status (2026-03-31)**: The mock-exam studio now uses independent section toggles for `Saved Mock Exams` and `Generate New Mock Exam`, so users can open both, hide both, or keep only one visible. Quick-practice cards always show a `View Result` action; if the session has no completed saved answers yet, the UI says that explicitly instead of hiding the button. Result review is now exam-style: one full question page at a time with the complete stem, all options, correctness markers, explanation, and previous/next navigation.
+- **Saved exam library actions status (2026-03-31)**: Saved-exam cards now use a compact overflow `...` menu for secondary actions. The primary CTA stays visible (`Start`, `Continue`, `Practice Again`, `Open PDF`, `Use Shared Exam`), while secondary actions like `View Result`, `Share to Pool`, `Download PDF`, and `Delete Exam` live in the menu. Individual saved sessions can now be deleted from personal history.
+- **Current library behavior**: `quick_practice` sessions with status `ready` reopen as in-app practice, while `submitted` / `graded` quick-practice sessions reopen as review. `exam_simulation` sessions reopen through stored PDF links when available, with a fallback detail load path from saved session payload/question snapshots.
+- **Shared pool status (2026-03-31)**: Mock exams now support a separate shared catalog on the frontend. `MockExamMode.tsx` splits the saved library into `My History` and `Shared Pool`, mode-first (`Quick Practice` / `Exam Simulation`). Personal sessions can be published with `Share to Pool`, and shared exams are consumed through `Use Shared Exam`, which creates a fresh private copy in the current user's history before loading it.
+- **Shared pool DB requirement**: Apply `docs/sql/external-supabase/20260331_mock_exam_shared_pool.sql` to the live `externalSupabase` project before expecting share/list/use to work. Until that migration exists, publish/use actions fail gracefully and the shared list stays empty.
 - **Edge function status**: `supabase/functions/generate-exam/index.ts` has been upgraded to normalize structured exam JSON plus optional PDF artifacts, but the frontend is still calling n8n directly today.
 - **Current n8n blocker**: The workflow still ends at `Post Links1 -> Return Link1`, so production behavior is still effectively PDF-first until the workflow is upgraded.
+- **Mock exam PDF reliability rule**: Do not rely on blind `delay` values alone. PDFShift guidance is to avoid network requests, inline assets, and use `wait_for` only as a readiness guard when needed.
+- **Mock exam diagram-fetch rule**: Do not use `fetch()` in Code nodes. Per official n8n docs, use `HTTP Request` or a separate renderer service for all external diagram fetching.
+- **Mock exam response rule**: Structured exam JSON must still be returned when PDF generation or Drive upload fails. `pdf` can be `null`; the exam payload cannot disappear.
 - **n8n exam pipeline status (2026-03-31)**:
   The new pipeline (`Parse Request` → `Question Generator` → `Parse Questions` → `Validate Structured Exam` → `Render Diagrams` → `Is Exam Simulation?` → mode-specific response nodes) is fully wired and functional.
   `Parse Request` has 6 archetypes (HTTP, Video Streaming, TCP Header, Network Perf, Transport/Sliding Window, Routing/Topology) with blueprint system, difficulty anchors, remix seeds, and variation context.
@@ -131,13 +260,30 @@
   `Build Exam Simulation Response` returns JSON + PDF links.
   `Convert to TXT Binary1` now uses unique filenames: `ELEC3120_{difficulty}_{shortId}_{timestamp}.pdf`.
   **Quality gaps fixed in sprint (2026-03-31):** diagram density enforcement, sub-part depth (4+ with progressive difficulty), structural difficulty (easy/medium/hard drive blueprint shape), professional HTML (estimated time, instructions), TCP table-format support.
+  **Reliability status after live execution test (2026-03-31):** The workflow shape is correct and PDF is best-effort, but one diagram reattachment bug is still open. `Render Diagram SVG` can return raw SVG without preserving `questionIndex`, so `Render Diagrams` must recover the mapping from `Prepare Diagram Jobs`. Also, `Validate Structured Exam` must reject any question that says `Refer to the diagram below.` while `diagram` is null.
+  **Full pipeline shape:**
+  ```
+  Exam Request Webhook → Parse Request → Question Generator → Parse Questions → Validate Structured Exam
+  → Prepare Diagram Jobs → Has Diagram Jobs?
+    → true: Render Diagram SVG (HTTP Request, 20s timeout) → Render Diagrams (reassembly)
+    → false: Render Diagrams (passthrough)
+  → Is Exam Simulation?
+    → true: Build Student Exam HTML → Convert HTML to PDF [continueRegularOutput] → Has PDF Binary?
+      → true: Convert to TXT Binary1 → Upload to Google Drive1 → Share file1 → Build Exam Simulation Response → Return Link1
+      → false: Build Exam Simulation Response → Return Link1
+    → false: Build Quick Practice Response → Return Link1
+  ```
+  **New nodes added in robust workflow pass:** `Prepare Diagram Jobs` (Code), `Has Diagram Jobs?` (IF), `Render Diagram SVG` (HTTP Request), `Has PDF Binary?` (IF).
   **Remaining future work:** Per-question retrieval (Step 6), Verifier agent pass (Step 7). See "n8n Exam Quality Upgrade Plan" section above.
+  **Testing needed:** Run end-to-end tests in this order: (1) quick_practice 5 MCQ, (2) exam_simulation 5 MCQ + 3 OE medium, (3) exam_simulation 10 MCQ + 5 OE hard.
 - **n8n upgrade spec**: See `docs/mock-exam-n8n-upgrade.md` before editing the workflow. It lists the target response contract, required mode split, node-level changes, and rollout order.
 - **n8n implementation guide**: Use `docs/mock-exam-n8n-step-by-step.md` for the exact beginner sequence, full code-node replacements, exact prompts, and connection changes.
+- **n8n reliability guide**: Use `docs/mock-exam-n8n-robust-workflow.md` for the current diagram/PDF hardening pass. This is the source of truth for fixing PDFShift timeouts and removing unsupported Code-node HTTP ideas.
 - **Step 1 files**: SQL is in `docs/sql/external-supabase/20260330_mock_exam_runtime.sql`. Beginner instructions are in `docs/mock-exam-phase1.md`.
 - **Supabase ownership map**: See `docs/supabase-ownership.md` for the two-project split, active tables, likely legacy tables, and cleanup policy.
 - **Supabase config status**: Frontend Supabase clients now read from env via `src/lib/supabaseConfig.ts`. The local `.env` typo for the external project URL has been corrected.
 - **Mock exam runtime DB status**: Re-check on 2026-03-31 found that `mock_exam_sessions` and `mock_exam_questions` are not currently exposed/readable in the live `externalSupabase` app database. App-side persistence code is ready, but the SQL still needs to exist in the real project before those saves will succeed.
+- **Quick Practice history caveat**: The new review/history UI depends on `mock_exam_sessions`, `mock_exam_questions`, and `mock_exam_answers` being available in the live `externalSupabase` project. If history does not appear, verify that the runtime SQL from `docs/sql/external-supabase/20260330_mock_exam_runtime.sql` is actually applied in the correct project.
 - **Current examSupabase table state after user cleanup**: `lecture_slides_course`, `mock_exams`, `n8n_chat_histories`, `question_bank`, `slide_explanations`, plus legacy/verify tables `elec3120_textbook` and `exam_questions_small`.
 - **Confirmed exam DB shape**: `question_bank` currently has 66 rows with columns `id`, `question_number`, `lecture_id`, `question_type`, `topic`, `content`, `options`, `correct_answer`, `diagram_description`, `diagram_logic`, `sub_questions`, `source_metadata`, `embedding`. The lineage fields live inside `source_metadata` (`file`, `section`, `exam_type`, `exam_period`), not as top-level columns. `mock_exams` currently stores PDF/Drive metadata only with columns `id`, `topic`, `difficulty`, `num_mcqs`, `num_openended`, `total_questions`, `file_id`, `drive_link`, `download_link`, `created_at`, `generated_by`.
 - **Current audit summary**:

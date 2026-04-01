@@ -15,12 +15,14 @@
       "mcp__n8n-mcp__n8n_get_workflow",
       "Bash(python -c \":*)",
       "mcp__n8n-mcp__n8n_update_partial_workflow",
-      "mcp__n8n-mcp__n8n_validate_workflow"
+      "mcp__n8n-mcp__n8n_validate_workflow",
+      "Bash(npx tsc:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "supabase"
+    "supabase",
+    "n8n-mcp"
   ],
   "hooks": {
     "PostToolUse": [
