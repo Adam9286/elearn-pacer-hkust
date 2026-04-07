@@ -11,7 +11,9 @@ import { useToast } from '@/hooks/use-toast';
 import { externalSupabase } from '@/lib/externalSupabase';
 import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMarkdown } from './RenderMarkdown';
-import { ChatMessage, RetrievedMaterial } from '@/types/chatTypes';
+import { StructuredResponse } from './StructuredResponse';
+import { ChatMessage, RetrievedMaterial, StructuredAnswer } from '@/types/chatTypes';
+import { parseWebhookAnswer } from '@/utils/parseWebhookAnswer';
 import { LectureReferences, RetrievedMaterial as LegacyRetrievedMaterial } from './LectureReferences';
 import { CitationSection } from './CitationSection';
 import { NoCitationNotice } from './NoCitationNotice';
@@ -27,9 +29,10 @@ interface LocalMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  structured_answer?: StructuredAnswer;
   source?: string; // Legacy
-  citations?: string[]; // NEW - Raw citation strings
-  retrieved_materials?: RetrievedMaterial[]; // NEW - Full material data
+  citations?: string[]; // Raw citation strings
+  retrieved_materials?: RetrievedMaterial[]; // Full material data
   responseTime?: string;
   attachments?: Array<{
     name: string;
@@ -88,6 +91,7 @@ export const ChatConversation = ({
         id: m.id,
         role: m.role,
         content: m.content,
+        structured_answer: m.structured_answer,
         source: m.source,
         citations: m.citations,
         retrieved_materials: m.retrieved_materials,
@@ -349,7 +353,7 @@ export const ChatConversation = ({
         await new Promise((resolve) => setTimeout(resolve, 500));
 
         const payload = data.body ?? data;
-        const answer = payload.answer ?? payload.output ?? "I received your question and I'm processing it.";
+        const { rawContent, structured } = parseWebhookAnswer(payload);
         const citations = payload.citations ?? [];
         const retrievedMaterials = payload.retrieved_materials ?? [];
         // Legacy fallback
@@ -362,10 +366,11 @@ export const ChatConversation = ({
           const aiMessage: LocalMessage = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content: answer,
+            content: rawContent,
+            structured_answer: structured ?? undefined,
             citations: citations.length > 0 ? citations : undefined,
             retrieved_materials: retrievedMaterials.length > 0 ? retrievedMaterials : undefined,
-            source: retrievedMaterials.length === 0 && citations.length === 0 ? source : undefined, // Fallback to legacy
+            source: retrievedMaterials.length === 0 && citations.length === 0 ? source : undefined,
             responseTime: responseTime,
           };
           setNewMessageId(aiMessage.id);
@@ -502,7 +507,11 @@ export const ChatConversation = ({
                         <AIThinkingIndicator isActive={true} />
                       ) : (
                         <div className="text-sm leading-relaxed">
-                          <RenderMarkdown content={message.content} />
+                          {message.structured_answer ? (
+                            <StructuredResponse answer={message.structured_answer} />
+                          ) : (
+                            <RenderMarkdown content={message.content} />
+                          )}
                         </div>
                       )}
                       {message.attachments && message.attachments.length > 0 && (

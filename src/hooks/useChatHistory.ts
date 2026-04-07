@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { externalSupabase } from '@/lib/externalSupabase';
-import type { 
-  ChatConversation, 
-  ChatMessage, 
-  RetrievedMaterial 
+import type {
+  ChatConversation,
+  ChatMessage,
+  RetrievedMaterial
 } from '@/types/chatTypes';
+import { isStructuredAnswer } from '@/types/chatTypes';
 
 // Re-export types for backwards compatibility
 export type { ChatConversation, ChatMessage, RetrievedMaterial };
@@ -48,7 +49,26 @@ export const useChatHistory = (userId: string | null) => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setMessages(data || []);
+
+      // Hydrate structured_answer from content for messages saved in the new format.
+      // Old messages (plain markdown) are left unchanged — they route to RenderMarkdown.
+      const hydrated = (data || []).map((msg: ChatMessage) => {
+        if (msg.role === 'assistant' && typeof msg.content === 'string') {
+          const trimmed = msg.content.trim();
+          if (trimmed.startsWith('{')) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              if (isStructuredAnswer(parsed)) {
+                return { ...msg, structured_answer: parsed };
+              }
+            } catch {
+              // Not JSON — leave as legacy markdown
+            }
+          }
+        }
+        return msg;
+      });
+      setMessages(hydrated);
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {

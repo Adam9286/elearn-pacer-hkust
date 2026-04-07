@@ -7,6 +7,7 @@ import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
 import { WEBHOOKS, TIMEOUTS } from '@/constants/api';
 import { uploadAttachments } from '@/services/attachmentService';
+import { parseWebhookAnswer } from '@/utils/parseWebhookAnswer';
 
 const ChatMode = () => {
   const { toast } = useToast();
@@ -189,25 +190,29 @@ const ChatMode = () => {
       const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
       
       const payload = data.body ?? data;
-      const answer = payload.answer ?? payload.output ?? "I received your question and I'm processing it.";
+      const { rawContent, structured } = parseWebhookAnswer(payload);
       const citations = payload.citations ?? [];
       const retrievedMaterials = payload.retrieved_materials ?? [];
       // Legacy fallback
       const source = payload.source_document ?? payload.source;
 
-      // Save AI response to database with new citation fields
+      // Save AI response — always a string in the DB (rawContent is JSON or markdown)
       const aiMessage = await saveMessage(conversationId, {
         role: 'assistant',
-        content: answer,
+        content: rawContent,
         citations: citations.length > 0 ? citations : undefined,
         retrieved_materials: retrievedMaterials.length > 0 ? retrievedMaterials : undefined,
-        source: retrievedMaterials.length === 0 && citations.length === 0 ? source : undefined, // Fallback to legacy
+        source: retrievedMaterials.length === 0 && citations.length === 0 ? source : undefined,
       });
 
-      // Remove loading message and add real AI response with response time
+      // Remove loading message and add real AI response with structured data attached
       removeMessageLocally(loadingMessageId);
       if (aiMessage) {
-        addMessageLocally({ ...aiMessage, responseTime });
+        addMessageLocally({
+          ...aiMessage,
+          structured_answer: structured ?? undefined,
+          responseTime,
+        });
       }
     } catch (error) {
       clearTimeout(timeoutId);

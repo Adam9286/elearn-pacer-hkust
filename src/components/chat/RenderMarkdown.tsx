@@ -221,40 +221,58 @@ const parseTable = (lines: string[], startIndex: number): { table: ReactNode; en
   return { table, endIndex: rowIndex };
 };
 
-/** Renumber consecutive "1. ..." lines to 1., 2., 3. so LLM output displays correctly */
+/**
+ * Renumber numbered list items so they display correctly even when the LLM
+ * resets the counter back to "1." mid-response (e.g. two separate "1." items
+ * separated by blank lines or sub-content within the same section).
+ *
+ * Rules:
+ *  - A ## or ### header resets the counter (new section = new list).
+ *  - Within a section, if we see "1." when the counter is already > 0 and
+ *    there is no intervening header, treat it as a continuation and renumber.
+ *  - Genuinely sequential numbering (1, 2, 3 …) is left untouched.
+ */
 function normalizeNumberedListLines(text: string): string {
   const lines = text.split('\n');
-  const out: string[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    const match = line.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
-    if (!match) {
-      out.push(line);
-      i++;
-      continue;
-    }
-    const [, indent, num, space, rest] = match;
-    const run = [line];
-    let j = i + 1;
-    while (j < lines.length) {
-      const m = lines[j].match(/^(\s*)(\d+)\.(\s+)(.*)$/);
-      if (!m) break;
-      run.push(lines[j]);
-      j++;
-    }
-    if (run.length > 1) {
-      run.forEach((ln, idx) => {
-        const m = ln.match(/^(\s*)(\d+)\.(\s+)(.*)$/);
-        if (m) out.push(`${m[1]}${idx + 1}.${m[3]}${m[4]}`);
-        else out.push(ln);
-      });
-      i = j;
-    } else {
-      out.push(line);
-      i++;
-    }
+  const out = [...lines];
+
+  // Collect all numbered-item positions
+  const items: Array<{ idx: number; num: number }> = [];
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(/^\s*(\d+)\.\s/);
+    if (m) items.push({ idx: i, num: parseInt(m[1], 10) });
   }
+
+  if (items.length <= 1) return text;
+
+  let counter = 0;
+  let prevIdx = -1;
+
+  for (const item of items) {
+    // Check whether a header appears between the previous item and this one
+    const hasHeaderBetween =
+      prevIdx >= 0 &&
+      lines
+        .slice(prevIdx + 1, item.idx)
+        .some(l => /^#{1,3}\s/.test(l.trim()));
+
+    if (hasHeaderBetween || counter === 0) {
+      // Start of a new list section — trust model's numbering, just reset counter
+      counter = item.num;
+    } else if (item.num === 1 && counter > 0) {
+      // Model restarted at "1." without a section break → renumber as continuation
+      counter++;
+      const line = lines[item.idx];
+      const m = line.match(/^(\s*)(\d+)(\.[\s\S]*)$/);
+      if (m) out[item.idx] = `${m[1]}${counter}${m[3]}`;
+    } else {
+      // Sequential or higher — trust it
+      counter = item.num;
+    }
+
+    prevIdx = item.idx;
+  }
+
   return out.join('\n');
 }
 
@@ -453,9 +471,13 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
     
     // Numbered list: 1. item
     if (/^\d+\.\s/.test(trimmed)) {
-      const listItems: string[] = [];
+      const listItems: Array<{ num: number; text: string }> = [];
       while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
-        listItems.push(lines[i].trim().replace(/^\d+\.\s/, ''));
+        const m = lines[i].trim().match(/^(\d+)\.\s+([\s\S]*)$/);
+        listItems.push({
+          num: m ? parseInt(m[1], 10) : listItems.length + 1,
+          text: m ? m[2] : lines[i].trim().replace(/^\d+\.\s/, ''),
+        });
         i++;
       }
       elements.push(
@@ -463,9 +485,9 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
           {listItems.map((item, idx) => (
             <li key={idx} className="flex items-start gap-2">
               <span className="text-primary font-medium text-sm mt-0.5 flex-shrink-0 w-5">
-                {idx + 1}.
+                {item.num}.
               </span>
-              <span className="text-foreground">{parseInline(item, `oli-${i}-${idx}`)}</span>
+              <span className="text-foreground">{parseInline(item.text, `oli-${i}-${idx}`)}</span>
             </li>
           ))}
         </ol>
