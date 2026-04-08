@@ -2,6 +2,15 @@
 import { RotateCcw, Router } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarInputClass,
+  toolbarPrimaryButtonClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 interface RouteEntry {
   id: string;
@@ -77,7 +86,7 @@ const highlightBits = (bits: string, length: number) => {
   );
 };
 
-export const LpmSimulator = () => {
+export const LpmSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [destinationIp, setDestinationIp] = useState('10.20.30.150');
   const [manualInput, setManualInput] = useState('10.20.30.150');
 
@@ -124,9 +133,12 @@ export const LpmSimulator = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Destination IP</h3>
-        <div className="flex flex-wrap gap-2">
+      <SimulatorToolbar
+        label="Destination IP"
+        hint={!isValidIpv4(manualInput) ? 'Manual input must be a valid IPv4 address.' : undefined}
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className={toolbarControlGroupClass}>
           {DEST_PRESETS.map((preset) => (
             <Button
               key={preset.ip}
@@ -136,31 +148,30 @@ export const LpmSimulator = () => {
                 setDestinationIp(preset.ip);
                 setManualInput(preset.ip);
               }}
+              className={toolbarToggleButtonClass(destinationIp === preset.ip)}
             >
               {preset.label}
             </Button>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={toolbarControlGroupClass}>
           <input
             value={manualInput}
             onChange={(event) => setManualInput(event.target.value)}
-            className="h-9 w-[220px] rounded-md border border-border bg-background px-3 text-sm text-foreground"
+            className={`${toolbarInputClass} w-[220px]`}
             placeholder="e.g. 10.20.30.150"
           />
-          <Button onClick={applyManual} disabled={!isValidIpv4(manualInput)}>
+          <Button onClick={applyManual} disabled={!isValidIpv4(manualInput)} className={toolbarPrimaryButtonClass}>
             Apply
           </Button>
-          <Button variant="outline" className="gap-2" onClick={reset}>
+          <Button variant="ghost" className={`gap-2 ${toolbarGhostButtonClass}`} onClick={reset}>
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
         </div>
-        {!isValidIpv4(manualInput) && (
-          <p className="text-xs text-red-400">Manual input must be a valid IPv4 address.</p>
-        )}
-      </div>
+        </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={destinationValid}>
         {destinationValid ? (

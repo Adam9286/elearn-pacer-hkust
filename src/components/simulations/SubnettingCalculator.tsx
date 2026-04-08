@@ -3,6 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarInputClass,
+  toolbarSecondaryButtonClass,
+  toolbarSelectClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -98,7 +107,7 @@ function maskToCidr(mask: string): number | null {
   const inverted = (~num) >>> 0;
   if (((inverted + 1) & inverted) !== 0) return null;
   let bits = 0;
-  let v = num;
+  const v = num;
   for (let i = 0; i < 32; i++) {
     if ((v & (1 << (31 - i))) !== 0) bits++;
     else break;
@@ -134,7 +143,7 @@ function toBinaryString(ip: string): string {
 
 // â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-export const SubnettingCalculator = () => {
+export const SubnettingCalculator = ({ onStepChange }: SimulatorStepProps) => {
   const [ipInput, setIpInput] = useState('192.168.1.0');
   const [cidr, setCidr] = useState(24);
   const [activePreset, setActivePreset] = useState<string>('home');
@@ -232,8 +241,14 @@ export const SubnettingCalculator = () => {
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
+          <SimulatorToolbar
+            label="Subnet Controls"
+            status={
+              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">/{cidr}</Badge>
+            }
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+            <div className={toolbarControlGroupClass}>
               <label htmlFor="subnet-preset" className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">Scenario</label>
               <select
                 id="subnet-preset"
@@ -246,7 +261,7 @@ export const SubnettingCalculator = () => {
                     clearPreset();
                   }
                 }}
-                className="h-9 min-w-[180px] rounded-md border border-border bg-background px-2 text-sm text-foreground"
+                className={`${toolbarSelectClass} min-w-[180px]`}
               >
                 <option value="custom">Custom</option>
                 {PRESETS.map((preset) => (
@@ -266,16 +281,14 @@ export const SubnettingCalculator = () => {
                   clearPreset();
                 }}
                 placeholder="192.168.1.0"
-                className={`h-9 rounded-md border bg-background px-3 text-sm font-mono text-foreground placeholder:text-zinc-600 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors w-48 ${
-                  ipInput && !ipValid ? 'border-red-500 focus:ring-red-500/40' : 'border-border'
+                className={`${toolbarInputClass} w-48 font-mono ${
+                  ipInput && !ipValid ? 'border-red-500 focus:border-red-500 focus:ring-red-500/40' : ''
                 }`}
               />
 
-              <Badge variant="outline" className="text-xs">/{cidr}</Badge>
-
               <div className="ml-auto flex items-center gap-2">
-                <Button size="sm" variant={!showBinary ? 'default' : 'outline'} onClick={() => setShowBinary(false)}>Decimal</Button>
-                <Button size="sm" variant={showBinary ? 'default' : 'outline'} onClick={() => setShowBinary(true)}>Binary</Button>
+                <Button size="sm" variant={!showBinary ? 'default' : 'outline'} onClick={() => setShowBinary(false)} className={toolbarToggleButtonClass(!showBinary)}>Decimal</Button>
+                <Button size="sm" variant={showBinary ? 'default' : 'outline'} onClick={() => setShowBinary(true)} className={toolbarToggleButtonClass(showBinary)}>Binary</Button>
               </div>
             </div>
 
@@ -297,7 +310,7 @@ export const SubnettingCalculator = () => {
               <span className="text-xs text-zinc-600 dark:text-zinc-400 font-mono">Mask: {cidrToMaskString(cidr)}</span>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className={toolbarControlGroupClass}>
               <label htmlFor="manual-mask" className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">Mask Input</label>
               <input
                 id="manual-mask"
@@ -305,9 +318,9 @@ export const SubnettingCalculator = () => {
                 value={manualMask}
                 onChange={e => setManualMask(e.target.value)}
                 placeholder="255.255.255.0"
-                className="h-9 w-44 rounded-md border border-border bg-background px-3 text-sm font-mono text-foreground placeholder:text-zinc-600 dark:placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                className={`${toolbarInputClass} w-44 font-mono`}
               />
-              <Button size="sm" variant="outline" onClick={handleManualMaskApply} disabled={maskToCidr(manualMask) === null}>Apply</Button>
+              <Button size="sm" variant="outline" onClick={handleManualMaskApply} disabled={maskToCidr(manualMask) === null} className={toolbarSecondaryButtonClass}>Apply</Button>
               {manualMask && maskToCidr(manualMask) !== null && (
                 <span className="text-xs text-zinc-600 dark:text-zinc-400">Equivalent: <span className="text-primary font-medium">/{maskToCidr(manualMask)}</span></span>
               )}
@@ -323,7 +336,8 @@ export const SubnettingCalculator = () => {
                 Invalid subnet mask. Must be contiguous 1s followed by 0s.
               </p>
             )}
-          </div>
+            </div>
+          </SimulatorToolbar>
 
           <SimulationCanvas isLive={ipValid && Boolean(result)}>
             <div className="space-y-4">
@@ -340,7 +354,7 @@ export const SubnettingCalculator = () => {
                       { label: 'Usable Hosts', value: result.usableHosts.toLocaleString() },
                       { label: 'Subnet Mask', value: showBinary ? toBinaryString(result.subnetMask) : result.subnetMask },
                     ].map(item => (
-                      <div key={item.label} className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-1">
+                      <div key={item.label} className="rounded-xl bg-white/[0.03] p-4 space-y-1">
                         <div className="text-xs text-zinc-600 dark:text-zinc-400">{item.label}</div>
                         <div className={`font-semibold text-foreground ${showBinary ? 'text-xs font-mono break-all' : 'text-sm font-mono'}`}>
                           {item.value}
@@ -354,17 +368,17 @@ export const SubnettingCalculator = () => {
               {ipValid && (
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-foreground">Binary Breakdown</label>
-                  <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 overflow-x-auto">
+                  <div className="overflow-x-auto rounded-xl bg-gray-950/40 p-4">
                     <div className="flex items-center gap-0 font-mono text-sm whitespace-nowrap">
                       <span className="text-primary font-semibold">{networkBitsFormatted}</span>
                       <span className="mx-1 text-zinc-600 dark:text-zinc-400 font-bold select-none">|</span>
                       <span className="text-emerald-400 font-semibold">{hostBitsFormatted}</span>
                     </div>
                     <div className="flex gap-3 mt-3">
-                      <Badge variant="outline" className="text-primary border-primary/30 bg-primary/10">
+                      <Badge variant="outline" className="bg-primary/10 text-primary">
                         Network: {cidr} bits
                       </Badge>
-                      <Badge variant="outline" className="text-emerald-400 border-emerald-400/30 bg-emerald-400/10">
+                      <Badge variant="outline" className="bg-emerald-400/10 text-emerald-400">
                         Host: {32 - cidr} bits
                       </Badge>
                     </div>
@@ -375,7 +389,7 @@ export const SubnettingCalculator = () => {
           </SimulationCanvas>
         </div>
       ) : (
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-4">
+        <div className="space-y-5 py-2">
           <div className="space-y-2">
             <h3 className="font-semibold text-foreground text-sm">What Is This?</h3>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
@@ -385,7 +399,7 @@ export const SubnettingCalculator = () => {
           </div>
 
           {activeHint && (
-            <div className="rounded-md border border-border/50 bg-muted/20 px-3 py-2">
+            <div className="pl-3">
               <p className="text-xs text-zinc-600 dark:text-zinc-400">
                 <span className="font-semibold text-foreground">Current scenario focus:</span> {activeHint}
               </p>
@@ -399,7 +413,7 @@ export const SubnettingCalculator = () => {
             <p><span className="font-medium text-foreground">Usable hosts:</span> generally total addresses minus network and broadcast.</p>
           </div>
 
-          <div className="rounded-md border border-border/50 bg-muted/20 px-3 py-2">
+          <div className="pl-3">
             <p className="text-xs text-zinc-600 dark:text-zinc-400">
               <strong className="text-foreground">Try this:</strong> change /24 to /25 and observe usable hosts roughly halve.
             </p>

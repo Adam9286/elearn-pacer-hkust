@@ -1,14 +1,32 @@
 # AI Project Sync & Memory
 **Project:** LearningPacer (ELEC3120)
-**Last Updated:** 2026-04-01
-**Current Stage:** n8n exam quality sprint complete (Steps 1-5) and the critical Mermaid/JSON handoff is now fixed. The exam branch returns sanitized Mermaid in structured exam JSON, while remote diagram/PDF rendering stays best-effort. Remaining: per-question retrieval (Step 6), verifier agent (Step 7).
+**Last Updated:** 2026-04-08
+**Current Stage:** Simulations tab hub/focused-view redesign is implemented. n8n exam quality sprint complete (Steps 1-5) and the critical Mermaid/JSON handoff is fixed. The exam branch returns sanitized Mermaid in structured exam JSON, while remote diagram/PDF rendering stays best-effort. Remaining exam work: per-question retrieval (Step 6), verifier agent (Step 7).
 
 ---
 
 ## Active Goal
+- [x] **Simulator UI declutter/refactor** (global shell/sidebar, shared toolbar, anti-nesting pass, docs sync)
 - [ ] **n8n Exam Quality Upgrade Sprint** (see detailed plan below)
 - [x] **Mock Exam diagram/PDF reliability hardening** (inline assets, HTTP Request renderer, structured exam always returned) ✅ DONE
 - [ ] Fix Gemini Vision API call in n8n (Code node -> HTTP Request node swap)
+
+## Simulator UI Refactor (2026-04-08)
+- **Scope:** UI-only refactor. No simulator state machines, calculations, Supabase/database calls, n8n workflow triggers, or LLM integrations were changed.
+- **Global shell/sidebar:** `src/components/SimulationsMode.tsx` now uses flatter simulator navigation with subtle inactive text (`text-gray-400`), active text (`text-white`), and a simple active left-border highlight. The old "Recommended First Steps" sidebar block was removed to recover vertical space.
+- **Shared toolbar:** Added `src/components/simulations/SimulatorToolbar.tsx` and `src/components/simulations/SimulatorToolbar.styles.ts`. Simulator-level scenario/action/status controls now render through the shared toolbar shell while each simulator keeps its own local state and handlers.
+- **Toolbar design rule:** Keep simulator top controls flat. Preferred shell is `bg-gray-800/40` with a subtle `border-b border-white/10`; avoid heavy shadows, raised cards, and nested control cards.
+- **Anti-nesting pass:** `src/components/simulations/SimulationCanvas.tsx` was flattened from a bordered/shadowed card into a quieter rounded canvas with `bg-gray-950/25`, flow-based status labeling, and spacing-first layout.
+- **Targeted simulator canvas cleanup:** `EncapsulationSimulator.tsx`, `SlidingWindowSimulator.tsx`, `ArpSimulator.tsx`, and `SubnettingCalculator.tsx` had most border-heavy card treatments removed. The new pattern favors whitespace (`gap`, `px`, `py`), typographic labels (`text-xs/text-sm`, `font-semibold`, `tracking-*`, muted gray), and subtle `ring-*` accents.
+- **Event log rule:** Simulator event logs should use a unified terminal treatment where possible: `bg-gray-950`, monospace text, subdued gray labels, and minimal chrome. ARP and Sliding Window have been converted to this pattern.
+- **Verification:** `npm run build` passed after the refactor. Targeted lint on the Step 3 files still reports only the pre-existing non-UI `prefer-const` issue in `src/components/simulations/SubnettingCalculator.tsx:109`; it was intentionally left untouched.
+- **Hub/focused-view redesign update:** `SimulationsMode.tsx` is now a two-view switcher. `activeSimulatorId === null` renders the new `SimulationHub`; selecting a simulator renders the focused `SimulationShell`.
+- **New components:** `SimulationHub.tsx` provides the discovery landing page with hero banner, difficulty filter, module cards, and expanded simulator lists. `ConceptGuide.tsx` provides the vertical desktop stepper and mobile step indicator data source.
+- **SimulationHub expansion behavior:** Module cards default expanded and use independent expansion state, so multiple modules can stay expanded/collapsed at the same time instead of behaving like a single-open accordion.
+- **Step config:** `simulatorStepConfig.ts` defines `ConceptStep`, `SimulatorStepProps`, and `conceptStepsById` for all 17 simulators.
+- **Focused shell:** `SimulationShell.tsx` now owns the exit header, left Concept Guide sidebar, workspace label, scrollable simulator workspace, and mobile step indicator.
+- **Step sync status:** `TcpHandshakeSimulator`, `EncapsulationSimulator`, `DnsResolutionSimulator`, `DijkstraSimulator`, `GbnSrSimulator`, and `SlidingWindowSimulator` sync their internal step/phase outward via `onStepChange`. The remaining 11 simulators accept `SimulatorStepProps` as stubs so the parent wiring is consistent.
+- **Verification update:** After the hub/focused-view redesign, `npx tsc --noEmit`, targeted simulation ESLint, and `npm run build` pass. Full `npm run lint` still fails on unrelated repo-wide legacy lint issues outside the simulation redesign scope.
 
 ## Mock Exam Model Routing (2026-04-01)
 - Mock-exam generation and repair in workflow `FterurcXSRyrQ4Xq` now use `Claude 4.6 Sonnet` again for the active exam branch.
@@ -168,6 +186,9 @@
 - [x] `Build Student Exam HTML` uses `escapeHtml()`, `renderTable()`, inline SVG rendering, `isPdfShiftReady` JS function, no external image URLs
 
 ## Recently Completed
+- Simulators: UI declutter/refactor completed (2026-04-08). Sidebar is flatter, the "Recommended First Steps" block is removed, simulator controls share `SimulatorToolbar`, and the primary simulation canvases now favor whitespace, typography labels, subtle rings, and terminal-style logs over nested bordered cards.
+- Simulators: `SimulatorToolbar.tsx` and `SimulatorToolbar.styles.ts` are the shared source for top simulator control strips. Keep simulator state/handlers local, but render scenario dropdowns, play/step/reset controls, status pills, and related top controls through the shared toolbar pattern.
+- Simulators: Hub/focused-view redesign completed (2026-04-08). The simulations tab now opens to `SimulationHub`; focused simulator sessions render in `SimulationShell` with `ConceptGuide` and optional parent step sync via `SimulatorStepProps`.
 - n8n Mock Exam: Workflow `FterurcXSRyrQ4Xq` active exam branch now uses `Claude 4.6 Sonnet` for both `Basic LLM Chain` and `Repair Bad Open-Ended Questions`; disconnected legacy model/memory nodes were removed so MCP edits can save again
 - Mock Exam: App-side draft QA now flags stop-and-wait sequence contradictions, impossible queue-buildup / overflow setups, and plain-text / invalid Mermaid diagrams that would likely print as unprofessional fallback text
 - Mock Exam: Added a unified per-user "Saved Mock Exams" library in `MockExamMode.tsx` that lists both `quick_practice` and `exam_simulation` sessions, with clear UI separation between reopening an existing exam and generating a new one
@@ -233,7 +254,7 @@
 6. TypeScript strict mode OFF (intentional). Path alias `@/*` -> `./src/*`.
 
 ## Handoff Notes (Read Before Coding)
-- **Simulations tab**: UI locked in. Do not alter simulator layouts unless explicitly instructed.
+- **Simulations tab**: Current UI direction is anti-containeritis and two-view learning. Preserve `SimulationHub` as the discovery view, `SimulationShell` as the focused simulator workspace, `ConceptGuide` as the scaffolded learning sidebar, the shared `SimulatorToolbar`, spacing-first simulator canvas layout, typography-based section labels, subtle `ring-*` accents, and terminal-style event logs unless explicitly instructed otherwise.
 - **Chat Mode**: Feature-complete for FYP. Remaining work is polish (streaming, retry).
 - **Mock Exam decisions locked in**: Use Approach B. `Quick Practice` should be fast, JSON-first, in-app, and free-navigation with confirm-to-submit. `Exam Simulation` should be richer, timed, free-navigation, and still support PDF export.
 - **Question generation strategy**: Use remix-based generation from past papers / homework already stored in `question_bank`, with lineage metadata so future uploads stay modular and scalable.

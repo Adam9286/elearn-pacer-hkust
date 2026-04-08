@@ -2,6 +2,15 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+  toolbarSelectClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 import {
   Play,
   Pause,
@@ -271,7 +280,7 @@ const SCENARIOS: Scenario[] = [
 
 // --- Component ---
 
-export const TcpHandshakeSimulator = () => {
+export const TcpHandshakeSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [activePreset, setActivePreset] = useState<string>('normal');
   const [activeHint, setActiveHint] = useState<string>(SCENARIOS[0].hint);
   const [currentStep, setCurrentStep] = useState(-1);
@@ -282,6 +291,12 @@ export const TcpHandshakeSimulator = () => {
   const scenario = SCENARIOS.find((s) => s.id === activePreset) ?? SCENARIOS[0];
   const totalSteps = scenario.steps.length;
   const currentStepData = currentStep >= 0 && currentStep < totalSteps ? scenario.steps[currentStep] : null;
+
+  useEffect(() => {
+    if (onStepChange && currentStep >= 0) {
+      onStepChange(Math.min(currentStep, totalSteps - 1));
+    }
+  }, [currentStep, onStepChange, totalSteps]);
 
   // Narration
   const narration =
@@ -444,9 +459,15 @@ export const TcpHandshakeSimulator = () => {
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-[220px] items-center gap-2">
+          <SimulatorToolbar
+            label="Simulation Controls"
+            status={
+              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+                Step {Math.max(0, currentStep + 1)} / {totalSteps}
+              </Badge>
+            }
+          >
+            <div className={toolbarControlGroupClass}>
                 <label htmlFor="tcp-handshake-scenario" className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
                   Scenario
                 </label>
@@ -454,7 +475,7 @@ export const TcpHandshakeSimulator = () => {
                   id="tcp-handshake-scenario"
                   value={activePreset}
                   onChange={(event) => selectPreset(event.target.value)}
-                  className="h-9 min-w-[220px] rounded-md border border-border bg-background px-2 text-sm text-foreground"
+                  className={`${toolbarSelectClass} min-w-[220px]`}
                 >
                   {SCENARIOS.map((scenarioOption) => (
                     <option key={scenarioOption.id} value={scenarioOption.id}>
@@ -464,31 +485,27 @@ export const TcpHandshakeSimulator = () => {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button size="sm" onClick={togglePlay} className="bg-cyan-600 hover:bg-cyan-500 text-white">
+            <div className={toolbarControlGroupClass}>
+                <Button size="sm" onClick={togglePlay} className={toolbarPrimaryButtonClass}>
                   {isPlaying ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
                   {isPlaying ? 'Pause' : 'Play'}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-zinc-300 dark:border-zinc-600/60 text-zinc-900 dark:text-zinc-200"
+                  className={toolbarSecondaryButtonClass}
                   onClick={stepForward}
                   disabled={isPlaying || currentStep >= totalSteps}
                 >
                   <StepForward className="h-4 w-4 mr-1" />
                   Step
                 </Button>
-                <Button size="sm" variant="ghost" onClick={reset} className="text-zinc-500 dark:text-zinc-500 hover:text-red-400">
+                <Button size="sm" variant="ghost" onClick={reset} className={toolbarGhostButtonClass}>
                   <RotateCcw className="h-4 w-4 mr-1" />
                   Reset
                 </Button>
-                <Badge variant="outline" className="text-xs">
-                  Step {Math.max(0, currentStep + 1)} / {totalSteps}
-                </Badge>
-              </div>
             </div>
-          </div>
+          </SimulatorToolbar>
 
           <SimulationCanvas isLive={isPlaying}>
             <div className="space-y-4">

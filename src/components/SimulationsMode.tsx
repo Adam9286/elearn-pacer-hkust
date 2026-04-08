@@ -1,10 +1,5 @@
 import type { ComponentType } from 'react';
-import { useEffect, useMemo, useState } from 'react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Activity } from 'lucide-react';
+import { useCallback, useState } from 'react';
 import { ArpSimulator } from './simulations/ArpSimulator';
 import { CwndSimulator } from './simulations/CwndSimulator';
 import { DijkstraSimulator } from './simulations/DijkstraSimulator';
@@ -12,17 +7,19 @@ import { DistanceVectorSimulator } from './simulations/DistanceVectorSimulator';
 import { DnsResolutionSimulator } from './simulations/DnsResolutionSimulator';
 import { EncapsulationSimulator } from './simulations/EncapsulationSimulator';
 import { GbnSrSimulator } from './simulations/GbnSrSimulator';
-import { PipeAckClockingSimulator } from './simulations/PipeAckClockingSimulator';
-import { SimulationShell } from './simulations/SimulationShell';
-import { SlidingWindowSimulator } from './simulations/SlidingWindowSimulator';
 import { LearningSwitchSimulator } from './simulations/LearningSwitchSimulator';
 import { LpmSimulator } from './simulations/LpmSimulator';
 import { MplsSimulator } from './simulations/MplsSimulator';
+import { PipeAckClockingSimulator } from './simulations/PipeAckClockingSimulator';
 import { QueueManagementSimulator } from './simulations/QueueManagementSimulator';
+import { SimulationHub } from './simulations/SimulationHub';
+import { SimulationShell } from './simulations/SimulationShell';
+import { SlidingWindowSimulator } from './simulations/SlidingWindowSimulator';
 import { StpSimulator } from './simulations/StpSimulator';
 import { SubnettingCalculator } from './simulations/SubnettingCalculator';
 import { TcpHandshakeSimulator } from './simulations/TcpHandshakeSimulator';
 import { WirelessAssociationSimulator } from './simulations/WirelessAssociationSimulator';
+import { conceptStepsById, type SimulatorStepProps } from './simulations/simulatorStepConfig';
 
 type ModuleName = 'Foundations' | 'Transport Layer' | 'Network Layer' | 'Link Layer';
 type Difficulty = 'Introductory' | 'Intermediate' | 'Advanced';
@@ -37,22 +34,16 @@ interface SimulatorConfig {
   checkpointRel: Checkpoint;
   summary: string;
   learningFocus: string;
-  component: ComponentType;
+  component: ComponentType<SimulatorStepProps>;
 }
 
 const moduleOrder: ModuleName[] = ['Foundations', 'Transport Layer', 'Network Layer', 'Link Layer'];
 
 const moduleDescriptions: Record<ModuleName, string> = {
-  Foundations: 'Start here to build baseline packet and naming intuition.',
-  'Transport Layer': 'Move from connection setup to reliability and congestion behavior.',
-  'Network Layer': 'Study forwarding, routing convergence, and label-switched paths.',
-  'Link Layer': 'Understand LAN switching, loop control, wireless sync, and queueing behavior.',
-};
-
-const difficultyBadgeClass: Record<Difficulty, string> = {
-  Introductory: 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300',
-  Intermediate: 'border-amber-500/50 bg-amber-500/15 text-amber-300',
-  Advanced: 'border-red-500/50 bg-red-500/15 text-red-300',
+  Foundations: 'Build baseline packet and naming intuition.',
+  'Transport Layer': 'Master connection setup and reliable delivery.',
+  'Network Layer': 'Study forwarding, routing, and path selection.',
+  'Link Layer': 'Understand LAN switching, loop control, wireless sync, and queueing.',
 };
 
 const simulators: SimulatorConfig[] = [
@@ -246,171 +237,57 @@ const simulators: SimulatorConfig[] = [
 ];
 
 const SimulationsMode = () => {
-  const [activeSimulatorId, setActiveSimulatorId] = useState('encapsulation');
-  const [openModule, setOpenModule] = useState<ModuleName>('Foundations');
+  const [activeSimulatorId, setActiveSimulatorId] = useState<string | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
 
-  const activeConfig = simulators.find(sim => sim.id === activeSimulatorId) ?? simulators[0];
-  const activeModule = activeConfig.module;
+  const activeConfig = activeSimulatorId
+    ? simulators.find(sim => sim.id === activeSimulatorId) ?? null
+    : null;
 
-  const modules = useMemo(
-    () =>
-      moduleOrder.map(module => ({
-        module,
-        simulations: simulators.filter(sim => sim.module === module),
-      })),
-    []
-  );
+  const conceptSteps = activeConfig
+    ? conceptStepsById[activeConfig.id] ?? []
+    : [];
 
-  useEffect(() => {
-    setOpenModule(activeModule);
-  }, [activeModule]);
+  const handleSelect = useCallback((id: string) => {
+    setActiveSimulatorId(id);
+    setCurrentStep(0);
+  }, []);
 
-  const setActiveById = (simulatorId: string) => {
-    const config = simulators.find(sim => sim.id === simulatorId);
-    if (!config) return;
-    setActiveSimulatorId(simulatorId);
-    setOpenModule(config.module);
-  };
+  const handleExit = useCallback(() => {
+    setActiveSimulatorId(null);
+    setCurrentStep(0);
+  }, []);
 
-  const setActiveByModule = (module: ModuleName) => {
-    const firstSimulator = simulators.find(sim => sim.module === module);
-    if (!firstSimulator) return;
-    setActiveSimulatorId(firstSimulator.id);
-    setOpenModule(module);
-  };
+  const handleStepChange = useCallback((step: number) => {
+    setCurrentStep(step);
+  }, []);
+
+  if (!activeConfig) {
+    return (
+      <SimulationHub
+        simulators={simulators}
+        moduleOrder={moduleOrder}
+        moduleDescriptions={moduleDescriptions}
+        onSelect={handleSelect}
+      />
+    );
+  }
+
+  const SimComponent = activeConfig.component;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-          <Activity className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">Interactive Simulations</h2>
-          <p className="text-sm text-muted-foreground">
-            Explore networking concepts by changing parameters and observing behavior in real-time.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
-        <aside className="space-y-4">
-          <section className="rounded-xl bg-slate-900/80 p-4">
-            <h3 className="text-base font-semibold text-foreground">Recommended First Steps</h3>
-            <p className="mt-1 text-sm text-slate-400">
-              You can explore any simulation — these are good starting points.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Button
-                variant={activeSimulatorId === 'encapsulation' ? 'default' : 'outline'}
-                onClick={() => setActiveById('encapsulation')}
-              >
-                1. Packet Encapsulation
-              </Button>
-              <Button
-                variant={activeSimulatorId === 'dns-resolution' ? 'default' : 'outline'}
-                onClick={() => setActiveById('dns-resolution')}
-              >
-                2. DNS Resolution
-              </Button>
-            </div>
-          </section>
-
-          <section className="rounded-xl bg-slate-900/80 p-4">
-            <h3 className="text-base font-semibold text-foreground">Simulation Modules</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Expand a module, choose a simulator, then focus on one concept at a time.
-            </p>
-
-            <Accordion
-              type="single"
-              value={openModule}
-              onValueChange={value => {
-                if (!value) return;
-                setActiveByModule(value as ModuleName);
-              }}
-              className="mt-3"
-            >
-              {modules.map(({ module, simulations: moduleSims }) => {
-                const selectedInModule =
-                  module === activeModule
-                    ? activeConfig
-                    : moduleSims[0];
-                return (
-                  <AccordionItem key={module} value={module} className="border-border/50">
-                    <AccordionTrigger className="hover:no-underline py-3">
-                      <div className="text-left">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">{module}</span>
-                          <span className="text-xs text-slate-500">({moduleSims.length})</span>
-                          <span className="flex items-center gap-0.5 ml-1">
-                            {moduleSims.map((sim) => (
-                              <span
-                                key={sim.id}
-                                className={`inline-block h-1.5 w-1.5 rounded-full ${
-                                  sim.difficulty === 'Introductory' ? 'bg-emerald-500' :
-                                  sim.difficulty === 'Intermediate' ? 'bg-amber-500' :
-                                  'bg-red-500'
-                                }`}
-                                title={`${sim.label} (${sim.difficulty})`}
-                              />
-                            ))}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">{moduleDescriptions[module]}</div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-3">
-                      <Select
-                        value={selectedInModule.id}
-                        onValueChange={value => setActiveById(value)}
-                      >
-                        <SelectTrigger className="bg-background/50 border-border/40">
-                          <SelectValue placeholder="Select a simulation" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {moduleSims.map(sim => (
-                            <SelectItem key={sim.id} value={sim.id}>
-                              {sim.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-
-                      <div className="rounded-lg bg-slate-800/60 p-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{selectedInModule.label}</span>
-                          <Badge className={`${difficultyBadgeClass[selectedInModule.difficulty]} text-[10px] px-1.5 py-0.5`}>
-                            {selectedInModule.difficulty}
-                          </Badge>
-                          {selectedInModule.checkpointRel && (
-                            <Badge className="border-blue-400/40 bg-blue-500/10 text-blue-200 text-[10px] px-1.5 py-0.5">
-                              {selectedInModule.checkpointRel}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="mt-2 text-xs text-muted-foreground">{selectedInModule.summary}</p>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </section>
-        </aside>
-
-        <main className="min-w-0">
-          <SimulationShell
-            title={activeConfig.label}
-            category={activeConfig.module}
-            summary={activeConfig.summary}
-            learningFocus={activeConfig.learningFocus}
-          >
-            <activeConfig.component />
-          </SimulationShell>
-        </main>
-      </div>
-    </div>
+    <SimulationShell
+      title={activeConfig.label}
+      category={activeConfig.module}
+      summary={activeConfig.summary}
+      learningFocus={activeConfig.learningFocus}
+      conceptSteps={conceptSteps}
+      currentStep={currentStep}
+      onStepChange={handleStepChange}
+      onExit={handleExit}
+    >
+      <SimComponent onStepChange={handleStepChange} />
+    </SimulationShell>
   );
 };
 

@@ -14,6 +14,12 @@ import { AlertTriangle, ChevronDown, ChevronUp, Gauge, Network, RotateCcw } from
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type ConstraintMode = 'bdp' | 'advertised-window';
 
@@ -182,7 +188,7 @@ const simulatePipeModel = (config: SimulationConfig): SimulationPoint[] => {
   return points;
 };
 
-export const PipeAckClockingSimulator = () => {
+export const PipeAckClockingSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [bandwidthPacketsPerTick, setBandwidthPacketsPerTick] = useState(DEFAULT_PRESET.bandwidthPacketsPerTick);
   const [propagationDelayTicks, setPropagationDelayTicks] = useState(DEFAULT_PRESET.propagationDelayTicks);
   const [bufferCapacityPackets, setBufferCapacityPackets] = useState(DEFAULT_PRESET.bufferCapacityPackets);
@@ -261,31 +267,30 @@ export const PipeAckClockingSimulator = () => {
         </p>
       </div>
 
-      <div className="space-y-3">
-        <label className="text-sm font-medium text-foreground">Try a scenario</label>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+      <SimulatorToolbar label="Scenario Controls">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {PRESETS.map((preset) => (
             <button
               key={preset.id}
               onClick={() => applyPreset(preset)}
-              className={`shrink-0 rounded-lg border p-3 text-left transition-all min-w-[210px] max-w-[260px] ${
+              className={`shrink-0 border-l-2 px-3 py-2 text-left transition-colors min-w-[210px] max-w-[260px] ${
                 activePresetId === preset.id
-                  ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
-                  : 'border-border/50 bg-muted/30 hover:bg-muted/50 hover:border-border'
+                  ? 'border-cyan-400 bg-cyan-500/10'
+                  : 'border-white/10 bg-transparent hover:border-white/30 hover:bg-white/5'
               }`}
             >
-              <div className={`text-sm font-semibold ${activePresetId === preset.id ? 'text-primary' : 'text-foreground'}`}>
+              <div className={`text-sm font-semibold ${activePresetId === preset.id ? 'text-cyan-100' : 'text-gray-300'}`}>
                 {preset.title}
               </div>
-              <div className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 leading-snug">{preset.description}</div>
+              <div className="text-xs text-gray-500 mt-1 leading-snug">{preset.description}</div>
             </button>
           ))}
         </div>
-      </div>
 
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Window Constraint Mode</label>
-        <div className="flex gap-2">
+        <label className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">Window Constraint Mode</label>
+        <div className={toolbarControlGroupClass}>
           <Button
             size="sm"
             variant={constraintMode === 'bdp' ? 'default' : 'outline'}
@@ -294,6 +299,7 @@ export const PipeAckClockingSimulator = () => {
               setActivePresetId('');
               setActiveHint('');
             }}
+            className={toolbarToggleButtonClass(constraintMode === 'bdp')}
           >
             BDP (Congestion Control)
           </Button>
@@ -305,11 +311,14 @@ export const PipeAckClockingSimulator = () => {
               setActivePresetId('');
               setActiveHint('');
             }}
+            className={toolbarToggleButtonClass(constraintMode === 'advertised-window')}
           >
             Advertised Window W (Flow Control)
           </Button>
         </div>
       </div>
+        </div>
+      </SimulatorToolbar>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">

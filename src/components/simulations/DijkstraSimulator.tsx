@@ -11,6 +11,15 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 // --- Types ---
 
@@ -305,7 +314,7 @@ function getShortestPathEdges(previous: Record<string, string | null>): Set<stri
 
 // --- Component ---
 
-export const DijkstraSimulator = () => {
+export const DijkstraSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [selectedPreset, setSelectedPreset] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -316,6 +325,17 @@ export const DijkstraSimulator = () => {
   const snapshots = useMemo(() => computeSnapshots(preset), [preset]);
   const snapshot = snapshots[currentStep];
   const isComplete = currentStep >= snapshots.length - 1;
+
+  useEffect(() => {
+    if (onStepChange) {
+      const phase = currentStep === 0
+        ? 0
+        : currentStep >= snapshots.length - 1
+          ? 3
+          : currentStep % 2 === 1 ? 1 : 2;
+      onStepChange(phase);
+    }
+  }, [currentStep, onStepChange, snapshots.length]);
 
   // Auto-play
   useEffect(() => {
@@ -387,27 +407,38 @@ export const DijkstraSimulator = () => {
         </p>
       </div>
 
-      {/* Preset selector */}
-      <div>
-        <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Preset Scenarios</p>
-        <div className="flex flex-wrap gap-2">
+      <SimulatorToolbar
+        label="Simulation Controls"
+        status={
+          <>
+            <Badge variant="secondary" className="bg-white/5 text-xs text-gray-300">
+              Step {currentStep} / {snapshots.length - 1}
+            </Badge>
+            <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+              Source: {preset.source}
+            </Badge>
+          </>
+        }
+        hint={preset.hint}
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className={toolbarControlGroupClass}>
+            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">Preset Scenarios</span>
           {PRESETS.map((p, idx) => (
             <Button
               key={p.id}
               size="sm"
               variant={selectedPreset === idx ? 'default' : 'outline'}
               onClick={() => handlePresetChange(idx)}
-              className="text-xs"
+              className={`text-xs ${toolbarToggleButtonClass(selectedPreset === idx)}`}
             >
               {p.title}
             </Button>
           ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Controls */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <Button size="sm" onClick={handlePlayPause} className="bg-cyan-600 hover:bg-cyan-500 text-white">
+          <div className={toolbarControlGroupClass}>
+        <Button size="sm" onClick={handlePlayPause} className={toolbarPrimaryButtonClass}>
           {isPlaying ? (
             <Pause className="h-4 w-4 mr-1" />
           ) : (
@@ -415,25 +446,19 @@ export const DijkstraSimulator = () => {
           )}
           {isPlaying ? 'Pause' : isComplete ? 'Replay' : 'Play'}
         </Button>
-        <Button size="sm" variant="outline" onClick={handleStep} disabled={isComplete || isPlaying} className="border-zinc-300 dark:border-zinc-600/60 text-zinc-900 dark:text-zinc-200">
+        <Button size="sm" variant="outline" onClick={handleStep} disabled={isComplete || isPlaying} className={toolbarSecondaryButtonClass}>
           <StepForward className="h-4 w-4 mr-1" />
           Step
         </Button>
-        <Button size="sm" variant="ghost" onClick={handleReset} className="text-zinc-500 dark:text-zinc-500 hover:text-red-400">
+        <Button size="sm" variant="ghost" onClick={handleReset} className={toolbarGhostButtonClass}>
           <RotateCcw className="h-4 w-4 mr-1" />
           Reset
         </Button>
-        <Badge variant="secondary" className="ml-auto text-xs">
-          Step {currentStep} / {snapshots.length - 1}
-        </Badge>
-        <Badge variant="outline" className="text-xs">
-          Source: {preset.source}
-        </Badge>
-      </div>
+          </div>
+        </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={isPlaying}>
-        <p className="mb-3 text-sm italic text-zinc-600 dark:text-zinc-400">{preset.hint}</p>
-
         {/* SVG Graph */}
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-2 overflow-x-auto">
           <svg

@@ -14,6 +14,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type FlowId = 'f1' | 'f2' | 'f3';
 type SchedulerPolicy = 'fifo' | 'rr' | 'wfq';
@@ -222,7 +229,7 @@ const runQueueSimulation = (
   };
 };
 
-export const QueueManagementSimulator = () => {
+export const QueueManagementSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [demandF1, setDemandF1] = useState(1.6);
   const [demandF2, setDemandF2] = useState(1.4);
   const [demandF3, setDemandF3] = useState(1.2);
@@ -290,8 +297,8 @@ export const QueueManagementSimulator = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-4">
-        <h3 className="text-sm font-semibold text-foreground">Controls</h3>
+      <SimulatorToolbar label="Simulation Controls">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Flow f1 Demand: {demandF1.toFixed(1)} pkt/slot</label>
@@ -334,25 +341,26 @@ export const QueueManagementSimulator = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          <Button variant={policy === 'rr' ? 'default' : 'outline'} onClick={() => setPolicy('rr')}>
+        <div className={toolbarControlGroupClass}>
+          <Button variant={policy === 'rr' ? 'default' : 'outline'} onClick={() => setPolicy('rr')} className={toolbarToggleButtonClass(policy === 'rr')}>
             Round-Robin
           </Button>
-          <Button variant={policy === 'fifo' ? 'default' : 'outline'} onClick={() => setPolicy('fifo')}>
+          <Button variant={policy === 'fifo' ? 'default' : 'outline'} onClick={() => setPolicy('fifo')} className={toolbarToggleButtonClass(policy === 'fifo')}>
             FIFO
           </Button>
-          <Button variant={policy === 'wfq' ? 'default' : 'outline'} onClick={() => setPolicy('wfq')}>
+          <Button variant={policy === 'wfq' ? 'default' : 'outline'} onClick={() => setPolicy('wfq')} className={toolbarToggleButtonClass(policy === 'wfq')}>
             WFQ
           </Button>
-          <Button variant={burstEnabled ? 'default' : 'outline'} onClick={() => setBurstEnabled((prev) => !prev)}>
+          <Button variant={burstEnabled ? 'default' : 'outline'} onClick={() => setBurstEnabled((prev) => !prev)} className={toolbarToggleButtonClass(burstEnabled)}>
             {burstEnabled ? 'Burst On' : 'Burst Off'}
           </Button>
-          <Button variant="outline" className="gap-2" onClick={resetDefaults}>
+          <Button variant="ghost" className={`gap-2 ${toolbarGhostButtonClass}`} onClick={resetDefaults}>
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
         </div>
-      </div>
+        </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={selectedSimulation.totalDropped > 0 || burstEnabled}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -3,6 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Play, Pause, StepForward, RotateCcw, Lightbulb } from 'lucide-react';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -114,7 +123,7 @@ function makeInitialState(): ProtocolState {
 // Component
 // ---------------------------------------------------------------------------
 
-export const GbnSrSimulator = () => {
+export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [windowSize, setWindowSize] = useState(4);
   const [lossSet, setLossSet] = useState<Set<number>>(new Set());
   const [gbn, setGbn] = useState<ProtocolState>(makeInitialState);
@@ -134,6 +143,13 @@ export const GbnSrSimulator = () => {
   const [srLostAlready, setSrLostAlready] = useState<Set<number>>(new Set());
 
   const isComplete = gbn.sendBase > TOTAL_PACKETS && sr.sendBase > TOTAL_PACKETS;
+
+  useEffect(() => {
+    if (onStepChange) {
+      const phase = step === 0 ? 0 : step <= 2 ? 0 : step <= 4 ? 1 : step <= 6 ? 2 : 3;
+      onStepChange(phase);
+    }
+  }, [step, onStepChange]);
 
   // -------------------------------------------------------------------------
   // GBN step logic
@@ -548,9 +564,17 @@ export const GbnSrSimulator = () => {
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
+          <SimulatorToolbar
+            label="Simulation Controls"
+            status={
+              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+                Step: {step}
+              </Badge>
+            }
+            hint={activeHint ? <><span className="font-semibold text-gray-200">Scenario focus:</span> {activeHint}</> : undefined}
+          >
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div className={toolbarControlGroupClass}>
                 <span className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">Scenarios</span>
                 {PRESETS.map((preset) => (
                   <Button
@@ -558,46 +582,44 @@ export const GbnSrSimulator = () => {
                     size="sm"
                     variant={activePreset === preset.id ? 'default' : 'outline'}
                     onClick={() => selectPreset(preset)}
+                    className={toolbarToggleButtonClass(activePreset === preset.id)}
                   >
                     {preset.name}
                   </Button>
                 ))}
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className={toolbarControlGroupClass}>
                 <Button
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className="gap-2 bg-cyan-600 hover:bg-cyan-500 text-white"
+                  className={`gap-2 ${toolbarPrimaryButtonClass}`}
                   disabled={isComplete}
                 >
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                   {isPlaying ? 'Pause' : 'Play'}
                 </Button>
-                <Button variant="outline" onClick={() => setShowSecondaryControls((prev) => !prev)}>
+                <Button variant="outline" onClick={() => setShowSecondaryControls((prev) => !prev)} className={toolbarSecondaryButtonClass}>
                   {showSecondaryControls ? 'Hide Secondary Controls' : 'Show Secondary Controls'}
                 </Button>
               </div>
 
               {showSecondaryControls && (
-                <div className="flex items-center gap-2 flex-wrap pt-1">
+                <div className={`${toolbarControlGroupClass} pt-1`}>
                   <Button
                     onClick={advanceStep}
                     variant="outline"
-                    className="gap-2 border-zinc-300 dark:border-zinc-600/60 text-zinc-900 dark:text-zinc-200"
+                    className={`gap-2 ${toolbarSecondaryButtonClass}`}
                     disabled={isPlaying || isComplete}
                   >
                     <StepForward className="w-4 h-4" />
                     Step
                   </Button>
-                  <Button variant="ghost" onClick={handleReset} className="gap-2 text-zinc-500 dark:text-zinc-500 hover:text-red-400">
+                  <Button variant="ghost" onClick={handleReset} className={`gap-2 ${toolbarGhostButtonClass}`}>
                     <RotateCcw className="w-4 h-4" />
                     Reset
                   </Button>
-                  <Badge variant="outline" className="text-xs">
-                    Step: {step}
-                  </Badge>
 
-                  <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/20 p-0.5">
+                  <div className="flex items-center gap-1 rounded-md bg-gray-950/40 p-0.5">
                     {([
                       ['side-by-side', 'Side by Side'],
                       ['gbn-only', 'GBN Only'],
@@ -608,8 +630,8 @@ export const GbnSrSimulator = () => {
                         onClick={() => setViewMode(mode)}
                         className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                           viewMode === mode
-                            ? 'bg-primary/20 text-primary'
-                            : 'text-zinc-600 dark:text-zinc-400 hover:text-foreground'
+                            ? 'bg-cyan-500/15 text-cyan-100'
+                            : 'text-gray-400 hover:text-gray-100'
                         }`}
                       >
                         {label}
@@ -619,15 +641,7 @@ export const GbnSrSimulator = () => {
                 </div>
               )}
             </div>
-          </div>
-
-          {activeHint && (
-            <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
-              <p className="text-xs text-zinc-600 dark:text-zinc-400">
-                <span className="font-semibold text-foreground">Scenario focus:</span> {activeHint}
-              </p>
-            </div>
-          )}
+          </SimulatorToolbar>
 
           <SimulationCanvas isLive={isPlaying}>
             <div className="space-y-4">

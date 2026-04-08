@@ -3,6 +3,15 @@ import { AlertTriangle, RotateCcw, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarDangerButtonClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type SwitchId = 'S1' | 'S2' | 'S3' | 'S4';
 
@@ -178,7 +187,7 @@ const createSimulatorState = (): SimulatorState => ({
   converged: false,
 });
 
-export const StpSimulator = () => {
+export const StpSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [sim, setSim] = useState<SimulatorState>(createSimulatorState);
 
   const runOneRound = useCallback(() => {
@@ -278,27 +287,30 @@ export const StpSimulator = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Controls</h3>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={runOneRound}>Run 1 BPDU Round</Button>
-          <Button variant="outline" onClick={runUntilStable}>
+      <SimulatorToolbar
+        label="Simulation Controls"
+        status={
+          <>
+            <Badge className="border-cyan-400/25 bg-cyan-500/15 text-cyan-100">Round {sim.round}</Badge>
+            <Badge variant="outline" className="border-white/10 bg-transparent text-gray-300">Root Bridge: {tree.rootSwitch} (ID {BRIDGE_ID[tree.rootSwitch]})</Badge>
+            {sim.converged && <Badge className="border-emerald-400/25 bg-emerald-500/15 text-emerald-200">Converged</Badge>}
+          </>
+        }
+      >
+        <div className={toolbarControlGroupClass}>
+          <Button onClick={runOneRound} className={toolbarPrimaryButtonClass}>Run 1 BPDU Round</Button>
+          <Button variant="outline" onClick={runUntilStable} className={toolbarSecondaryButtonClass}>
             Run Until Stable
           </Button>
-          <Button variant="destructive" onClick={failRootLink}>
+          <Button variant="destructive" onClick={failRootLink} className={toolbarDangerButtonClass}>
             Fail a Root Link
           </Button>
-          <Button variant="outline" className="gap-2" onClick={resetSimulation}>
+          <Button variant="ghost" className={`gap-2 ${toolbarGhostButtonClass}`} onClick={resetSimulation}>
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <Badge className="bg-primary/10 text-primary border-primary/30">Round {sim.round}</Badge>
-          <Badge variant="outline">Root Bridge: {tree.rootSwitch} (ID {BRIDGE_ID[tree.rootSwitch]})</Badge>
-          {sim.converged && <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40">Converged</Badge>}
-        </div>
-      </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={sim.round > 0}>
         <div className="grid gap-3 md:grid-cols-2">

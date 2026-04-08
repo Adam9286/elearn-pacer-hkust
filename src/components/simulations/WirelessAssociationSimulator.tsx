@@ -13,6 +13,15 @@ import { Pause, Play, RotateCcw, StepForward, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type StationId = 'BS-A' | 'BS-B' | 'BS-C';
 
@@ -64,7 +73,7 @@ const computeSnapshot = (position: number, timeMs: number) => {
   return { readings, bestId: best[0], bestScore: best[1] };
 };
 
-export const WirelessAssociationSimulator = () => {
+export const WirelessAssociationSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [position, setPosition] = useState(20);
   const [timeMs, setTimeMs] = useState(0);
   const [associated, setAssociated] = useState<StationId | null>(null);
@@ -157,22 +166,30 @@ export const WirelessAssociationSimulator = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Controls</h3>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setIsRunning((prev) => !prev)} className="gap-2 bg-cyan-600 hover:bg-cyan-500 text-white">
+      <SimulatorToolbar
+        label="Simulation Controls"
+        status={
+          <>
+            <span>{timeMs} ms</span>
+            <span>{history.length} scans</span>
+          </>
+        }
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className={toolbarControlGroupClass}>
+          <Button onClick={() => setIsRunning((prev) => !prev)} className={`gap-2 ${toolbarPrimaryButtonClass}`}>
             {isRunning ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {isRunning ? 'Pause' : 'Play'}
           </Button>
-          <Button variant="outline" className="gap-2 border-zinc-300 dark:border-zinc-600/60 text-zinc-900 dark:text-zinc-200" onClick={stepScan}>
+          <Button variant="outline" className={`gap-2 ${toolbarSecondaryButtonClass}`} onClick={stepScan}>
             <StepForward className="h-4 w-4" />
             Step +5ms
           </Button>
-          <Button variant="ghost" className="gap-2 text-zinc-500 dark:text-zinc-500 hover:text-red-400" onClick={resetSimulation}>
+          <Button variant="ghost" className={`gap-2 ${toolbarGhostButtonClass}`} onClick={resetSimulation}>
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
-          <Button variant={autoDrift ? 'default' : 'outline'} onClick={() => setAutoDrift((prev) => !prev)}>
+          <Button variant={autoDrift ? 'default' : 'outline'} onClick={() => setAutoDrift((prev) => !prev)} className={toolbarToggleButtonClass(autoDrift)}>
             {autoDrift ? 'Auto Drift On' : 'Auto Drift Off'}
           </Button>
         </div>
@@ -181,7 +198,8 @@ export const WirelessAssociationSimulator = () => {
           <label className="text-sm font-medium text-foreground">Mobile Position: {position.toFixed(1)}</label>
           <Slider value={[position]} onValueChange={([v]) => setPosition(v)} min={0} max={100} step={1} />
         </div>
-      </div>
+        </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={isRunning || history.length > 0}>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

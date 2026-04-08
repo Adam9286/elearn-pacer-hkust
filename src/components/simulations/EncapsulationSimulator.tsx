@@ -2,6 +2,16 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+  toolbarSelectClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 import {
   ArrowDown,
   ArrowUp,
@@ -52,34 +62,34 @@ interface Scenario {
 
 const LAYER_COLORS = {
   application: {
-    border: 'border-indigo-500/60',
+    border: 'ring-1 ring-indigo-500/40',
     bg: 'bg-indigo-500/25',
     text: 'text-indigo-400',
-    badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40',
+    badge: 'bg-indigo-500/20 text-indigo-300',
   },
   transport: {
-    border: 'border-amber-500/60',
+    border: 'ring-1 ring-amber-500/40',
     bg: 'bg-amber-500/25',
     text: 'text-amber-400',
-    badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+    badge: 'bg-amber-500/20 text-amber-300',
   },
   network: {
-    border: 'border-emerald-500/60',
+    border: 'ring-1 ring-emerald-500/40',
     bg: 'bg-emerald-500/25',
     text: 'text-emerald-400',
-    badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+    badge: 'bg-emerald-500/20 text-emerald-300',
   },
   datalink: {
-    border: 'border-purple-500/60',
+    border: 'ring-1 ring-purple-500/40',
     bg: 'bg-purple-500/25',
     text: 'text-purple-400',
-    badge: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+    badge: 'bg-purple-500/20 text-purple-300',
   },
   data: {
-    border: 'border-muted-foreground/40',
+    border: 'ring-1 ring-muted-foreground/30',
     bg: 'bg-muted/30',
     text: 'text-zinc-600 dark:text-zinc-400',
-    badge: 'bg-muted/40 text-zinc-600 dark:text-zinc-400 border-muted-foreground/30',
+    badge: 'bg-muted/40 text-zinc-600 dark:text-zinc-400',
   },
 };
 
@@ -306,7 +316,7 @@ function computeSizes(scenario: Scenario): number[] {
 
 // --- Component ---
 
-export const EncapsulationSimulator = () => {
+export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [scenarioIdx, setScenarioIdx] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState<Direction>('encapsulate');
@@ -317,6 +327,12 @@ export const EncapsulationSimulator = () => {
   const scenario = SCENARIOS[scenarioIdx];
   const totalLayers = scenario.layers.length;
   const sizes = computeSizes(scenario);
+
+  useEffect(() => {
+    if (onStepChange) {
+      onStepChange(currentStep);
+    }
+  }, [currentStep, onStepChange]);
 
   // The visible layers depend on step + direction
   const visibleCount =
@@ -412,7 +428,7 @@ export const EncapsulationSimulator = () => {
           <div
             key={layer.id}
             className={`
-              relative rounded-md border-2 ${layer.color.border} ${layer.color.bg}
+              relative rounded-lg ${layer.color.border} ${layer.color.bg}
               p-3 transition-all duration-500 ease-out
               ${isNewlyAdded ? 'animate-in fade-in zoom-in-95 duration-500' : ''}
             `}
@@ -437,7 +453,7 @@ export const EncapsulationSimulator = () => {
           <div
             key={layer.id}
             className={`
-              relative rounded-lg border-2 border-l-4 ${layer.color.border} ${layer.color.bg}
+              relative rounded-xl ${layer.color.border} ${layer.color.bg}
               transition-all duration-500 ease-out
               ${isNewlyAdded ? 'animate-in fade-in zoom-in-95 duration-500' : ''}
             `}
@@ -447,7 +463,7 @@ export const EncapsulationSimulator = () => {
               <div
                 className={`
                   flex flex-col items-center justify-center px-3 py-2
-                  border-r-2 ${layer.color.border} min-w-[70px]
+                  min-w-[70px] bg-black/10
                 `}
               >
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${layer.color.text}`}>
@@ -468,7 +484,7 @@ export const EncapsulationSimulator = () => {
                 <div
                   className={`
                     flex flex-col items-center justify-center px-3 py-2
-                    border-l-2 ${layer.color.border} min-w-[55px]
+                    min-w-[55px] bg-black/10
                   `}
                 >
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${layer.color.text}`}>
@@ -531,13 +547,13 @@ export const EncapsulationSimulator = () => {
           <span>Frame Size</span>
           <span className="font-mono font-bold text-foreground">{currentTotal} bytes</span>
         </div>
-        <div className="relative h-7 rounded-md bg-zinc-100 dark:bg-zinc-800/50 border border-border/40 overflow-hidden flex">
+        <div className="relative h-7 overflow-hidden rounded-full bg-gray-950/40 flex">
           {segments.map((seg, i) => {
             const widthPct = Math.max((seg.size / maxSize) * 100, 8);
             return (
               <div
                 key={i}
-                className={`${seg.color} flex items-center justify-center transition-all duration-500 ease-out border-r border-background/30 last:border-r-0`}
+                className={`${seg.color} flex items-center justify-center transition-all duration-500 ease-out shadow-[inset_-1px_0_0_rgba(0,0,0,0.28)] last:shadow-none`}
                 style={{ width: `${widthPct}%` }}
               >
                 <span className="text-[9px] font-bold text-white drop-shadow truncate px-1">
@@ -604,9 +620,15 @@ export const EncapsulationSimulator = () => {
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-[220px] items-center gap-2">
+          <SimulatorToolbar
+            label="Simulation Controls"
+            status={
+              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+                Step {currentStep + 1} / {totalLayers}
+              </Badge>
+            }
+          >
+            <div className={toolbarControlGroupClass}>
                 <label htmlFor="encapsulation-scenario" className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
                   Scenario
                 </label>
@@ -614,7 +636,7 @@ export const EncapsulationSimulator = () => {
                   id="encapsulation-scenario"
                   value={scenarioIdx}
                   onChange={(event) => handleScenarioChange(Number(event.target.value))}
-                  className="h-9 min-w-[200px] rounded-md border border-border bg-background px-2 text-sm text-foreground"
+                  className={`${toolbarSelectClass} min-w-[200px]`}
                 >
                   {SCENARIOS.map((scenarioOption, idx) => (
                     <option key={scenarioOption.id} value={idx}>
@@ -624,13 +646,13 @@ export const EncapsulationSimulator = () => {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className={toolbarControlGroupClass}>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
                   disabled={currentStep <= 0 || isPlaying}
-                  className="border-zinc-300 dark:border-zinc-600/60 text-zinc-900 dark:text-zinc-200"
+                  className={toolbarSecondaryButtonClass}
                 >
                   <StepForward className="w-3.5 h-3.5 rotate-180 mr-1" />
                   Back
@@ -645,7 +667,7 @@ export const EncapsulationSimulator = () => {
                       setIsPlaying(true);
                     }
                   }}
-                  className="bg-cyan-600 hover:bg-cyan-500 text-white"
+                  className={toolbarPrimaryButtonClass}
                 >
                   {isPlaying ? <Pause className="w-3.5 h-3.5 mr-1" /> : <Play className="w-3.5 h-3.5 mr-1" />}
                   {isPlaying ? 'Pause' : 'Auto-play'}
@@ -655,12 +677,12 @@ export const EncapsulationSimulator = () => {
                   size="sm"
                   onClick={() => setCurrentStep((s) => Math.min(maxStep, s + 1))}
                   disabled={currentStep >= maxStep || isPlaying}
-                  className="border-zinc-300 dark:border-zinc-600/60 text-zinc-900 dark:text-zinc-200"
+                  className={toolbarSecondaryButtonClass}
                 >
                   Next
                   <StepForward className="w-3.5 h-3.5 ml-1" />
                 </Button>
-                <Button variant="ghost" size="sm" onClick={handleReset} className="text-zinc-500 dark:text-zinc-500 hover:text-red-400">
+                <Button variant="ghost" size="sm" onClick={handleReset} className={toolbarGhostButtonClass}>
                   <RotateCcw className="w-3.5 h-3.5 mr-1" />
                   Reset
                 </Button>
@@ -668,7 +690,7 @@ export const EncapsulationSimulator = () => {
                   variant={direction === 'encapsulate' ? 'default' : 'outline'}
                   size="sm"
                   onClick={handleDirectionToggle}
-                  className="text-xs"
+                  className={`text-xs ${toolbarToggleButtonClass(direction === 'encapsulate')}`}
                 >
                   {direction === 'encapsulate' ? (
                     <>
@@ -682,12 +704,8 @@ export const EncapsulationSimulator = () => {
                     </>
                   )}
                 </Button>
-                <Badge variant="outline" className="text-xs">
-                  Step {currentStep + 1} / {totalLayers}
-                </Badge>
-              </div>
             </div>
-          </div>
+          </SimulatorToolbar>
 
           <SimulationCanvas isLive={isPlaying}>
             <div className="space-y-4">
@@ -722,7 +740,7 @@ export const EncapsulationSimulator = () => {
                 })}
               </div>
 
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
+              <section className="space-y-4 py-2">
                 <div className="flex items-center gap-2 mb-4">
                   <Layers className="w-4 h-4 text-primary" />
                   <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">
@@ -732,13 +750,13 @@ export const EncapsulationSimulator = () => {
                 <div className="transition-all duration-500">
                   {renderNestedBoxes()}
                 </div>
-              </div>
+              </section>
 
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
+              <section className="py-2">
                 {renderSizeBar()}
-              </div>
+              </section>
 
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
+              <section className="space-y-3 py-2">
                 <div className="flex items-center gap-2 mb-3">
                   <Info className="w-4 h-4 text-primary" />
                   <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">
@@ -752,7 +770,7 @@ export const EncapsulationSimulator = () => {
                   {activeLayer.headerFields.map((field) => (
                     <div
                       key={field.label}
-                      className={`rounded-md border ${activeLayer.color.border} ${activeLayer.color.bg} p-2`}
+                      className={`rounded-lg ${activeLayer.color.border} ${activeLayer.color.bg} px-3 py-2`}
                     >
                       <div className={`text-[10px] font-semibold uppercase tracking-wider ${activeLayer.color.text} mb-0.5`}>
                         {field.label}
@@ -763,12 +781,12 @@ export const EncapsulationSimulator = () => {
                     </div>
                   ))}
                 </div>
-              </div>
+              </section>
             </div>
           </SimulationCanvas>
         </div>
       ) : (
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-4">
+        <div className="space-y-5 py-2">
           <div className="space-y-2">
             <h3 className="font-semibold text-foreground text-sm">What Is This?</h3>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed">
@@ -776,7 +794,7 @@ export const EncapsulationSimulator = () => {
             </p>
           </div>
 
-          <div className="rounded-md border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-2">
+          <div className="pl-3">
             <p className="text-sm text-zinc-900 dark:text-zinc-200">
               <span className="font-semibold text-foreground">Current scenario focus:</span> {scenario.hint}
             </p>
@@ -788,7 +806,7 @@ export const EncapsulationSimulator = () => {
             <p><span className="font-semibold text-foreground">Overhead:</span> smaller payloads can have high percentage overhead from headers.</p>
           </div>
 
-          <div className="rounded-md border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 px-3 py-2">
+          <div className="pl-3">
             <p className="text-sm text-zinc-900 dark:text-zinc-200">
               <strong className="text-foreground">Try this:</strong> compare HTTP (TCP), DNS (UDP), and ICMP scenarios to see how layer stacks differ.
             </p>

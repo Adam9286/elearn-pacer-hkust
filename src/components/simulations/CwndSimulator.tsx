@@ -15,6 +15,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarSecondaryButtonClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type Algorithm = 'reno' | 'tahoe';
 type LossType = 'triple-dup-ack' | 'timeout';
@@ -199,7 +206,7 @@ function simulateCwnd(
   return data;
 }
 
-export const CwndSimulator = () => {
+export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [algorithm, setAlgorithm] = useState<Algorithm>('reno');
   const [ssthresh, setSsthresh] = useState(16);
   const [totalRtts, setTotalRtts] = useState(30);
@@ -256,39 +263,40 @@ export const CwndSimulator = () => {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <label className="text-sm font-medium text-foreground">Try a scenario</label>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+      <SimulatorToolbar label="Scenario Controls">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className="flex gap-2 overflow-x-auto pb-1">
           {PRESETS.map((preset) => (
             <button
               key={preset.id}
               onClick={() => applyPreset(preset)}
-              className={`min-w-[190px] max-w-[240px] shrink-0 rounded-lg border p-3 text-left transition-all ${
+              className={`min-w-[190px] max-w-[240px] shrink-0 border-l-2 px-3 py-2 text-left transition-colors ${
                 activePreset === preset.id
-                  ? 'border-primary bg-primary/10 ring-1 ring-primary/30'
-                  : 'border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:bg-zinc-800/50 hover:border-border'
+                  ? 'border-cyan-400 bg-cyan-500/10'
+                  : 'border-white/10 bg-transparent hover:border-white/30 hover:bg-white/5'
               }`}
             >
-              <div className={`text-sm font-semibold ${activePreset === preset.id ? 'text-primary' : 'text-foreground'}`}>
+              <div className={`text-sm font-semibold ${activePreset === preset.id ? 'text-cyan-100' : 'text-gray-300'}`}>
                 {preset.title}
               </div>
-              <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">{preset.description}</div>
+              <div className="mt-1 text-xs text-gray-500">{preset.description}</div>
             </button>
           ))}
         </div>
-      </div>
 
-      <div className="flex items-center gap-2">
+      <div className={toolbarControlGroupClass}>
         <Button
           variant="outline"
           size="sm"
           onClick={() => setShowSecondaryControls((prev) => !prev)}
-          className="gap-2"
+          className={`gap-2 ${toolbarSecondaryButtonClass}`}
         >
           {showSecondaryControls ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           {showSecondaryControls ? 'Hide Secondary Controls' : 'Show Secondary Controls'}
         </Button>
       </div>
+        </div>
+      </SimulatorToolbar>
 
       {showSecondaryControls && (
         <div className="space-y-4">
@@ -303,7 +311,7 @@ export const CwndSimulator = () => {
                   setActivePreset('');
                   setActiveHint('');
                 }}
-                className="flex-1 max-w-[160px]"
+                className={`flex-1 max-w-[160px] ${toolbarToggleButtonClass(algorithm === 'reno')}`}
               >
                 TCP Reno
               </Button>
@@ -315,7 +323,7 @@ export const CwndSimulator = () => {
                   setActivePreset('');
                   setActiveHint('');
                 }}
-                className="flex-1 max-w-[160px]"
+                className={`flex-1 max-w-[160px] ${toolbarToggleButtonClass(algorithm === 'tahoe')}`}
               >
                 TCP Tahoe
               </Button>
@@ -488,15 +496,15 @@ export const CwndSimulator = () => {
                 dataKey="cwnd"
                 stroke="#22d3ee"
                 strokeWidth={2.5}
-                dot={(props: any) => {
-                  const { cx, cy, payload } = props;
+                dot={(props: { cx?: number; cy?: number; payload?: DataPoint }) => {
+                  const { cx = 0, cy = 0, payload } = props;
                   const eventType = payload?.eventType as LossType | undefined;
                   if (!eventType) {
-                    return <circle key={`dot-${payload.rtt}`} cx={cx} cy={cy} r={3} fill="#22d3ee" stroke="none" />;
+                    return <circle key={`dot-${payload?.rtt ?? 'cwnd'}`} cx={cx} cy={cy} r={3} fill="#22d3ee" stroke="none" />;
                   }
 
                   return (
-                    <svg key={`dot-${payload.rtt}`}>
+                    <svg key={`dot-${payload?.rtt ?? 'event'}`}>
                       <circle cx={cx} cy={cy} r={6} fill={LOSS_META[eventType].dotColor} stroke="#fff" strokeWidth={2} />
                       <text
                         x={cx}

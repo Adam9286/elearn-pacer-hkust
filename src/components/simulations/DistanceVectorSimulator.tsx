@@ -14,6 +14,15 @@ import { AlertTriangle, GitBranch, Network, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarDangerButtonClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type NodeId = 'A' | 'B' | 'C' | 'D';
 type NextHop = NodeId | '-';
@@ -234,7 +243,7 @@ const createInitialState = (poisonReverse: boolean): SimulationState => {
   };
 };
 
-export const DistanceVectorSimulator = () => {
+export const DistanceVectorSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [poisonReverse, setPoisonReverse] = useState(false);
   const [sim, setSim] = useState<SimulationState>(() => createInitialState(false));
 
@@ -311,21 +320,28 @@ export const DistanceVectorSimulator = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4">
-        <h3 className="text-sm font-semibold text-foreground mb-3">Topology and Controls</h3>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border border-zinc-200 dark:border-zinc-700/50 bg-background/70 p-3 space-y-2 text-sm">
-            <div className="font-medium text-foreground">Links</div>
-            <div className="text-zinc-600 dark:text-zinc-400">A-B: {sim.linkState.AB ? 'UP (1)' : 'DOWN'}</div>
-            <div className="text-zinc-600 dark:text-zinc-400">B-C: {sim.linkState.BC ? 'UP (1)' : 'DOWN'}</div>
-            <div className={`font-medium ${sim.linkState.CD ? 'text-emerald-400' : 'text-red-400'}`}>
+      <SimulatorToolbar
+        label="Topology and Controls"
+        status={
+          <>
+            <span>Round {sim.round}</span>
+            <span className={sim.linkState.CD ? 'text-emerald-300' : 'text-red-300'}>
+              C-D {sim.linkState.CD ? 'UP (1)' : 'DOWN'}
+            </span>
+          </>
+        }
+      >
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <div className={toolbarControlGroupClass}>
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">A-B: {sim.linkState.AB ? 'UP (1)' : 'DOWN'}</span>
+            <span className="text-sm text-zinc-600 dark:text-zinc-400">B-C: {sim.linkState.BC ? 'UP (1)' : 'DOWN'}</span>
+            <span className={`text-sm font-medium ${sim.linkState.CD ? 'text-emerald-400' : 'text-red-400'}`}>
               C-D: {sim.linkState.CD ? 'UP (1)' : 'DOWN'}
-            </div>
-            <div className="text-xs text-zinc-600 dark:text-zinc-400 pt-1">Round: {sim.round}</div>
+            </span>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between rounded-md border border-zinc-200 dark:border-zinc-700/50 bg-background/70 p-3">
+          <div className={toolbarControlGroupClass}>
+            <div className="flex items-center gap-3">
               <div>
                 <div className="text-sm font-medium text-foreground">Poison Reverse</div>
                 <div className="text-xs text-zinc-600 dark:text-zinc-400">Toggle resets simulation for clean comparison.</div>
@@ -333,25 +349,23 @@ export const DistanceVectorSimulator = () => {
               <Switch checked={poisonReverse} onCheckedChange={togglePoisonReverse} />
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={runRound} className="gap-2">
-                <GitBranch className="h-4 w-4" />
-                Run 1 Round
-              </Button>
-              <Button variant="outline" onClick={runFiveRounds}>
-                Run 5 Rounds
-              </Button>
-              <Button variant="destructive" onClick={triggerFailure} disabled={!sim.linkState.CD}>
-                Trigger Link Failure C-D
-              </Button>
-              <Button variant="outline" onClick={() => resetSimulation(poisonReverse)} className="gap-2">
-                <RotateCcw className="h-4 w-4" />
-                Reset
-              </Button>
-            </div>
+            <Button onClick={runRound} className={`gap-2 ${toolbarPrimaryButtonClass}`}>
+              <GitBranch className="h-4 w-4" />
+              Run 1 Round
+            </Button>
+            <Button variant="outline" onClick={runFiveRounds} className={toolbarSecondaryButtonClass}>
+              Run 5 Rounds
+            </Button>
+            <Button variant="destructive" onClick={triggerFailure} disabled={!sim.linkState.CD} className={toolbarDangerButtonClass}>
+              Trigger Link Failure C-D
+            </Button>
+            <Button variant="ghost" onClick={() => resetSimulation(poisonReverse)} className={`gap-2 ${toolbarGhostButtonClass}`}>
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </Button>
           </div>
         </div>
-      </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={sim.round > 0}>
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4">

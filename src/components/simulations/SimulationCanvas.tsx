@@ -17,16 +17,16 @@ export const SimulationCanvas = ({
   return (
     <div
       className={cn(
-        'rounded-xl border border-zinc-200 dark:border-zinc-700/50 border-t-[3px] border-t-cyan-500 bg-zinc-50 dark:bg-zinc-900/95 shadow-lg shadow-cyan-500/5 ring-1 ring-cyan-500/10 p-6 mt-8 mb-4 relative overflow-hidden',
+        'mt-6 mb-4 relative overflow-hidden rounded-2xl bg-gray-950/25 px-6 py-5',
         className
       )}
     >
-      <div className="absolute left-5 top-4 flex items-center gap-2 text-xs tracking-wide text-cyan-400 font-semibold">
-        <span className={cn('inline-block h-2.5 w-2.5 rounded-full bg-cyan-400', isLive && 'animate-pulse')} />
+      <div className="mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-cyan-400">
+        <span className={cn('inline-block h-2 w-2 rounded-full bg-cyan-400', isLive && 'animate-pulse')} />
         {label}
       </div>
 
-      <div className="relative pt-7">{children}</div>
+      <div className="relative">{children}</div>
     </div>
   );
 };

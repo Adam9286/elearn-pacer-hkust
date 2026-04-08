@@ -3,6 +3,15 @@ import { ArrowRight, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+  toolbarSelectClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type HostId = 'H1' | 'H2' | 'H3' | 'H4';
 
@@ -51,7 +60,7 @@ const hostById = (id: HostId) => HOSTS.find((host) => host.id === id)!;
 const buildUnknownFloodPorts = (ingressPort: number) =>
   HOSTS.map((host) => host.port).filter((port) => port !== ingressPort);
 
-export const LearningSwitchSimulator = () => {
+export const LearningSwitchSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [macTable, setMacTable] = useState<Record<string, MacEntry>>({});
   const [selectedSource, setSelectedSource] = useState<HostId>('H1');
   const [selectedDestination, setSelectedDestination] = useState<HostId>('H3');
@@ -153,14 +162,16 @@ export const LearningSwitchSimulator = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Frame Controls</h3>
-        <div className="flex flex-wrap items-center gap-2">
+      <SimulatorToolbar
+        label="Frame Controls"
+        hint="Demo sequence: unknown flood, learning via reply, then known-destination forwarding."
+      >
+        <div className={toolbarControlGroupClass}>
           <label className="text-sm text-zinc-600 dark:text-zinc-400">Source</label>
           <select
             value={selectedSource}
             onChange={(event) => setSelectedSource(event.target.value as HostId)}
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+            className={toolbarSelectClass}
           >
             {HOSTS.map((host) => (
               <option key={`src-${host.id}`} value={host.id}>
@@ -175,7 +186,7 @@ export const LearningSwitchSimulator = () => {
           <select
             value={selectedDestination}
             onChange={(event) => setSelectedDestination(event.target.value as HostId)}
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+            className={toolbarSelectClass}
           >
             {HOSTS.map((host) => (
               <option key={`dst-${host.id}`} value={host.id}>
@@ -184,21 +195,18 @@ export const LearningSwitchSimulator = () => {
             ))}
           </select>
 
-          <Button onClick={runSelectedFrame} disabled={selectedSource === selectedDestination}>
+          <Button onClick={runSelectedFrame} disabled={selectedSource === selectedDestination} className={toolbarPrimaryButtonClass}>
             Send Frame
           </Button>
-          <Button variant="outline" onClick={runDemoStep}>
+          <Button variant="outline" onClick={runDemoStep} className={toolbarSecondaryButtonClass}>
             Run Demo Step
           </Button>
-          <Button variant="outline" className="gap-2" onClick={resetSimulation}>
+          <Button variant="ghost" className={`gap-2 ${toolbarGhostButtonClass}`} onClick={resetSimulation}>
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
         </div>
-        <p className="text-xs text-zinc-600 dark:text-zinc-400">
-          Demo sequence: unknown flood, learning via reply, then known-destination forwarding.
-        </p>
-      </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={Boolean(lastResult)}>
         <div className="space-y-4">

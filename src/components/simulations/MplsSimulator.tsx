@@ -3,6 +3,15 @@ import { ArrowRight, Play, RotateCcw, SkipForward } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarInputClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 interface MplsHeader {
   label: number;
@@ -83,7 +92,7 @@ const headerBits = (header: MplsHeader) => {
   return `${labelBits} ${cosBits} ${sBits} ${ttlBits}`;
 };
 
-export const MplsSimulator = () => {
+export const MplsSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [cos, setCos] = useState(3);
   const [ttl, setTtl] = useState(64);
   const [stage, setStage] = useState<StageId>(0);
@@ -200,9 +209,15 @@ export const MplsSimulator = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">LSP Controls</h3>
-        <div className="flex flex-wrap items-center gap-4">
+      <SimulatorToolbar
+        label="LSP Controls"
+        status={
+          <Badge className="border-cyan-400/25 bg-cyan-500/15 text-cyan-100">
+            Current Stage: {STAGE_LABELS[stage]}
+          </Badge>
+        }
+      >
+        <div className={toolbarControlGroupClass}>
           <label className="text-sm text-zinc-600 dark:text-zinc-400">
             CoS (3 bits)
             <input
@@ -211,7 +226,7 @@ export const MplsSimulator = () => {
               max={7}
               value={cos}
               onChange={(event) => setCos(clampCos(Number(event.target.value) || 0))}
-              className="ml-2 h-9 w-20 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+              className={`ml-2 w-20 ${toolbarInputClass}`}
             />
           </label>
           <label className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -222,26 +237,25 @@ export const MplsSimulator = () => {
               max={255}
               value={ttl}
               onChange={(event) => setTtl(clampTtl(Number(event.target.value) || 1))}
-              className="ml-2 h-9 w-24 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+              className={`ml-2 w-24 ${toolbarInputClass}`}
             />
           </label>
-          <Badge className="bg-primary/10 text-primary border-primary/30">Current Stage: {STAGE_LABELS[stage]}</Badge>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Button onClick={nextStage} disabled={stage === 3} className="gap-2 bg-cyan-600 hover:bg-cyan-500 text-white">
+        <div className={toolbarControlGroupClass}>
+          <Button onClick={nextStage} disabled={stage === 3} className={`gap-2 ${toolbarPrimaryButtonClass}`}>
             <Play className="h-4 w-4" />
             Next Step
           </Button>
-          <Button onClick={runFullPath} disabled={stage === 3} variant="outline" className="gap-2 border-zinc-300 dark:border-zinc-600/60 text-zinc-900 dark:text-zinc-200">
+          <Button onClick={runFullPath} disabled={stage === 3} variant="outline" className={`gap-2 ${toolbarSecondaryButtonClass}`}>
             <SkipForward className="h-4 w-4" />
             Run Full LSP
           </Button>
-          <Button onClick={reset} variant="ghost" className="gap-2 text-zinc-500 dark:text-zinc-500 hover:text-red-400">
+          <Button onClick={reset} variant="ghost" className={`gap-2 ${toolbarGhostButtonClass}`}>
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
         </div>
-      </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={stage > 0}>
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-3">

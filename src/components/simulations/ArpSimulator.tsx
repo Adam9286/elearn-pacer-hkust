@@ -3,6 +3,17 @@ import { Network, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarInputClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+  toolbarSelectClass,
+  toolbarToggleButtonClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type HostId = 'H1' | 'H2' | 'H3' | 'H4';
 
@@ -67,7 +78,7 @@ const isValidIpv4 = (ip: string) => {
   });
 };
 
-export const ArpSimulator = () => {
+export const ArpSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [sender, setSender] = useState<HostId>('H1');
   const [targetIp, setTargetIp] = useState('10.0.0.33');
   const [manualIp, setManualIp] = useState('10.0.0.33');
@@ -151,14 +162,14 @@ export const ArpSimulator = () => {
         </p>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-foreground">Request Setup</h3>
-        <div className="flex flex-wrap items-center gap-2">
+      <SimulatorToolbar label="Request Setup">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+        <div className={toolbarControlGroupClass}>
           <label className="text-sm text-zinc-600 dark:text-zinc-400">Sender</label>
           <select
             value={sender}
             onChange={(event) => setSender(event.target.value as HostId)}
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+            className={toolbarSelectClass}
           >
             {HOSTS.map((host) => (
               <option key={host.id} value={host.id}>
@@ -168,7 +179,7 @@ export const ArpSimulator = () => {
           </select>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className={toolbarControlGroupClass}>
           {TARGET_PRESETS.map((preset) => (
             <Button
               key={preset}
@@ -178,17 +189,18 @@ export const ArpSimulator = () => {
                 setTargetIp(preset);
                 setManualIp(preset);
               }}
+              className={toolbarToggleButtonClass(targetIp === preset)}
             >
               {preset}
             </Button>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className={toolbarControlGroupClass}>
           <input
             value={manualIp}
             onChange={(event) => setManualIp(event.target.value)}
-            className="h-9 w-[220px] rounded-md border border-border bg-background px-3 text-sm text-foreground"
+            className={`${toolbarInputClass} w-[220px]`}
             placeholder="e.g. 10.0.0.33"
           />
           <Button
@@ -196,19 +208,21 @@ export const ArpSimulator = () => {
               if (isValidIpv4(manualIp)) setTargetIp(manualIp.trim());
             }}
             disabled={!isValidIpv4(manualIp)}
+            className={toolbarSecondaryButtonClass}
           >
             Apply IP
           </Button>
-          <Button onClick={runArpBroadcast} disabled={!isValidIpv4(targetIp)} className="gap-2">
+          <Button onClick={runArpBroadcast} disabled={!isValidIpv4(targetIp)} className={`gap-2 ${toolbarPrimaryButtonClass}`}>
             <Network className="h-4 w-4" />
             Broadcast ARP Request
           </Button>
-          <Button variant="outline" className="gap-2" onClick={resetSimulation}>
+          <Button variant="ghost" className={`gap-2 ${toolbarGhostButtonClass}`} onClick={resetSimulation}>
             <RotateCcw className="h-4 w-4" />
             Reset
           </Button>
         </div>
-      </div>
+        </div>
+      </SimulatorToolbar>
 
       <SimulationCanvas isLive={Boolean(lastTransaction)}>
         <div className="grid gap-3 md:grid-cols-2">
@@ -219,23 +233,23 @@ export const ArpSimulator = () => {
             return (
               <div
                 key={host.id}
-                className={`rounded-lg border p-3 ${
+                className={`rounded-xl p-3 ${
                   replied
-                    ? 'border-emerald-500/60 bg-emerald-500/10'
+                    ? 'bg-emerald-500/10 ring-1 ring-emerald-500/40'
                     : isSender
-                      ? 'border-blue-500/60 bg-blue-500/10'
+                      ? 'bg-blue-500/10 ring-1 ring-blue-500/40'
                       : gotBroadcast
-                        ? 'border-amber-500/60 bg-amber-500/10'
-                        : 'border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95'
+                        ? 'bg-amber-500/10 ring-1 ring-amber-500/40'
+                        : 'bg-white/[0.03]'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <div className="font-semibold text-foreground">{host.id}</div>
-                  {isSender && <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40">Sender</Badge>}
+                  {isSender && <Badge className="bg-blue-500/20 text-blue-300">Sender</Badge>}
                   {!isSender && gotBroadcast && !replied && (
-                    <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40">Received Broadcast</Badge>
+                    <Badge className="bg-amber-500/20 text-amber-300">Received Broadcast</Badge>
                   )}
-                  {replied && <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40">Sent Reply</Badge>}
+                  {replied && <Badge className="bg-emerald-500/20 text-emerald-300">Sent Reply</Badge>}
                 </div>
                 <div className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">IP: {host.ip}</div>
                 <div className="text-xs font-mono text-zinc-600 dark:text-zinc-400">MAC: {host.mac}</div>
@@ -244,8 +258,8 @@ export const ArpSimulator = () => {
           })}
         </div>
 
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">ARP Frames</h3>
+        <section className="space-y-2 py-2">
+          <h3 className="text-sm font-semibold tracking-wide text-foreground">ARP Frames</h3>
           <div className="text-xs text-zinc-600 dark:text-zinc-400">
             <span className="text-foreground font-medium">Request:</span> src MAC {senderHost.mac}, dst MAC{' '}
             <span className="font-mono text-foreground">{BROADCAST_MAC}</span>, sender IP {senderHost.ip}, target IP {targetIp}.
@@ -258,10 +272,10 @@ export const ArpSimulator = () => {
           ) : (
             <div className="text-xs text-zinc-600 dark:text-zinc-400">Reply: none.</div>
           )}
-        </div>
+        </section>
 
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">Sender ARP Cache ({sender})</h3>
+        <section className="space-y-2 py-2">
+          <h3 className="text-sm font-semibold tracking-wide text-foreground">Sender ARP Cache ({sender})</h3>
           {cacheRows.length === 0 ? (
             <div className="text-sm text-zinc-600 dark:text-zinc-400">Cache empty.</div>
           ) : (
@@ -276,7 +290,7 @@ export const ArpSimulator = () => {
                   <div
                     key={`${sender}-${ip}`}
                     className={`grid grid-cols-2 gap-2 rounded px-1 py-1 text-xs ${
-                      updated ? 'bg-emerald-500/10 border border-emerald-500/30' : ''
+                      updated ? 'bg-emerald-500/10 ring-1 ring-emerald-500/30' : ''
                     }`}
                   >
                     <div className="text-foreground">{ip}</div>
@@ -286,33 +300,33 @@ export const ArpSimulator = () => {
               })}
             </>
           )}
-        </div>
+        </section>
 
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">Transaction Notes</h3>
+        <section className="rounded-xl bg-gray-950 p-4 font-mono shadow-inner shadow-black/30">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">Transaction Notes</h3>
           {lastTransaction ? (
             lastTransaction.notes.map((line) => (
-              <div key={line} className="text-sm font-mono text-zinc-900 dark:text-zinc-200">
+              <div key={line} className="text-sm text-gray-300">
                 {line}
               </div>
             ))
           ) : (
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">No ARP transaction yet.</div>
+            <div className="text-sm text-gray-500">No ARP transaction yet.</div>
           )}
-        </div>
+        </section>
 
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-2">
-          <h3 className="text-sm font-semibold text-foreground">Event Log</h3>
+        <section className="rounded-xl bg-gray-950 p-4 font-mono shadow-inner shadow-black/30">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">Event Log</h3>
           {eventLog.length === 0 ? (
-            <div className="text-sm text-zinc-600 dark:text-zinc-400">Log is empty.</div>
+            <div className="text-sm text-gray-500">Log is empty.</div>
           ) : (
             eventLog.map((line) => (
-              <div key={line} className="text-sm font-mono text-zinc-900 dark:text-zinc-200">
+              <div key={line} className="text-sm text-gray-300">
                 {line}
               </div>
             ))
           )}
-        </div>
+        </section>
       </SimulationCanvas>
     </div>
   );

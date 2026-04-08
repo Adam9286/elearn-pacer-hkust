@@ -4,6 +4,15 @@ import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Play, Pause, RotateCcw, StepForward, ChevronDown, ChevronUp } from 'lucide-react';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulatorToolbar } from './SimulatorToolbar';
+import {
+  toolbarControlGroupClass,
+  toolbarGhostButtonClass,
+  toolbarPrimaryButtonClass,
+  toolbarSecondaryButtonClass,
+  toolbarSelectClass,
+} from './SimulatorToolbar.styles';
+import type { SimulatorStepProps } from './simulatorStepConfig';
 
 type PacketStatus = 'unsent' | 'sent' | 'acked' | 'lost' | 'retransmit';
 type ContentTab = 'simulation' | 'theory';
@@ -26,11 +35,11 @@ interface Preset {
 }
 
 const STATUS_COLORS: Record<PacketStatus, string> = {
-  unsent: 'bg-zinc-100 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50 text-zinc-600 dark:text-zinc-400',
-  sent: 'bg-blue-500/20 border-blue-400 text-blue-300',
-  acked: 'bg-emerald-500/20 border-emerald-400 text-emerald-300',
-  lost: 'bg-red-500/20 border-red-400 text-red-300',
-  retransmit: 'bg-amber-500/20 border-amber-400 text-amber-300',
+  unsent: 'bg-zinc-100 dark:bg-zinc-800/50 ring-1 ring-zinc-200 dark:ring-zinc-700/50 text-zinc-600 dark:text-zinc-400',
+  sent: 'bg-blue-500/20 ring-1 ring-blue-400/60 text-blue-300',
+  acked: 'bg-emerald-500/20 ring-1 ring-emerald-400/60 text-emerald-300',
+  lost: 'bg-red-500/20 ring-1 ring-red-400/60 text-red-300',
+  retransmit: 'bg-amber-500/20 ring-1 ring-amber-400/60 text-amber-300',
 };
 
 const STATUS_LABELS: Record<PacketStatus, string> = {
@@ -74,7 +83,7 @@ const PRESETS: Preset[] = [
   },
 ];
 
-export const SlidingWindowSimulator = () => {
+export const SlidingWindowSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [windowSize, setWindowSize] = useState(4);
   const [lossSeqs, setLossSeqs] = useState<Set<number>>(new Set());
   const [packets, setPackets] = useState<Packet[]>(() =>
@@ -92,6 +101,13 @@ export const SlidingWindowSimulator = () => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [activeTab, setActiveTab] = useState<ContentTab>('simulation');
   const [narration, setNarration] = useState<string>('Choose a scenario above, then press Play or Step to begin.');
+
+  useEffect(() => {
+    if (onStepChange) {
+      const phase = step === 0 ? 0 : step <= 3 ? 1 : step <= 6 ? 2 : 3;
+      onStepChange(phase);
+    }
+  }, [step, onStepChange]);
 
   const addLog = useCallback((msg: string) => {
     setLog(prev => [...prev.slice(-19), `[Step ${step}] ${msg}`]);
@@ -300,9 +316,15 @@ export const SlidingWindowSimulator = () => {
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex min-w-[240px] items-center gap-2">
+          <SimulatorToolbar
+            label="Simulation Controls"
+            status={
+              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+                Step: {step}
+              </Badge>
+            }
+          >
+            <div className={toolbarControlGroupClass}>
                 <label htmlFor="sliding-window-scenario" className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
                   Scenario
                 </label>
@@ -318,7 +340,7 @@ export const SlidingWindowSimulator = () => {
                     const preset = PRESETS.find((item) => item.id === nextId);
                     if (preset) selectPreset(preset);
                   }}
-                  className="h-9 min-w-[190px] rounded-md border border-border bg-background px-2 text-sm text-foreground"
+                  className={`${toolbarSelectClass} min-w-[190px]`}
                 >
                   <option value="custom">Custom / No Preset</option>
                   {PRESETS.map((preset) => (
@@ -329,10 +351,10 @@ export const SlidingWindowSimulator = () => {
                 </select>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className={toolbarControlGroupClass}>
                 <Button
                   onClick={() => setIsPlaying(!isPlaying)}
-                  className="gap-2 bg-cyan-600 hover:bg-cyan-500 text-white"
+                  className={`gap-2 ${toolbarPrimaryButtonClass}`}
                   disabled={sendBase > TOTAL_PACKETS}
                 >
                   {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
@@ -341,33 +363,29 @@ export const SlidingWindowSimulator = () => {
                 <Button
                   onClick={advanceStep}
                   variant="outline"
-                  className="gap-2 border-zinc-300 dark:border-zinc-600/60 text-zinc-900 dark:text-zinc-200"
+                  className={`gap-2 ${toolbarSecondaryButtonClass}`}
                   disabled={isPlaying || sendBase > TOTAL_PACKETS}
                 >
                   <StepForward className="w-4 h-4" />
                   Step
                 </Button>
-                <Button variant="ghost" onClick={handleReset} className="gap-2 text-zinc-500 dark:text-zinc-500 hover:text-red-400">
+                <Button variant="ghost" onClick={handleReset} className={`gap-2 ${toolbarGhostButtonClass}`}>
                   <RotateCcw className="w-4 h-4" />
                   Reset
                 </Button>
-                <Badge variant="outline" className="text-xs">
-                  Step: {step}
-                </Badge>
-              </div>
             </div>
-          </div>
+          </SimulatorToolbar>
 
-          <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95">
+          <div className="space-y-2">
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
-              className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-foreground transition-colors"
+              className="flex w-full items-center justify-between px-1 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-foreground transition-colors"
             >
               <span>Advanced Controls</span>
               {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
             {showAdvanced && (
-              <div className="px-4 pb-4 space-y-4 border-t border-zinc-200 dark:border-zinc-700/50 pt-3">
+              <div className="space-y-4 px-1 pb-3 pt-1">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
                     Window Size: <span className="text-primary font-bold">{windowSize} packets</span>
@@ -402,7 +420,7 @@ export const SlidingWindowSimulator = () => {
                 </Badge>
               </div>
 
-              <div className="rounded-md border border-zinc-200 dark:border-zinc-700/50 bg-background/40 px-3 py-2 space-y-1">
+              <div className="space-y-1 px-1 py-2">
                 {activeHint && (
                   <p className="text-xs text-zinc-600 dark:text-zinc-400">
                     <span className="font-semibold text-foreground">What to watch for:</span> {activeHint}
@@ -420,10 +438,10 @@ export const SlidingWindowSimulator = () => {
                       onClick={() => toggleLoss(pkt.seq)}
                       disabled={step > 0 || !showAdvanced}
                       className={`
-                        w-14 h-14 rounded-lg border-2 flex flex-col items-center justify-center text-xs font-medium transition-all
+                        w-14 h-14 rounded-lg flex flex-col items-center justify-center text-xs font-medium transition-all
                         ${STATUS_COLORS[pkt.status]}
                         ${inWindow ? 'ring-2 ring-primary/50 ring-offset-1 ring-offset-background' : ''}
-                        ${step === 0 && lossSeqs.has(pkt.seq) && pkt.status === 'unsent' ? 'border-red-500 bg-red-500/10' : ''}
+                        ${step === 0 && lossSeqs.has(pkt.seq) && pkt.status === 'unsent' ? 'ring-2 ring-red-500 bg-red-500/10' : ''}
                         ${step === 0 && showAdvanced ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
                       `}
                     >
@@ -439,25 +457,25 @@ export const SlidingWindowSimulator = () => {
               <div className="flex flex-wrap gap-3">
                 {Object.entries(STATUS_COLORS).map(([status, color]) => (
                   <div key={status} className="flex items-center gap-1.5">
-                    <div className={`w-4 h-4 rounded border-2 ${color}`} />
+                    <div className={`w-4 h-4 rounded ${color}`} />
                     <span className="text-xs text-zinc-600 dark:text-zinc-400">{STATUS_LABELS[status as PacketStatus]}</span>
                   </div>
                 ))}
                 <div className="flex items-center gap-1.5">
-                  <div className="w-4 h-4 rounded border-2 border-primary/50 ring-2 ring-primary/30" />
+                  <div className="w-4 h-4 rounded bg-primary/10 ring-2 ring-primary/30" />
                   <span className="text-xs text-zinc-600 dark:text-zinc-400">In Window</span>
                 </div>
               </div>
 
-              <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-1 max-h-48 overflow-y-auto">
-                <h3 className="font-semibold text-foreground text-sm mb-2">Event Log</h3>
+              <div className="max-h-56 overflow-y-auto rounded-xl bg-gray-950 p-4 font-mono shadow-inner shadow-black/30">
+                <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">Event Log</h3>
                 {log.map((entry, i) => (
                   <p key={i} className={`text-xs font-mono ${
                     entry.includes('LOST') ? 'text-red-400' :
                     entry.includes('ACK') ? 'text-emerald-400' :
                     entry.includes('Retransmit') ? 'text-amber-400' :
                     entry.includes('successfully') ? 'text-primary font-bold' :
-                    'text-zinc-600 dark:text-zinc-400'
+                    'text-gray-400'
                   }`}>
                     {entry}
                   </p>
@@ -467,7 +485,7 @@ export const SlidingWindowSimulator = () => {
           </SimulationCanvas>
         </div>
       ) : (
-        <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4 space-y-4">
+        <div className="space-y-4 py-2">
           <h3 className="font-semibold text-foreground">Reading Guide</h3>
 
           <p className="text-sm text-zinc-600 dark:text-zinc-400">
