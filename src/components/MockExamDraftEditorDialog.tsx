@@ -119,7 +119,7 @@ const normalizeStructured = (
   };
 };
 
-export const MockExamDraftEditorDialog = ({
+const MockExamDraftEditorDialog = ({
   open,
   onOpenChange,
   topic,

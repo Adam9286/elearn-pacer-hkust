@@ -10,8 +10,6 @@ const readEnv = (key: keyof ImportMetaEnv): string => {
 
 export const EXTERNAL_SUPABASE_URL = readEnv("VITE_SUPABASE_URL");
 export const EXTERNAL_SUPABASE_ANON_KEY = readEnv("VITE_SUPABASE_ANON_KEY");
-export const EXTERNAL_SUPABASE_PUBLISHABLE_KEY =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || EXTERNAL_SUPABASE_ANON_KEY;
 
 export const EXAM_SUPABASE_URL = readEnv("VITE_KNOWLEDGE_BASE_URL");
 export const EXAM_SUPABASE_ANON_KEY = readEnv("VITE_KNOWLEDGE_BASE_ANON_KEY");

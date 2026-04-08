@@ -736,7 +736,3 @@ export const DijkstraSimulator = () => {
   );
 };
 
-export default DijkstraSimulator;
-
-
-

@@ -20,7 +20,7 @@ import {
   X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ComprehensionQuestion } from "./ComprehensionCheck";
+import type { ComprehensionQuestion } from "@/types/courseTypes";
 
 interface TestYourselfCardProps {
   question: ComprehensionQuestion | null;

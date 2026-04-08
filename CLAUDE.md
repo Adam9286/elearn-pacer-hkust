@@ -9,7 +9,7 @@ Interactive learning platform for HKUST ELEC3120 (Computer Networks). Features A
 - **Auth & User Data:** Supabase (`externalSupabase` in `src/lib/externalSupabase.ts`)
 - **Knowledge Base & Exams:** Supabase (`examSupabase` in `src/lib/examSupabase.ts`)
 - **Diagrams:** Mermaid.js 11 (rendered via `src/components/chat/MermaidDiagram.tsx`)
-- **Math:** KaTeX (rendered via `src/components/RenderMath.tsx`)
+- **Math:** KaTeX
 - **Charts:** Recharts
 - **Animations:** Framer Motion
 
@@ -32,8 +32,8 @@ src/
 │   ├── lesson/         # Course viewer: PdfViewer, SlideChat, GuidedLearning
 │   ├── landing/        # Landing page sections
 │   ├── admin/          # Slide management
-│   └── ui/             # 50+ shadcn/ui primitives
-├── hooks/              # useChatHistory, useLessonMastery, use-mobile, use-toast
+│   └── ui/             # shadcn/ui primitives used by the app
+├── hooks/              # useChatHistory, useLessonMastery, use-toast
 ├── services/           # attachmentService, courseApi, adminApi
 ├── lib/                # Supabase clients, utils
 ├── constants/          # api.ts (webhooks + timeouts), upload.ts
