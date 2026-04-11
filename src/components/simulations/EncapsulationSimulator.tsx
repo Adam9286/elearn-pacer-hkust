@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -12,6 +13,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 import {
   ArrowDown,
   ArrowUp,
@@ -26,6 +28,7 @@ import {
 // --- Types ---
 
 type Direction = 'encapsulate' | 'decapsulate';
+type ScenarioId = 'http' | 'dns' | 'icmp';
 type ContentTab = 'simulation' | 'theory';
 
 interface HeaderField {
@@ -49,7 +52,7 @@ interface LayerInfo {
 }
 
 interface Scenario {
-  id: string;
+  id: ScenarioId;
   name: string;
   hint: string;
   appData: string;
@@ -57,6 +60,48 @@ interface Scenario {
   layers: LayerInfo[];
   narrations: string[];
 }
+
+const ENCAPSULATION_LESSON_META: Record<ScenarioId, Omit<SimulationLesson, 'steps'>> = {
+  http: {
+    intro: 'This scenario teaches how a web request is wrapped layer by layer before it leaves your computer.',
+    focus: 'Watch each layer add its own header. Each header solves a different problem.',
+    glossary: [
+      { term: 'Header', definition: 'Extra control information placed in front of the real data.' },
+      { term: 'PDU', definition: 'The name of the data unit at a specific network layer.' },
+      { term: 'TCP', definition: 'The transport protocol that adds reliability and port numbers.' },
+      { term: 'Ethernet Frame', definition: 'The data-link layer unit sent on the local network.' },
+    ],
+    takeaway: 'Encapsulation means each layer wraps the data so lower layers can carry it across the network.',
+    commonMistake: 'Students often think the application sends frames directly. It does not. Lower layers add the transport, network, and link information.',
+    nextObservation: 'Notice that the real payload stays the same while the surrounding control information changes by layer.',
+  },
+  dns: {
+    intro: 'This scenario teaches how a DNS query is packaged for the network.',
+    focus: 'Compare this with the HTTP example and notice that DNS usually uses UDP, which has a smaller transport header.',
+    glossary: [
+      { term: 'UDP', definition: 'A lightweight transport protocol with a smaller header than TCP.' },
+      { term: 'DNS Query', definition: 'A request asking for the IP address of a domain name.' },
+      { term: 'Overhead', definition: 'The extra bytes added by headers and trailers.' },
+      { term: 'Default Gateway', definition: 'The local router that forwards traffic to other networks.' },
+    ],
+    takeaway: 'Different applications can use different transport behavior, but they still rely on encapsulation to travel across the network.',
+    commonMistake: 'Beginners sometimes think every internet application uses TCP. DNS often uses UDP because the exchange is short and simple.',
+    nextObservation: 'Small messages can have surprisingly high overhead because the headers still need to be added.',
+  },
+  icmp: {
+    intro: 'This scenario teaches that not every message uses a transport header. Ping works with ICMP at the network layer.',
+    focus: 'Notice that the transport layer is skipped, but IP and Ethernet still wrap the message for delivery.',
+    glossary: [
+      { term: 'ICMP', definition: 'A network-layer protocol used for control and diagnostic messages such as ping.' },
+      { term: 'Ping', definition: 'A simple test that checks whether another host can be reached.' },
+      { term: 'Network Layer', definition: 'The layer that handles IP addressing and routing.' },
+      { term: 'Decapsulation', definition: 'Removing headers as the packet moves up the stack at the receiver.' },
+    ],
+    takeaway: 'Encapsulation is flexible. Some protocols skip layers, but the packet still needs enough information to cross the network.',
+    commonMistake: 'Skipping the transport layer does not mean the packet is sent raw. IP and Ethernet still do important work.',
+    nextObservation: 'Compare the ICMP stack with HTTP and DNS to see how different protocols use the layers differently.',
+  },
+};
 
 // --- Color config per layer ---
 
@@ -343,6 +388,23 @@ export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => 
   // Current narration index
   const narrationIdx =
     direction === 'encapsulate' ? currentStep : totalLayers - 1 - currentStep;
+  const coachLesson: SimulationLesson = {
+    ...ENCAPSULATION_LESSON_META[scenario.id],
+    steps: scenario.narrations.map((narration, index) => ({
+      title: index < scenario.layers.length
+        ? scenario.layers[index].name
+        : 'Complete Frame',
+      explanation: narration,
+      whatToNotice: index < scenario.layers.length
+        ? `${scenario.layers[index].pduName} at this step adds ${scenario.layers[index].headerSize + (scenario.layers[index].trailerSize ?? 0)} bytes of control information.`
+        : 'The payload is ready for transmission because all required wrapping information is now present.',
+      whyItMatters: index === 0
+        ? 'The application creates the message, but it cannot cross the network alone.'
+        : index < scenario.layers.length
+          ? `${scenario.layers[index].name} solves a different delivery problem than the layers above it.`
+          : 'This is the full packet format that can be transmitted on the local link.',
+    })),
+  };
 
   // Auto-play
   useEffect(() => {
@@ -547,7 +609,7 @@ export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => 
           <span>Frame Size</span>
           <span className="font-mono font-bold text-foreground">{currentTotal} bytes</span>
         </div>
-        <div className="relative h-7 overflow-hidden rounded-full bg-gray-950/40 flex">
+        <div className="relative flex h-7 overflow-hidden rounded-full border border-border bg-muted/50">
           {segments.map((seg, i) => {
             const widthPct = Math.max((seg.size / maxSize) * 100, 8);
             return (
@@ -593,14 +655,14 @@ export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => 
         </p>
       </div>
 
-      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg w-fit">
+      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
         <button
           type="button"
           onClick={() => setActiveTab('simulation')}
           className={`transition-colors ${
             activeTab === 'simulation'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
           Simulation
@@ -610,11 +672,11 @@ export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => 
           onClick={() => setActiveTab('theory')}
           className={`transition-colors ${
             activeTab === 'theory'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
-          Theory
+          Learn More
         </button>
       </div>
 
@@ -623,7 +685,7 @@ export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => 
           <SimulatorToolbar
             label="Simulation Controls"
             status={
-              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+              <Badge variant="outline" className="border-border bg-background/80 text-xs text-foreground">
                 Step {currentStep + 1} / {totalLayers}
               </Badge>
             }
@@ -707,7 +769,18 @@ export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => 
             </div>
           </SimulatorToolbar>
 
-          <SimulationCanvas isLive={isPlaying}>
+          <SimulationCanvas
+            isLive={isPlaying}
+            statusMode="terminal"
+            isComplete={currentStep >= maxStep}
+            coachPanel={(
+              <SimulationCoachPanel
+                lesson={coachLesson}
+                currentStep={narrationIdx}
+                isComplete={currentStep >= maxStep}
+              />
+            )}
+          >
             <div className="space-y-4">
               <p className="text-sm italic text-zinc-900 dark:text-zinc-200">
                 {scenario.narrations[narrationIdx] ?? scenario.narrations[scenario.narrations.length - 1]}

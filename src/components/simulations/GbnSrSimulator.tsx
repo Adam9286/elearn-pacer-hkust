@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Play, Pause, StepForward, RotateCcw, Lightbulb } from 'lucide-react';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -12,6 +13,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -103,6 +105,76 @@ const PRESETS: Preset[] = [
   },
 ];
 
+const GBN_SR_META: Record<string, Omit<SimulationLesson, 'steps'>> = {
+  'no-loss': {
+    intro: 'This scenario teaches the easy case where Go-Back-N and Selective Repeat behave the same way because nothing is lost.',
+    focus: 'Use this as your baseline before comparing loss recovery.',
+    glossary: [
+      { term: 'Go-Back-N', definition: 'A protocol that may resend a whole range of packets after one loss.' },
+      { term: 'Selective Repeat', definition: 'A protocol that resends only the missing packet and can keep later packets.' },
+      { term: 'Baseline', definition: 'The simple starting case used for comparison.' },
+      { term: 'Transmission', definition: 'One attempt to send a packet onto the network.' },
+    ],
+    takeaway: 'When the network is clean, simpler and smarter protocols can look identical from the outside.',
+    commonMistake: 'Do not judge a recovery protocol only by the no-loss case. The real difference appears after loss.',
+    nextObservation: 'Now add one loss and compare how much extra work each protocol performs.',
+  },
+  'single-loss': {
+    intro: 'This scenario teaches the classic comparison: one lost packet causes very different recovery behavior in GBN and SR.',
+    focus: 'Count how many packets each protocol sends again after the loss.',
+    glossary: [
+      { term: 'Cumulative ACK', definition: 'An ACK that confirms everything up to a point.' },
+      { term: 'Buffer', definition: 'Temporary storage for data that arrived but cannot yet be delivered in order.' },
+      { term: 'Wasted Retransmission', definition: 'Resending a packet that the receiver had already gotten.' },
+      { term: 'Recovery', definition: 'The actions taken after a missing packet is detected.' },
+    ],
+    takeaway: 'A single loss is where Selective Repeat shows its efficiency advantage over Go-Back-N.',
+    commonMistake: 'More retransmissions do not mean the protocol is broken. They mean the protocol chose a simpler recovery strategy.',
+    nextObservation: 'Watch the comparison counters at the bottom after both flows finish.',
+  },
+  'multiple-losses': {
+    intro: 'This scenario teaches how the gap between GBN and SR grows when the network loses more than one packet.',
+    focus: 'Compare how much repeated work builds up when losses appear at different positions in the window.',
+    glossary: [
+      { term: 'Multiple Losses', definition: 'More than one missing packet in the same flow.' },
+      { term: 'Efficiency', definition: 'How much useful delivery happens without extra repeated work.' },
+      { term: 'Out of Order', definition: 'A later packet arrives before an earlier missing packet.' },
+      { term: 'Receiver Window', definition: 'The set of sequence numbers the receiver is prepared to handle.' },
+    ],
+    takeaway: 'As loss becomes more complex, targeted recovery becomes more valuable.',
+    commonMistake: 'Do not assume the receiver can always use later packets immediately. Many protocols still need the missing earlier packet first.',
+    nextObservation: 'Compare the wasted transmission totals when the run is complete.',
+  },
+  'large-window': {
+    intro: 'This scenario teaches how a larger send window increases the amount of traffic that may need recovery after one loss.',
+    focus: 'Notice how a big window magnifies the difference between broad retransmission and selective retransmission.',
+    glossary: [
+      { term: 'Large Window', definition: 'A sender is allowed to keep many packets in flight at once.' },
+      { term: 'In-Flight Data', definition: 'Packets that have left the sender but are not fully acknowledged yet.' },
+      { term: 'Selective Recovery', definition: 'Fixing only the missing pieces instead of repeating everything.' },
+      { term: 'Tradeoff', definition: 'A choice that improves one metric while making another risk larger.' },
+    ],
+    takeaway: 'Large windows improve throughput on clean paths, but poor recovery strategies become more expensive when something goes wrong.',
+    commonMistake: 'A bigger window is not automatically better. Its benefit depends on how the protocol handles errors.',
+    nextObservation: 'Focus on how many extra transmissions GBN needs once the window is larger.',
+  },
+};
+
+const GBN_SR_NO_LOSS_GUIDE_STEPS = [
+  { title: 'Parallel Transmission', description: 'GBN and SR both send within the current window while the path is clean.' },
+  { title: 'Clean ACK Progress', description: 'Both protocols slide forward identically when every packet is delivered in order.' },
+  { title: 'Both Protocols Complete', description: 'With no loss, both protocols finish using the same number of transmissions.' },
+];
+
+const GBN_SR_LOSS_GUIDE_STEPS = [
+  { title: 'Parallel Normal Transmission', description: 'Both protocols begin by filling their send windows under the same loss scenario.' },
+  { title: 'Loss Event', description: 'A missing sequence creates the recovery fork between Go-Back-N and Selective Repeat.' },
+  { title: 'GBN Range Retransmission', description: 'GBN times out and resends the lost packet plus later packets in the active range.' },
+  { title: 'SR Selective Recovery', description: 'SR retransmits only the missing packet while buffering out-of-order arrivals.' },
+  { title: 'Recovery Delivery', description: 'Once the gap is repaired, both senders keep transmitting until their final packets are acknowledged.' },
+  { title: 'Both Protocols Complete', description: 'The comparison ends only after both protocols fully deliver the flow and the transmission totals can be compared.' },
+];
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -123,7 +195,7 @@ function makeInitialState(): ProtocolState {
 // Component
 // ---------------------------------------------------------------------------
 
-export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
+export const GbnSrSimulator = ({ onStepChange, onGuideStateChange }: SimulatorStepProps) => {
   const [windowSize, setWindowSize] = useState(4);
   const [lossSet, setLossSet] = useState<Set<number>>(new Set());
   const [gbn, setGbn] = useState<ProtocolState>(makeInitialState);
@@ -143,13 +215,53 @@ export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const [srLostAlready, setSrLostAlready] = useState<Set<number>>(new Set());
 
   const isComplete = gbn.sendBase > TOTAL_PACKETS && sr.sendBase > TOTAL_PACKETS;
+  const hasLossEvent = gbn.packets.some((packet) => packet.status === 'lost')
+    || sr.packets.some((packet) => packet.status === 'lost');
+  const hasGbnRecovery = gbn.packets.some((packet) => packet.status === 'retransmit')
+    || gbn.wastedTransmissions > 0;
+  const hasSrRecovery = sr.packets.some((packet) => packet.status === 'retransmit' || packet.status === 'buffered')
+    || sr.receiverBuffer.size > 0
+    || sr.totalTransmissions > TOTAL_PACKETS;
+  const hasPostRecoveryDelivery = (gbn.nextSeq > windowSize + 1 || sr.nextSeq > windowSize + 1)
+    && (gbn.totalTransmissions > TOTAL_PACKETS || sr.totalTransmissions > TOTAL_PACKETS);
+  const guideCurrentStep = lossSet.size === 0
+    ? (isComplete ? 2 : gbn.sendBase > 1 || sr.sendBase > 1 || step > 0 ? 1 : 0)
+    : (isComplete
+      ? 5
+      : hasPostRecoveryDelivery
+        ? 4
+        : hasSrRecovery
+          ? 3
+          : hasGbnRecovery
+            ? 2
+            : hasLossEvent
+              ? 1
+              : 0);
+  const activeLessonId = activePreset || (lossSet.size === 0 ? 'no-loss' : 'single-loss');
+  const coachLesson: SimulationLesson = {
+    ...GBN_SR_META[activeLessonId],
+    focus: activeHint || GBN_SR_META[activeLessonId].focus,
+    steps: (lossSet.size === 0 ? GBN_SR_NO_LOSS_GUIDE_STEPS : GBN_SR_LOSS_GUIDE_STEPS).map((guideStep, index) => ({
+      title: guideStep.title,
+      explanation: guideStep.description,
+      whatToNotice: index === guideCurrentStep
+        ? narration
+        : 'Compare what GBN and SR are doing at the same moment rather than reading only one side.',
+      whyItMatters: index === (lossSet.size === 0 ? GBN_SR_NO_LOSS_GUIDE_STEPS.length - 1 : GBN_SR_LOSS_GUIDE_STEPS.length - 1)
+        ? GBN_SR_META[activeLessonId].takeaway
+        : 'These protocols solve the same reliability problem, but they choose different tradeoffs between simplicity and efficiency.',
+    })),
+  };
 
   useEffect(() => {
-    if (onStepChange) {
-      const phase = step === 0 ? 0 : step <= 2 ? 0 : step <= 4 ? 1 : step <= 6 ? 2 : 3;
-      onStepChange(phase);
-    }
-  }, [step, onStepChange]);
+    onStepChange?.(guideCurrentStep);
+    onGuideStateChange?.({
+      steps: lossSet.size === 0 ? GBN_SR_NO_LOSS_GUIDE_STEPS : GBN_SR_LOSS_GUIDE_STEPS,
+      currentStep: guideCurrentStep,
+      isComplete,
+      mode: 'terminal',
+    });
+  }, [guideCurrentStep, isComplete, lossSet.size, onGuideStateChange, onStepChange]);
 
   // -------------------------------------------------------------------------
   // GBN step logic
@@ -444,9 +556,9 @@ export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
         {/* SR receiver buffer */}
         {label.startsWith('SR') && state.receiverBuffer.size > 0 && (
           <div className="flex items-center gap-1.5 mt-1">
-            <span className="text-[10px] text-purple-400 font-medium">Receiver buffer:</span>
+            <span className="text-[10px] font-medium text-violet-700 dark:text-violet-300">Receiver buffer:</span>
             {Array.from(state.receiverBuffer).sort((a, b) => a - b).map(seq => (
-              <span key={seq} className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 border border-purple-400 text-purple-300 font-mono">
+              <span key={seq} className="rounded border border-violet-500/20 bg-violet-500/10 px-1.5 py-0.5 font-mono text-[10px] text-violet-700 dark:text-violet-200">
                 {seq}
               </span>
             ))}
@@ -537,14 +649,14 @@ export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
         </p>
       </div>
 
-      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg w-fit">
+      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
         <button
           type="button"
           onClick={() => setActiveTab('simulation')}
           className={`transition-colors ${
             activeTab === 'simulation'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
           Simulation
@@ -554,11 +666,11 @@ export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
           onClick={() => setActiveTab('theory')}
           className={`transition-colors ${
             activeTab === 'theory'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
-          Theory
+          Learn More
         </button>
       </div>
 
@@ -567,11 +679,11 @@ export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
           <SimulatorToolbar
             label="Simulation Controls"
             status={
-              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+              <Badge variant="outline" className="border-border bg-background/80 text-xs text-foreground">
                 Step: {step}
               </Badge>
             }
-            hint={activeHint ? <><span className="font-semibold text-gray-200">Scenario focus:</span> {activeHint}</> : undefined}
+            hint={activeHint ? <><span className="font-semibold text-foreground">Scenario focus:</span> {activeHint}</> : undefined}
           >
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <div className={toolbarControlGroupClass}>
@@ -619,7 +731,7 @@ export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
                     Reset
                   </Button>
 
-                  <div className="flex items-center gap-1 rounded-md bg-gray-950/40 p-0.5">
+                  <div className="flex items-center gap-1 rounded-md border border-border bg-muted/50 p-0.5">
                     {([
                       ['side-by-side', 'Side by Side'],
                       ['gbn-only', 'GBN Only'],
@@ -630,8 +742,8 @@ export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
                         onClick={() => setViewMode(mode)}
                         className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
                           viewMode === mode
-                            ? 'bg-cyan-500/15 text-cyan-100'
-                            : 'text-gray-400 hover:text-gray-100'
+                            ? 'border border-border bg-background text-foreground shadow-sm'
+                            : 'text-muted-foreground hover:text-foreground'
                         }`}
                       >
                         {label}
@@ -643,7 +755,18 @@ export const GbnSrSimulator = ({ onStepChange }: SimulatorStepProps) => {
             </div>
           </SimulatorToolbar>
 
-          <SimulationCanvas isLive={isPlaying}>
+          <SimulationCanvas
+            isLive={isPlaying}
+            statusMode="terminal"
+            isComplete={isComplete}
+            coachPanel={(
+              <SimulationCoachPanel
+                lesson={coachLesson}
+                currentStep={guideCurrentStep}
+                isComplete={isComplete}
+              />
+            )}
+          >
             <div className="space-y-4">
               <p className="text-sm italic text-zinc-600 dark:text-zinc-400">{narration}</p>
 

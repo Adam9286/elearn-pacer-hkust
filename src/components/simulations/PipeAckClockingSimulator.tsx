@@ -14,12 +14,14 @@ import { AlertTriangle, ChevronDown, ChevronUp, Gauge, Network, RotateCcw } from
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 type ConstraintMode = 'bdp' | 'advertised-window';
 
@@ -112,6 +114,20 @@ const PRESETS: ScenarioPreset[] = [
 ];
 
 const DEFAULT_PRESET = PRESETS[0];
+
+const PIPE_CLOCKING_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches how a sender fills the bandwidth-delay product, how ACKs pace future sends, and how excess data turns into a queue.',
+  focus: 'Use the selected tick to ask: is the sender filling the pipe, staying stable, or creating extra queue?',
+  glossary: [
+    { term: 'BDP', definition: 'Bandwidth-delay product: how much data the path can hold in flight.' },
+    { term: 'ACK Clocking', definition: 'A steady pattern where arriving ACKs naturally pace future sends.' },
+    { term: 'Queue', definition: 'Extra packets waiting because the bottleneck cannot send them yet.' },
+    { term: 'Advertised Window', definition: 'A receiver-side limit on how much unacknowledged data the sender may have in flight.' },
+  ],
+  takeaway: 'Good transport behavior fills the path without building an unnecessary queue.',
+  commonMistake: 'More in-flight data is not always better. Once the pipe is full, extra data usually becomes queue instead of useful throughput.',
+  nextObservation: 'Move the selected tick and compare startup, steady ACK clocking, and overload periods.',
+};
 
 const getBurstMultiplier = (tick: number, burstWindows: BurstWindow[]) => {
   const activeBurst = burstWindows.find((window) => tick >= window.startTick && tick <= window.endTick);
@@ -239,6 +255,51 @@ export const PipeAckClockingSimulator = ({ onStepChange }: SimulatorStepProps) =
   const maxInFlight = Math.max(0, ...simulationData.map((point) => point.inFlight));
   const totalWindowBlocks = simulationData.reduce((acc, point) => acc + point.blockedByWindow, 0);
   const totalBufferBlocks = simulationData.reduce((acc, point) => acc + point.blockedByBuffer, 0);
+  const coachStep = selectedPoint.queueOccupancy > 0
+    ? 2
+    : selectedPoint.ackClocking
+      ? 1
+      : selectedPoint.inFlight < bdpPackets * 0.75
+        ? 0
+        : selectedPoint.blockedByWindow > 0
+          ? 3
+          : 1;
+  const coachLesson: SimulationLesson = {
+    ...PIPE_CLOCKING_BASE_LESSON,
+    focus: activeHint || PIPE_CLOCKING_BASE_LESSON.focus,
+    steps: [
+      {
+        title: 'Fill the Pipe',
+        explanation: 'At the beginning, the sender is still pushing enough packets into the path to reach the bandwidth-delay product.',
+        whatToNotice: `Tick ${selectedTick}: in-flight data is ${selectedPoint.inFlight.toFixed(1)} packets while the BDP is ${bdpPackets.toFixed(1)} packets.`,
+        whyItMatters: 'A path cannot deliver at full rate until enough data is already in transit.',
+      },
+      {
+        title: 'ACK-Clocked Steady State',
+        explanation: 'When the pipe is full and the queue stays small, ACK arrivals naturally pace new sends at about the bottleneck rate.',
+        whatToNotice: `Selected tick send rate ${selectedPoint.sendRate.toFixed(1)} and ACK rate ${selectedPoint.ackRate.toFixed(1)} are ${selectedPoint.ackClocking ? 'closely aligned' : 'not yet aligned'}.`,
+        whyItMatters: 'This is the healthy transport pattern: high utilization without unnecessary queue growth.',
+      },
+      {
+        title: 'Queue Build-Up',
+        explanation: selectedPoint.queueOccupancy > 0
+          ? `Extra offered data has created a queue of ${selectedPoint.queueOccupancy.toFixed(1)} packets.`
+          : 'If the sender overshoots the path, packets leave the useful pipe and start waiting in the queue.',
+        whatToNotice: `Queue delay at this tick is about ${selectedPoint.queueDelayTicks.toFixed(2)} ticks.`,
+        whyItMatters: 'Queueing adds delay and can become harmful if it grows too large.',
+      },
+      {
+        title: 'Flow Control or Buffer Limit',
+        explanation: selectedPoint.blockedByWindow > 0
+          ? 'The advertised window is the main limiter right now, so the sender is being held back by flow control.'
+          : selectedPoint.blockedByBuffer > 0
+            ? 'The queue is full enough that the buffer is now the limiter.'
+            : 'At some points, the sender is limited not by the pipe, but by receiver window or buffer space.',
+        whatToNotice: `Blocked by window: ${selectedPoint.blockedByWindow.toFixed(1)} | blocked by buffer: ${selectedPoint.blockedByBuffer.toFixed(1)}.`,
+        whyItMatters: PIPE_CLOCKING_BASE_LESSON.takeaway,
+      },
+    ],
+  };
 
   const applyPreset = useCallback((preset: ScenarioPreset) => {
     setBandwidthPacketsPerTick(preset.bandwidthPacketsPerTick);
@@ -276,14 +337,14 @@ export const PipeAckClockingSimulator = ({ onStepChange }: SimulatorStepProps) =
               onClick={() => applyPreset(preset)}
               className={`shrink-0 border-l-2 px-3 py-2 text-left transition-colors min-w-[210px] max-w-[260px] ${
                 activePresetId === preset.id
-                  ? 'border-cyan-400 bg-cyan-500/10'
-                  : 'border-white/10 bg-transparent hover:border-white/30 hover:bg-white/5'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-card/70 hover:border-primary/30 hover:bg-muted/50'
               }`}
             >
-              <div className={`text-sm font-semibold ${activePresetId === preset.id ? 'text-cyan-100' : 'text-gray-300'}`}>
+              <div className="text-sm font-semibold text-foreground">
                 {preset.title}
               </div>
-              <div className="text-xs text-gray-500 mt-1 leading-snug">{preset.description}</div>
+              <div className="mt-1 text-sm leading-snug text-muted-foreground">{preset.description}</div>
             </button>
           ))}
         </div>
@@ -457,7 +518,16 @@ export const PipeAckClockingSimulator = ({ onStepChange }: SimulatorStepProps) =
         </Button>
       </div>
 
-      <SimulationCanvas isLive={ackClockingTicks > 0}>
+      <SimulationCanvas
+        isLive={ackClockingTicks > 0}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={coachStep}
+            isComplete={ackClockingTicks > 0}
+          />
+        )}
+      >
         {activeHint && <p className="mb-3 text-sm italic text-zinc-600 dark:text-zinc-400">{activeHint}</p>}
 
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">

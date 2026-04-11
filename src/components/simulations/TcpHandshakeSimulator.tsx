@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -11,6 +12,7 @@ import {
   toolbarSelectClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 import {
   Play,
   Pause,
@@ -25,6 +27,7 @@ import {
 
 type MessageType = 'SYN' | 'SYN-ACK' | 'ACK' | 'RST' | 'FIN' | 'TIMEOUT';
 type Sender = 'client' | 'server';
+type ScenarioId = 'normal' | 'refused' | 'timeout' | 'teardown';
 type ContentTab = 'simulation' | 'theory';
 
 interface SeqInfo {
@@ -44,7 +47,7 @@ interface Step {
 }
 
 interface Scenario {
-  id: string;
+  id: ScenarioId;
   name: string;
   hint: string;
   steps: Step[];
@@ -68,6 +71,70 @@ const ARROW_ACCENT: Record<MessageType, string> = {
   RST: 'bg-red-400',
   FIN: 'bg-orange-400',
   TIMEOUT: 'bg-muted-foreground',
+};
+
+const TCP_LESSON_META: Record<ScenarioId, Omit<SimulationLesson, 'steps'>> = {
+  normal: {
+    intro: 'This scenario teaches the normal TCP connection setup. Two devices agree to start talking before any real data is sent.',
+    focus: 'Watch how each side proves it heard the other side by sending back the next byte number it expects.',
+    glossary: [
+      { term: 'TCP', definition: 'A reliable transport protocol that checks delivery and ordering.' },
+      { term: 'SYN', definition: 'A packet used to start a TCP connection.' },
+      { term: 'ACK', definition: 'A packet field that says which byte should come next.' },
+      { term: 'Sequence Number', definition: 'A number that marks where a sender starts in the byte stream.' },
+    ],
+    takeaway: 'A TCP connection is not magic. Both sides must agree on starting numbers before normal data transfer begins.',
+    commonMistake: 'Beginners often think the third packet is optional. It is not. The last ACK confirms the server side and completes the handshake.',
+    nextObservation: 'After the final ACK, both sides move to ESTABLISHED and can start carrying application data.',
+  },
+  refused: {
+    intro: 'This scenario teaches what happens when the server is reachable but no application is listening on the target port.',
+    focus: 'Notice that the server answers quickly with a rejection instead of staying silent.',
+    glossary: [
+      { term: 'Port', definition: 'A number that identifies which application should receive the data.' },
+      { term: 'RST', definition: 'A reset packet that rejects or aborts a TCP connection immediately.' },
+      { term: 'Closed Port', definition: 'A port where no server program is waiting for traffic.' },
+      { term: 'Client', definition: 'The side that starts the connection attempt.' },
+    ],
+    takeaway: 'Connection refused means the network path works, but no service is listening at that TCP port.',
+    commonMistake: 'Do not confuse a reset with packet loss. A reset is a clear, deliberate rejection from the server side.',
+    nextObservation: 'Unlike a timeout, this failure gives the client an answer right away.',
+  },
+  timeout: {
+    intro: 'This scenario teaches what happens when the client sends a SYN and hears nothing back.',
+    focus: 'Watch the retransmission timer. TCP retries because silence could mean temporary loss, not permanent failure.',
+    glossary: [
+      { term: 'Timeout', definition: 'The moment TCP decides it has waited too long for a reply.' },
+      { term: 'Retransmission', definition: 'Sending the same packet again because the first copy may have been lost.' },
+      { term: 'Backoff', definition: 'Waiting longer after each failed retry to avoid making congestion worse.' },
+      { term: 'Unreachable', definition: 'The other side cannot be contacted right now.' },
+    ],
+    takeaway: 'A timeout means TCP did not get an answer, so it retries carefully before giving up.',
+    commonMistake: 'Silence does not prove the server rejected the connection. It only proves the client did not receive a reply.',
+    nextObservation: 'Real TCP keeps increasing the waiting time between retries instead of retrying forever at the same speed.',
+  },
+  teardown: {
+    intro: 'This scenario teaches how TCP closes a connection in an orderly way after data transfer is finished.',
+    focus: 'Notice that each side closes independently. That is why teardown often needs four messages, not three.',
+    glossary: [
+      { term: 'FIN', definition: 'A packet that says one side has finished sending data.' },
+      { term: 'Half-Close', definition: 'One side has stopped sending, but the other side may still send.' },
+      { term: 'TIME_WAIT', definition: 'A safety waiting period before the client fully forgets the connection.' },
+      { term: 'Teardown', definition: 'The process of closing a TCP connection cleanly.' },
+    ],
+    takeaway: 'Closing a TCP connection is careful and symmetrical. Each side must separately say it is finished.',
+    commonMistake: 'Many learners think FIN closes both directions at once. It only closes the sender side of that packet.',
+    nextObservation: 'TIME_WAIT protects against delayed old packets from being mistaken for a new connection.',
+  },
+};
+
+const TCP_MESSAGE_WHY: Record<MessageType, string> = {
+  SYN: 'This packet starts connection setup and carries the sender’s starting byte number.',
+  'SYN-ACK': 'This packet both acknowledges the first SYN and introduces the server’s own starting byte number.',
+  ACK: 'This packet confirms the other side’s sequence space so both sides can move forward safely.',
+  RST: 'This packet stops the connection attempt immediately because the server cannot accept it.',
+  FIN: 'This packet closes one sending direction without destroying the whole connection at once.',
+  TIMEOUT: 'This pause matters because TCP must decide whether to retry or eventually give up.',
 };
 
 // --- Scenarios ---
@@ -280,7 +347,7 @@ const SCENARIOS: Scenario[] = [
 
 // --- Component ---
 
-export const TcpHandshakeSimulator = ({ onStepChange }: SimulatorStepProps) => {
+export const TcpHandshakeSimulator = ({ onStepChange, onGuideStateChange }: SimulatorStepProps) => {
   const [activePreset, setActivePreset] = useState<string>('normal');
   const [activeHint, setActiveHint] = useState<string>(SCENARIOS[0].hint);
   const [currentStep, setCurrentStep] = useState(-1);
@@ -291,12 +358,32 @@ export const TcpHandshakeSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const scenario = SCENARIOS.find((s) => s.id === activePreset) ?? SCENARIOS[0];
   const totalSteps = scenario.steps.length;
   const currentStepData = currentStep >= 0 && currentStep < totalSteps ? scenario.steps[currentStep] : null;
+  const guideCurrentStep = totalSteps > 0
+    ? currentStep < 0 ? 0 : Math.min(currentStep, totalSteps - 1)
+    : 0;
+  const isComplete = currentStep >= totalSteps;
+  const coachLesson: SimulationLesson = {
+    ...TCP_LESSON_META[scenario.id],
+    steps: scenario.steps.map((step) => ({
+      title: step.messageLabel,
+      explanation: step.narration,
+      whatToNotice: step.seqInfo.explanation,
+      whyItMatters: TCP_MESSAGE_WHY[step.messageType],
+    })),
+  };
 
   useEffect(() => {
-    if (onStepChange && currentStep >= 0) {
-      onStepChange(Math.min(currentStep, totalSteps - 1));
-    }
-  }, [currentStep, onStepChange, totalSteps]);
+    onStepChange?.(guideCurrentStep);
+    onGuideStateChange?.({
+      steps: scenario.steps.map((step) => ({
+        title: step.messageLabel,
+        description: step.narration,
+      })),
+      currentStep: guideCurrentStep,
+      mode: 'terminal',
+      isComplete,
+    });
+  }, [guideCurrentStep, isComplete, onGuideStateChange, onStepChange, scenario.steps]);
 
   // Narration
   const narration =
@@ -432,14 +519,14 @@ export const TcpHandshakeSimulator = ({ onStepChange }: SimulatorStepProps) => {
         </p>
       </div>
 
-      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg w-fit">
+      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
         <button
           type="button"
           onClick={() => setActiveTab('simulation')}
           className={`transition-colors ${
             activeTab === 'simulation'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
           Simulation
@@ -449,11 +536,11 @@ export const TcpHandshakeSimulator = ({ onStepChange }: SimulatorStepProps) => {
           onClick={() => setActiveTab('theory')}
           className={`transition-colors ${
             activeTab === 'theory'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
-          Theory
+          Learn More
         </button>
       </div>
 
@@ -462,7 +549,7 @@ export const TcpHandshakeSimulator = ({ onStepChange }: SimulatorStepProps) => {
           <SimulatorToolbar
             label="Simulation Controls"
             status={
-              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+              <Badge variant="outline" className="border-border bg-background/80 text-xs text-foreground">
                 Step {Math.max(0, currentStep + 1)} / {totalSteps}
               </Badge>
             }
@@ -507,7 +594,18 @@ export const TcpHandshakeSimulator = ({ onStepChange }: SimulatorStepProps) => {
             </div>
           </SimulatorToolbar>
 
-          <SimulationCanvas isLive={isPlaying}>
+          <SimulationCanvas
+            isLive={isPlaying}
+            statusMode="terminal"
+            isComplete={isComplete}
+            coachPanel={(
+              <SimulationCoachPanel
+                lesson={coachLesson}
+                currentStep={guideCurrentStep}
+                isComplete={isComplete}
+              />
+            )}
+          >
             <div className="space-y-4">
               <p className="text-sm italic text-zinc-900 dark:text-zinc-200">{narration}</p>
 

@@ -11,6 +11,7 @@ import {
   Lightbulb,
 } from 'lucide-react';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -20,6 +21,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 // --- Types ---
 
@@ -35,8 +37,10 @@ interface Edge {
   cost: number;
 }
 
+type GraphPresetId = 'triangle' | 'diamond' | 'five-router' | 'linear';
+
 interface GraphPreset {
-  id: string;
+  id: GraphPresetId;
   title: string;
   description: string;
   hint: string;
@@ -139,6 +143,61 @@ const PRESETS: GraphPreset[] = [
     source: 'A',
   },
 ];
+
+const DIJKSTRA_META: Record<GraphPresetId, Omit<SimulationLesson, 'steps'>> = {
+  triangle: {
+    intro: 'This small triangle is the simplest way to learn how Dijkstra compares path costs.',
+    focus: 'Watch the algorithm pick the cheapest known next node instead of blindly following the direct edge.',
+    glossary: [
+      { term: 'Shortest Path', definition: 'The route with the lowest total cost.' },
+      { term: 'Visited Node', definition: 'A node whose best cost is now final.' },
+      { term: 'Tentative Cost', definition: 'The current best-known cost before it becomes final.' },
+      { term: 'Edge Cost', definition: 'The weight or price of crossing one link.' },
+    ],
+    takeaway: 'Dijkstra works by repeatedly finalizing the cheapest remaining option.',
+    commonMistake: 'The shortest path is not always the route with the fewest hops. Cost matters more than hop count here.',
+    nextObservation: 'Try predicting the cheapest route before pressing the next step.',
+  },
+  diamond: {
+    intro: 'This scenario shows that a path that looks direct at first may lose to a cheaper multi-hop route.',
+    focus: 'Watch how a better route can appear after the algorithm explores one more node.',
+    glossary: [
+      { term: 'Route Cost', definition: 'The total cost after adding all links in a path.' },
+      { term: 'Alternative Path', definition: 'A different route to the same destination.' },
+      { term: 'Relaxation', definition: 'Checking whether a newly found route is cheaper than the current known route.' },
+      { term: 'Source Node', definition: 'The starting node from which all distances are measured.' },
+    ],
+    takeaway: 'Dijkstra improves routes as it learns more of the graph, but it always keeps the cheapest known frontier first.',
+    commonMistake: 'Students often assume the first route found is final. Dijkstra keeps testing whether a cheaper route exists.',
+    nextObservation: 'Pay attention to nodes whose cost gets updated more than once.',
+  },
+  'five-router': {
+    intro: 'This scenario looks more like a small real network, where several routers may offer competing paths.',
+    focus: 'Notice that the algorithm still follows the same simple rule even when the graph is larger.',
+    glossary: [
+      { term: 'Link-State View', definition: 'A map of the full network used to compute shortest paths.' },
+      { term: 'Router', definition: 'A device that forwards packets between networks.' },
+      { term: 'Previous Hop', definition: 'The node used just before the current destination on the best-known path.' },
+      { term: 'Shortest-Path Tree', definition: 'The final set of best routes outward from the source.' },
+    ],
+    takeaway: 'Even larger topologies can be solved one cheapest node at a time.',
+    commonMistake: 'A bigger graph does not change the rule. It only gives the algorithm more choices to compare.',
+    nextObservation: 'Watch how the previous-hop table gradually turns into a full shortest-path tree.',
+  },
+  linear: {
+    intro: 'This line topology is the easiest way to see Dijkstra when there is only one obvious path forward.',
+    focus: 'Use this case to understand the basic mechanic before moving to graphs with branching choices.',
+    glossary: [
+      { term: 'Linear Topology', definition: 'A network where each node mainly connects in a straight chain.' },
+      { term: 'Finalize', definition: 'Marking a node’s cost as settled and no longer changing.' },
+      { term: 'Path', definition: 'An ordered sequence of links from the source to a destination.' },
+      { term: 'Accumulated Cost', definition: 'The running total after adding link costs along the path.' },
+    ],
+    takeaway: 'When there is only one route, Dijkstra becomes easy to predict, which makes it a good teaching baseline.',
+    commonMistake: 'This simple graph can hide how important cost comparison becomes in more complex topologies.',
+    nextObservation: 'After this case feels easy, switch to a branching graph and compare how the same logic still applies.',
+  },
+};
 
 // --- Helper: build adjacency list ---
 
@@ -314,7 +373,7 @@ function getShortestPathEdges(previous: Record<string, string | null>): Set<stri
 
 // --- Component ---
 
-export const DijkstraSimulator = ({ onStepChange }: SimulatorStepProps) => {
+export const DijkstraSimulator = ({ onStepChange, onGuideStateChange }: SimulatorStepProps) => {
   const [selectedPreset, setSelectedPreset] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -325,17 +384,40 @@ export const DijkstraSimulator = ({ onStepChange }: SimulatorStepProps) => {
   const snapshots = useMemo(() => computeSnapshots(preset), [preset]);
   const snapshot = snapshots[currentStep];
   const isComplete = currentStep >= snapshots.length - 1;
+  const coachLesson: SimulationLesson = {
+    ...DIJKSTRA_META[preset.id],
+    focus: preset.hint,
+    steps: snapshots.map((item, index) => ({
+      title: index === 0 ? 'Initialize Source' : `Step ${index}: Visit ${item.tableRow.visitedNode}`,
+      explanation: item.narration,
+      whatToNotice: index === 0
+        ? `The source is ${preset.source}. Every other node starts at infinity until a route is discovered.`
+        : `Visited so far: ${Array.from(item.visited).join(', ') || preset.source}. Current node: ${item.currentNode ?? 'none'}.`,
+      whyItMatters: index === snapshots.length - 1
+        ? DIJKSTRA_META[preset.id].takeaway
+        : 'Each step either improves a tentative route or proves one node now has the best possible cost.',
+    })),
+  };
 
   useEffect(() => {
-    if (onStepChange) {
-      const phase = currentStep === 0
-        ? 0
-        : currentStep >= snapshots.length - 1
-          ? 3
-          : currentStep % 2 === 1 ? 1 : 2;
-      onStepChange(phase);
-    }
-  }, [currentStep, onStepChange, snapshots.length]);
+    const phase = currentStep === 0
+      ? 0
+      : currentStep >= snapshots.length - 1
+        ? 3
+        : currentStep % 2 === 1 ? 1 : 2;
+    onStepChange?.(phase);
+    onGuideStateChange?.({
+      steps: [
+        { title: 'Initialize Source', description: 'Set the source distance to zero, all others to infinity, and prepare the first visit.' },
+        { title: 'Relax Neighbors', description: 'Update tentative distances for neighbors of the current lowest-cost node.' },
+        { title: 'Select Minimum', description: 'Choose the next unvisited node with the smallest tentative distance.' },
+        { title: 'Repeat Until Done', description: 'Continue relaxing and selecting until the shortest-path tree is complete.' },
+      ],
+      currentStep: phase,
+      mode: 'convergence',
+      isComplete,
+    });
+  }, [currentStep, isComplete, onGuideStateChange, onStepChange, snapshots.length]);
 
   // Auto-play
   useEffect(() => {
@@ -411,10 +493,10 @@ export const DijkstraSimulator = ({ onStepChange }: SimulatorStepProps) => {
         label="Simulation Controls"
         status={
           <>
-            <Badge variant="secondary" className="bg-white/5 text-xs text-gray-300">
+            <Badge variant="secondary" className="border border-border bg-background/80 text-xs text-foreground">
               Step {currentStep} / {snapshots.length - 1}
             </Badge>
-            <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+            <Badge variant="outline" className="border-border bg-background/80 text-xs text-foreground">
               Source: {preset.source}
             </Badge>
           </>
@@ -458,7 +540,18 @@ export const DijkstraSimulator = ({ onStepChange }: SimulatorStepProps) => {
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={isPlaying}>
+      <SimulationCanvas
+        isLive={isPlaying}
+        statusMode="convergence"
+        isComplete={isComplete}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={currentStep}
+            isComplete={isComplete}
+          />
+        )}
+      >
         {/* SVG Graph */}
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-2 overflow-x-auto">
           <svg

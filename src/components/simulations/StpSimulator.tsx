@@ -1,8 +1,9 @@
-﻿import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, RotateCcw, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -12,6 +13,7 @@ import {
   toolbarSecondaryButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 type SwitchId = 'S1' | 'S2' | 'S3' | 'S4';
 
@@ -187,8 +189,78 @@ const createSimulatorState = (): SimulatorState => ({
   converged: false,
 });
 
-export const StpSimulator = ({ onStepChange }: SimulatorStepProps) => {
+const STP_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches how Spanning Tree Protocol removes switching loops without physically deleting links.',
+  focus: 'Watch which switch becomes the root and which links stay forwarding versus blocked.',
+  glossary: [
+    { term: 'STP', definition: 'A protocol that prevents layer-2 loops by building one logical tree.' },
+    { term: 'Root Bridge', definition: 'The switch with the best bridge ID that becomes the center of the tree.' },
+    { term: 'Root Port', definition: 'A non-root switch’s best path back to the root bridge.' },
+    { term: 'Blocked Link', definition: 'A physical link that stays available but does not forward traffic right now.' },
+  ],
+  takeaway: 'STP keeps backup links physically present while logically blocking enough of them to stop loops.',
+  commonMistake: 'A blocked STP link is not broken. It is intentionally quiet so Ethernet broadcasts do not loop forever.',
+  nextObservation: 'Fail a root-facing link and see how STP unblocks an alternate path to build a new safe tree.',
+};
+
+export const StpSimulator = ({ onStepChange, onGuideStateChange }: SimulatorStepProps) => {
   const [sim, setSim] = useState<SimulatorState>(createSimulatorState);
+
+  const currentGuideStep = sim.failureEvents.length > 0
+    ? 3
+    : sim.converged
+      ? 2
+      : sim.round >= 2
+        ? 2
+        : sim.round >= 1
+        ? 1
+        : 0;
+  const coachLesson: SimulationLesson = {
+    ...STP_BASE_LESSON,
+    steps: [
+      {
+        title: 'Root Election',
+        explanation: 'Every switch first claims it could be the root. The lowest bridge ID wins that election.',
+        whatToNotice: `Right now the chosen root is ${findRootSwitch(sim.switches)}.`,
+        whyItMatters: 'A single shared root gives every switch the same reference point for loop-free decisions.',
+      },
+      {
+        title: 'Root Port Selection',
+        explanation: 'Each non-root switch chooses the lowest-cost way to reach the root bridge.',
+        whatToNotice: 'The root-port field on each switch card shows which upstream neighbor it trusts most.',
+        whyItMatters: 'Without one preferred upstream path per switch, the topology could forward in circles.',
+      },
+      {
+        title: 'Designated Ports',
+        explanation: 'STP now decides which links keep forwarding and which alternatives must stay blocked.',
+        whatToNotice: sim.updates[0] ?? 'Check the Physical Links vs Logical Tree panel to see forwarding versus blocked links.',
+        whyItMatters: 'This is the moment the physical mesh becomes one logical tree.',
+      },
+      {
+        title: 'Topology Change',
+        explanation: sim.failureEvents.length > 0
+          ? 'A root-facing link failed, so STP is recomputing the tree and may activate a backup path.'
+          : 'Once no more updates appear, the topology has converged to a stable spanning tree.',
+        whatToNotice: sim.failureEvents[0] ?? 'Trigger a root-link failure to see why blocked links are useful backups.',
+        whyItMatters: STP_BASE_LESSON.takeaway,
+      },
+    ],
+  };
+
+  useEffect(() => {
+    onStepChange?.(currentGuideStep);
+    onGuideStateChange?.({
+      steps: [
+        { title: 'Root Election', description: 'Switches compare bridge IDs until the lowest ID becomes the root.' },
+        { title: 'Root Port Selection', description: 'Each non-root switch picks its lowest-cost path back to the root bridge.' },
+        { title: 'Designated Ports', description: 'Forwarding ports form the loop-free logical tree while alternatives are blocked.' },
+        { title: 'Topology Change', description: 'When a root-facing link fails, STP recomputes roles and converges again.' },
+      ],
+      currentStep: currentGuideStep,
+      mode: 'convergence',
+      isComplete: sim.converged,
+    });
+  }, [currentGuideStep, onGuideStateChange, onStepChange, sim.converged]);
 
   const runOneRound = useCallback(() => {
     setSim((prev) => {
@@ -211,7 +283,7 @@ export const StpSimulator = ({ onStepChange }: SimulatorStepProps) => {
       let updates: string[] = [];
       let converged = false;
 
-      for (let i = 0; i < 20; i++) {
+      for (let index = 0; index < 20; index++) {
         const result = computeElectionRound(current, prev.links);
         round += 1;
         current = result.nextState;
@@ -289,13 +361,13 @@ export const StpSimulator = ({ onStepChange }: SimulatorStepProps) => {
 
       <SimulatorToolbar
         label="Simulation Controls"
-        status={
+        status={(
           <>
-            <Badge className="border-cyan-400/25 bg-cyan-500/15 text-cyan-100">Round {sim.round}</Badge>
-            <Badge variant="outline" className="border-white/10 bg-transparent text-gray-300">Root Bridge: {tree.rootSwitch} (ID {BRIDGE_ID[tree.rootSwitch]})</Badge>
+            <Badge className="border-primary/25 bg-primary/10 text-primary">Round {sim.round}</Badge>
+            <Badge variant="outline" className="border-border bg-background/80 text-foreground">Root Bridge: {tree.rootSwitch} (ID {BRIDGE_ID[tree.rootSwitch]})</Badge>
             {sim.converged && <Badge className="border-emerald-400/25 bg-emerald-500/15 text-emerald-200">Converged</Badge>}
           </>
-        }
+        )}
       >
         <div className={toolbarControlGroupClass}>
           <Button onClick={runOneRound} className={toolbarPrimaryButtonClass}>Run 1 BPDU Round</Button>
@@ -312,7 +384,18 @@ export const StpSimulator = ({ onStepChange }: SimulatorStepProps) => {
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={sim.round > 0}>
+      <SimulationCanvas
+        isLive={sim.round > 0 && !sim.converged}
+        statusMode="convergence"
+        isComplete={sim.converged}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={currentGuideStep}
+            isComplete={sim.converged}
+          />
+        )}
+      >
         <div className="grid gap-3 md:grid-cols-2">
           {SWITCH_IDS.map((sw) => {
             const state = sim.switches[sw];
@@ -426,6 +509,3 @@ export const StpSimulator = ({ onStepChange }: SimulatorStepProps) => {
     </div>
   );
 };
-
-
-

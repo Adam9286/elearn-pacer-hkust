@@ -19,7 +19,11 @@
       "Bash(npx tsc:*)",
       "Bash(SCRIPTS=\"/c/Users/adamb/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/903dd18a-545d-44b6-a20d-bf5ae4586500/43db3a37-ef62-4ebf-b47f-842afa136133/skills/docx/scripts\")",
       "Bash(python \"$SCRIPTS/office/unpack.py\" \"/c/Users/adamb/OneDrive/Desktop/FYP Final Report.docx\" /tmp/report_unpacked/)",
-      "Bash(python -:*)"
+      "Bash(python -:*)",
+      "Read(//c/Users/adamb/OneDrive/Desktop/FYP REPORT/**)",
+      "Bash(pandoc --track-changes=all \"FYP Final Report.docx\" -o /tmp/fyp_report.md)",
+      "Read(//tmp/**)",
+      "Bash(python -c ':*)"
     ]
   },
   "enableAllProjectMcpServers": true,

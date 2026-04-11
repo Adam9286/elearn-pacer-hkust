@@ -13,6 +13,7 @@ import { Pause, Play, RotateCcw, StepForward, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -22,6 +23,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 type StationId = 'BS-A' | 'BS-B' | 'BS-C';
 
@@ -50,6 +52,20 @@ const STATIONS: StationConfig[] = [
   { id: 'BS-B', center: 50, phase: 1.2, loadPenalty: 7 },
   { id: 'BS-C', center: 82, phase: 2.0, loadPenalty: 5 },
 ];
+
+const WIRELESS_ASSOCIATION_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches how a mobile device scans nearby base stations and decides whether to stay put or hand over to a better one.',
+  focus: 'Watch the scan results over time instead of looking at one signal sample by itself.',
+  glossary: [
+    { term: 'Association', definition: 'The station the mobile device is currently connected to.' },
+    { term: 'Handover', definition: 'Switching from one serving base station to another.' },
+    { term: 'Threshold', definition: 'The minimum signal quality needed before a station is considered usable.' },
+    { term: 'Margin', definition: 'The amount by which a better station should beat the current one before switching.' },
+  ],
+  takeaway: 'Good wireless association is a balance between staying stable and moving when a clearly better station appears.',
+  commonMistake: 'A mobile device should not jump to every tiny signal improvement. That would create unstable handovers.',
+  nextObservation: 'Turn on auto drift and watch how the best station changes as the device moves across the coverage area.',
+};
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
@@ -156,6 +172,39 @@ export const WirelessAssociationSimulator = ({ onStepChange }: SimulatorStepProp
 
   const currentReadings = useMemo(() => computeSnapshot(position, timeMs), [position, timeMs]);
   const latest = history[history.length - 1];
+  const latestDecision = events[0] ?? '';
+  const coachStep = associated === null
+    ? 0
+    : latestDecision.includes('handover')
+      ? 2
+      : 1;
+  const coachLesson: SimulationLesson = {
+    ...WIRELESS_ASSOCIATION_BASE_LESSON,
+    steps: [
+      {
+        title: 'Scan the Air',
+        explanation: 'The device listens for synchronization signals from nearby base stations before choosing one.',
+        whatToNotice: `Current best station is ${currentReadings.bestId} with score ${currentReadings.bestScore.toFixed(1)}.`,
+        whyItMatters: 'A device cannot associate well if it does not first measure the available stations.',
+      },
+      {
+        title: 'Associate and Stay Stable',
+        explanation: associated
+          ? `The device is currently associated with ${associated} and will stay there unless a clearly better option appears or the signal drops too low.`
+          : 'Once one station is strong enough, the device can associate and start using it.',
+        whatToNotice: latestDecision || 'Stability matters, so the device does not switch for every tiny change.',
+        whyItMatters: 'Stable association avoids unnecessary handovers that would interrupt service.',
+      },
+      {
+        title: 'Handover When It Is Worth It',
+        explanation: latestDecision.includes('handover')
+          ? latestDecision
+          : 'If the current station becomes weak or another station becomes clearly better, the device should hand over.',
+        whatToNotice: 'The margin rule helps prevent nervous back-and-forth switching between stations.',
+        whyItMatters: WIRELESS_ASSOCIATION_BASE_LESSON.takeaway,
+      },
+    ],
+  };
 
   return (
     <div className="space-y-6">
@@ -201,7 +250,16 @@ export const WirelessAssociationSimulator = ({ onStepChange }: SimulatorStepProp
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={isRunning || history.length > 0}>
+      <SimulationCanvas
+        isLive={isRunning || history.length > 0}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={coachStep}
+            isComplete={Boolean(associated)}
+          />
+        )}
+      >
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
             <div className="text-xs uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Current Time</div>

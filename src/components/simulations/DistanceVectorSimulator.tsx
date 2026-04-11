@@ -1,4 +1,4 @@
-﻿import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CartesianGrid,
   Legend,
@@ -10,10 +10,11 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { AlertTriangle, GitBranch, Network, RotateCcw } from 'lucide-react';
+import { AlertTriangle, GitBranch, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -23,6 +24,7 @@ import {
   toolbarSecondaryButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 type NodeId = 'A' | 'B' | 'C' | 'D';
 type NextHop = NodeId | '-';
@@ -64,13 +66,26 @@ const defaultLinks: LinkState = { AB: true, BC: true, CD: true };
 
 const metricLabel = (value: number) => (value >= RIP_INFINITY ? 'INF' : String(value));
 
+const DISTANCE_VECTOR_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches distance-vector routing, where each router learns only from neighbors instead of seeing the whole network.',
+  focus: 'Watch what changes from round to round. The important learning happens when routers update their beliefs after hearing neighbors.',
+  glossary: [
+    { term: 'Distance Vector', definition: 'A summary of route costs that a router advertises to neighbors.' },
+    { term: 'Bellman-Ford', definition: 'The rule that picks the cheapest neighbor path plus link cost.' },
+    { term: 'Poison Reverse', definition: 'A technique that warns a neighbor not to route back through you.' },
+    { term: 'Count to Infinity', definition: 'A failure pattern where bad route costs keep rising slowly.' },
+  ],
+  takeaway: 'Distance-vector routing is simple to run, but failures can take time to correct because each router learns only one hop at a time.',
+  commonMistake: 'Routers here do not know the full topology. They only know what their neighbors most recently said.',
+  nextObservation: 'Trigger the C-D failure and compare the outcome with Poison Reverse disabled and enabled.',
+};
+
 const cloneRouteTable = (table: RouteTable): RouteTable => {
   const cloned = {} as RouteTable;
   for (const node of NODES) {
     cloned[node] = {} as Record<NodeId, RouteEntry>;
     for (const dest of NODES) {
-      const entry = table[node][dest];
-      cloned[node][dest] = { ...entry };
+      cloned[node][dest] = { ...table[node][dest] };
     }
   }
   return cloned;
@@ -95,11 +110,9 @@ const buildDirectKnowledgeTable = (links: LinkState): RouteTable => {
         table[node][dest] = { distance: 0, nextHop: node, changed: false };
       } else {
         const directCost = getNeighborCost(node, dest, links);
-        if (directCost === null) {
-          table[node][dest] = { distance: RIP_INFINITY, nextHop: '-', changed: false };
-        } else {
-          table[node][dest] = { distance: directCost, nextHop: dest, changed: false };
-        }
+        table[node][dest] = directCost === null
+          ? { distance: RIP_INFINITY, nextHop: '-', changed: false }
+          : { distance: directCost, nextHop: dest, changed: false };
       }
     }
   }
@@ -109,9 +122,7 @@ const buildDirectKnowledgeTable = (links: LinkState): RouteTable => {
 const tablesEquivalent = (left: RouteTable, right: RouteTable): boolean => {
   for (const node of NODES) {
     for (const dest of NODES) {
-      const leftEntry = left[node][dest];
-      const rightEntry = right[node][dest];
-      if (leftEntry.distance !== rightEntry.distance || leftEntry.nextHop !== rightEntry.nextHop) {
+      if (left[node][dest].distance !== right[node][dest].distance || left[node][dest].nextHop !== right[node][dest].nextHop) {
         return false;
       }
     }
@@ -123,18 +134,12 @@ const computeRound = (currentTable: RouteTable, links: LinkState, poisonReverse:
   const advertisements = {} as Record<NodeId, Record<NodeId, Record<NodeId, number>>>;
   for (const sender of NODES) {
     advertisements[sender] = {} as Record<NodeId, Record<NodeId, number>>;
-    const senderNeighbors = getNeighbors(sender, links);
-    for (const receiver of senderNeighbors) {
+    for (const receiver of getNeighbors(sender, links)) {
       advertisements[sender][receiver] = {} as Record<NodeId, number>;
       for (const dest of NODES) {
         let advertised = currentTable[sender][dest].distance;
         const senderNextHop = currentTable[sender][dest].nextHop;
-        if (
-          poisonReverse &&
-          senderNextHop === receiver &&
-          dest !== sender &&
-          dest !== receiver
-        ) {
+        if (poisonReverse && senderNextHop === receiver && dest !== sender && dest !== receiver) {
           advertised = RIP_INFINITY;
         }
         advertisements[sender][receiver][dest] = Math.min(RIP_INFINITY, advertised);
@@ -154,12 +159,11 @@ const computeRound = (currentTable: RouteTable, links: LinkState, poisonReverse:
         continue;
       }
 
-      const neighbors = getNeighbors(router, links);
       let bestDistance = RIP_INFINITY;
       let bestNextHop: NextHop = '-';
       const candidates: Array<{ neighbor: NodeId; candidate: number; advertised: number; cost: number }> = [];
 
-      for (const neighbor of neighbors) {
+      for (const neighbor of getNeighbors(router, links)) {
         const linkCost = getNeighborCost(router, neighbor, links);
         if (linkCost === null) continue;
         const advertised = advertisements[neighbor][router][dest];
@@ -193,9 +197,7 @@ const computeRound = (currentTable: RouteTable, links: LinkState, poisonReverse:
           const expression = candidates
             .map((item) => `${item.neighbor}: ${item.cost}+${metricLabel(item.advertised)}=${metricLabel(item.candidate)}`)
             .join(' | ');
-          equationsToD.push(
-            `${router}->D = min(${expression}) => ${metricLabel(bestDistance)} via ${bestNextHop}`
-          );
+          equationsToD.push(`${router}->D = min(${expression}) => ${metricLabel(bestDistance)} via ${bestNextHop}`);
         }
       }
     }
@@ -235,17 +237,77 @@ const createInitialState = (poisonReverse: boolean): SimulationState => {
     routeTable: stableTable,
     linkState: { ...defaultLinks },
     history: [buildHistoryPoint(0, stableTable)],
-    equationsToD: [
-      'Stable baseline loaded (all links up). Click "Trigger Link Failure C-D" then run lock-step rounds.',
-    ],
+    equationsToD: ['Stable baseline loaded (all links up). Click "Trigger Link Failure C-D" then run lock-step rounds.'],
     updates: [],
     linkFailureTriggered: false,
   };
 };
 
-export const DistanceVectorSimulator = ({ onStepChange }: SimulatorStepProps) => {
+export const DistanceVectorSimulator = ({ onStepChange, onGuideStateChange }: SimulatorStepProps) => {
   const [poisonReverse, setPoisonReverse] = useState(false);
   const [sim, setSim] = useState<SimulationState>(() => createInitialState(false));
+
+  const isConverged = sim.round > 0 && sim.updates.length === 0;
+  const currentGuideStep = sim.linkFailureTriggered
+    ? 3
+    : sim.round >= 2
+      ? 2
+      : sim.round >= 1
+        ? 1
+        : 0;
+  const coachLesson: SimulationLesson = {
+    ...DISTANCE_VECTOR_BASE_LESSON,
+    focus: poisonReverse
+      ? 'Poison Reverse is enabled, so watch how routers avoid sending misleading return paths to each other.'
+      : DISTANCE_VECTOR_BASE_LESSON.focus,
+    steps: [
+      {
+        title: 'Initialize Tables',
+        explanation: 'Each router begins with only its direct-neighbor costs. Farther destinations start as unknown or unreachable.',
+        whatToNotice: 'Before the first round, no router has a global map. It only knows itself and nearby links.',
+        whyItMatters: 'This limited view is what makes distance-vector routing easy to implement but slower to react.',
+      },
+      {
+        title: 'Exchange Vectors',
+        explanation: `Round ${sim.round}: routers advertise what they currently believe about the network to each neighbor.`,
+        whatToNotice: sim.equationsToD[0] ?? 'Look at the exchange summary to see which neighbor costs are being compared.',
+        whyItMatters: 'Distance-vector routing improves only because routers keep learning from one another over repeated rounds.',
+      },
+      {
+        title: 'Bellman-Ford Update',
+        explanation: sim.updates.length > 0
+          ? `This round changed routes. Example: ${sim.updates[0]}`
+          : 'This round did not improve any route, so the table stayed the same.',
+        whatToNotice: 'Rows marked as changed show where a better path or a worse failure-driven path replaced the old one.',
+        whyItMatters: 'This repeated cost comparison is the core algorithm behind RIP-style routing.',
+      },
+      {
+        title: 'Convergence or Loop',
+        explanation: sim.linkFailureTriggered
+          ? 'A link has failed. Now the routers must relearn the network, and bad information can bounce back and forth.'
+          : 'When no rows change anymore, the system has converged for the current topology.',
+        whatToNotice: isConverged
+          ? 'No updates this round means the network view is stable.'
+          : 'If costs keep rising after the failure, you are seeing count-to-infinity behavior.',
+        whyItMatters: DISTANCE_VECTOR_BASE_LESSON.takeaway,
+      },
+    ],
+  };
+
+  useEffect(() => {
+    onStepChange?.(currentGuideStep);
+    onGuideStateChange?.({
+      steps: [
+        { title: 'Initialize Tables', description: 'Each router starts with direct-neighbor knowledge and no global map.' },
+        { title: 'Exchange Vectors', description: 'Routers advertise their current distance vectors to each neighbor in lock-step rounds.' },
+        { title: 'Bellman-Ford Update', description: 'Each router recomputes the best next hop using link cost plus neighbor advertisement.' },
+        { title: 'Convergence or Loop', description: 'After a failure, the system either reconverges or exhibits count-to-infinity behaviour.' },
+      ],
+      currentStep: currentGuideStep,
+      mode: 'convergence',
+      isComplete: isConverged,
+    });
+  }, [currentGuideStep, isConverged, onGuideStateChange, onStepChange]);
 
   const runRound = useCallback(() => {
     setSim((prev) => {
@@ -263,7 +325,7 @@ export const DistanceVectorSimulator = ({ onStepChange }: SimulatorStepProps) =>
   }, [poisonReverse]);
 
   const runFiveRounds = useCallback(() => {
-    for (let i = 0; i < 5; i++) runRound();
+    for (let index = 0; index < 5; index++) runRound();
   }, [runRound]);
 
   const triggerFailure = useCallback(() => {
@@ -291,13 +353,10 @@ export const DistanceVectorSimulator = ({ onStepChange }: SimulatorStepProps) =>
     setSim(createInitialState(nextPoisonReverse));
   }, []);
 
-  const togglePoisonReverse = useCallback(
-    (enabled: boolean) => {
-      setPoisonReverse(enabled);
-      resetSimulation(enabled);
-    },
-    [resetSimulation]
-  );
+  const togglePoisonReverse = useCallback((enabled: boolean) => {
+    setPoisonReverse(enabled);
+    resetSimulation(enabled);
+  }, [resetSimulation]);
 
   const maxHistoryRound = sim.history[sim.history.length - 1]?.round ?? 0;
   const chartData = useMemo(
@@ -322,14 +381,14 @@ export const DistanceVectorSimulator = ({ onStepChange }: SimulatorStepProps) =>
 
       <SimulatorToolbar
         label="Topology and Controls"
-        status={
+        status={(
           <>
             <span>Round {sim.round}</span>
             <span className={sim.linkState.CD ? 'text-emerald-300' : 'text-red-300'}>
               C-D {sim.linkState.CD ? 'UP (1)' : 'DOWN'}
             </span>
           </>
-        }
+        )}
       >
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <div className={toolbarControlGroupClass}>
@@ -367,7 +426,18 @@ export const DistanceVectorSimulator = ({ onStepChange }: SimulatorStepProps) =>
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={sim.round > 0}>
+      <SimulationCanvas
+        isLive={sim.round > 0 && !isConverged}
+        statusMode="convergence"
+        isComplete={isConverged}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={currentGuideStep}
+            isComplete={isConverged}
+          />
+        )}
+      >
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4">
           <h3 className="text-sm font-semibold text-foreground mb-2">Count to Infinity Trend (Distance to D)</h3>
           <ResponsiveContainer width="100%" height={280}>
@@ -471,6 +541,3 @@ export const DistanceVectorSimulator = ({ onStepChange }: SimulatorStepProps) =>
     </div>
   );
 };
-
-
-

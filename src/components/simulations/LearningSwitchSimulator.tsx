@@ -3,6 +3,7 @@ import { ArrowRight, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -12,6 +13,7 @@ import {
   toolbarSelectClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 type HostId = 'H1' | 'H2' | 'H3' | 'H4';
 
@@ -54,6 +56,20 @@ const DEMO_SEQUENCE: Frame[] = [
   { source: 'H2', destination: 'H1' },
   { source: 'H4', destination: 'H3' },
 ];
+
+const LEARNING_SWITCH_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches how an Ethernet switch learns source MAC addresses and becomes smarter after each frame.',
+  focus: 'Watch the first unknown frame flood widely, then watch later frames use the learned table to forward more precisely.',
+  glossary: [
+    { term: 'MAC Table', definition: 'A switch table that maps a MAC address to the port where it was seen.' },
+    { term: 'Flood', definition: 'Send a frame out all relevant ports because the destination is still unknown.' },
+    { term: 'Ingress Port', definition: 'The port where the current frame entered the switch.' },
+    { term: 'Unicast Forwarding', definition: 'Sending the frame out only one known destination port.' },
+  ],
+  takeaway: 'A learning switch becomes efficient by learning source addresses from normal traffic.',
+  commonMistake: 'The switch learns from the source MAC, not from the destination MAC. That is why even a flooded frame still teaches the switch something useful.',
+  nextObservation: 'Run the demo sequence from the start and watch how the first reply changes later forwarding behavior.',
+};
 
 const hostById = (id: HostId) => HOSTS.find((host) => host.id === id)!;
 
@@ -152,6 +168,38 @@ export const LearningSwitchSimulator = ({ onStepChange }: SimulatorStepProps) =>
     () => Object.values(macTable).sort((left, right) => left.port - right.port || left.mac.localeCompare(right.mac)),
     [macTable]
   );
+  const coachStep = !lastResult ? 0 : lastResult.action === 'flood' ? 1 : 2;
+  const coachLesson: SimulationLesson = {
+    ...LEARNING_SWITCH_BASE_LESSON,
+    steps: [
+      {
+        title: 'Learn the Source',
+        explanation: 'As soon as a frame enters, the switch records the source MAC address and the ingress port in its MAC table.',
+        whatToNotice: lastResult
+          ? `The switch learned ${lastResult.learnedSourceMac} on port ${lastResult.learnedPort}.`
+          : 'The first useful learning event happens as soon as a frame enters the switch.',
+        whyItMatters: 'Source learning is what lets the switch make better forwarding choices later.',
+      },
+      {
+        title: 'Flood Unknown Destinations',
+        explanation: lastResult?.action === 'flood'
+          ? lastResult.message
+          : 'If the destination MAC is unknown, the switch must flood because it does not yet know the correct single port.',
+        whatToNotice: 'Flooding sends the frame out all ports except the one it arrived on.',
+        whyItMatters: 'Flooding is noisy, but it guarantees the destination host still has a chance to receive the frame.',
+      },
+      {
+        title: 'Forward Precisely',
+        explanation: lastResult?.action === 'forward'
+          ? lastResult.message
+          : lastResult?.action === 'filter'
+            ? lastResult.message
+            : 'Once the destination MAC is learned, the switch can forward only to the needed port.',
+        whatToNotice: 'The MAC table lets the switch stop flooding and behave much more efficiently.',
+        whyItMatters: LEARNING_SWITCH_BASE_LESSON.takeaway,
+      },
+    ],
+  };
 
   return (
     <div className="space-y-6">
@@ -208,7 +256,16 @@ export const LearningSwitchSimulator = ({ onStepChange }: SimulatorStepProps) =>
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={Boolean(lastResult)}>
+      <SimulationCanvas
+        isLive={Boolean(lastResult)}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={coachStep}
+            isComplete={Boolean(lastResult && lastResult.action !== 'flood')}
+          />
+        )}
+      >
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
             {HOSTS.map((host) => {

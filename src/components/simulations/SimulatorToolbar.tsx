@@ -19,15 +19,15 @@ export const SimulatorToolbar = ({
   stepCounter,
 }: SimulatorToolbarProps) => {
   return (
-    <div className={cn('w-full border-t border-white/10 bg-gray-800/40 px-4 py-3', className)}>
+    <div className={cn('w-full rounded-2xl border border-border/70 bg-card/75 px-4 py-4 shadow-sm backdrop-blur-sm', className)}>
       {(label || status) && (
         <div className="flex flex-wrap items-center justify-between gap-3">
           {label && (
-            <span className="text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">
+            <span className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               {label}
             </span>
           )}
-          {status && <div className="flex flex-wrap items-center gap-2 text-xs text-gray-400">{status}</div>}
+          {status && <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">{status}</div>}
         </div>
       )}
 
@@ -36,14 +36,14 @@ export const SimulatorToolbar = ({
           {children}
         </div>
         {stepCounter && (
-          <span className="whitespace-nowrap text-sm text-slate-400">
+          <span className="whitespace-nowrap text-sm text-muted-foreground">
             Step {stepCounter.current} / {stepCounter.total}
           </span>
         )}
       </div>
 
       {hint && (
-        <p className="mt-3 text-sm leading-relaxed text-gray-400">
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
           {hint}
         </p>
       )}

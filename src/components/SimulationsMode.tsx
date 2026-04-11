@@ -19,7 +19,11 @@ import { StpSimulator } from './simulations/StpSimulator';
 import { SubnettingCalculator } from './simulations/SubnettingCalculator';
 import { TcpHandshakeSimulator } from './simulations/TcpHandshakeSimulator';
 import { WirelessAssociationSimulator } from './simulations/WirelessAssociationSimulator';
-import { conceptStepsById, type SimulatorStepProps } from './simulations/simulatorStepConfig';
+import {
+  simulatorGuideConfigById,
+  type SimulatorGuideState,
+  type SimulatorStepProps,
+} from './simulations/simulatorStepConfig';
 
 type ModuleName = 'Foundations' | 'Transport Layer' | 'Network Layer' | 'Link Layer';
 type Difficulty = 'Introductory' | 'Intermediate' | 'Advanced';
@@ -239,27 +243,45 @@ const simulators: SimulatorConfig[] = [
 const SimulationsMode = () => {
   const [activeSimulatorId, setActiveSimulatorId] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [runtimeGuideState, setRuntimeGuideState] = useState<SimulatorGuideState | null>(null);
 
   const activeConfig = activeSimulatorId
     ? simulators.find(sim => sim.id === activeSimulatorId) ?? null
     : null;
 
-  const conceptSteps = activeConfig
-    ? conceptStepsById[activeConfig.id] ?? []
-    : [];
+  const guideConfig = activeConfig
+    ? simulatorGuideConfigById[activeConfig.id]
+    : null;
+
+  const activeGuideState = activeConfig && guideConfig
+    ? runtimeGuideState ?? {
+        steps: guideConfig.steps,
+        currentStep,
+        mode: guideConfig.mode,
+        isComplete: guideConfig.mode === 'terminal'
+          ? guideConfig.steps.length > 0 && currentStep >= guideConfig.steps.length - 1
+          : false,
+      }
+    : null;
 
   const handleSelect = useCallback((id: string) => {
     setActiveSimulatorId(id);
     setCurrentStep(0);
+    setRuntimeGuideState(null);
   }, []);
 
   const handleExit = useCallback(() => {
     setActiveSimulatorId(null);
     setCurrentStep(0);
+    setRuntimeGuideState(null);
   }, []);
 
   const handleStepChange = useCallback((step: number) => {
     setCurrentStep(step);
+  }, []);
+
+  const handleGuideStateChange = useCallback((nextState: SimulatorGuideState) => {
+    setRuntimeGuideState(nextState);
   }, []);
 
   if (!activeConfig) {
@@ -281,12 +303,14 @@ const SimulationsMode = () => {
       category={activeConfig.module}
       summary={activeConfig.summary}
       learningFocus={activeConfig.learningFocus}
-      conceptSteps={conceptSteps}
-      currentStep={currentStep}
-      onStepChange={handleStepChange}
+      conceptSteps={activeGuideState?.steps ?? []}
+      guideMode={activeGuideState?.mode ?? 'exploratory'}
+      guideStatusLabel={activeGuideState?.statusLabel}
+      isGuideComplete={activeGuideState?.isComplete ?? false}
+      currentStep={activeGuideState?.currentStep ?? currentStep}
       onExit={handleExit}
     >
-      <SimComponent onStepChange={handleStepChange} />
+      <SimComponent onStepChange={handleStepChange} onGuideStateChange={handleGuideStateChange} />
     </SimulationShell>
   );
 };

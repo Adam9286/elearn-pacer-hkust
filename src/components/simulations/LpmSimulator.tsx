@@ -2,6 +2,7 @@
 import { RotateCcw, Router } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -11,6 +12,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 interface RouteEntry {
   id: string;
@@ -44,6 +46,40 @@ const DEST_PRESETS = [
   { label: '172.18.8.9', ip: '172.18.8.9' },
   { label: '8.8.8.8', ip: '8.8.8.8' },
 ];
+
+const LPM_LESSON: SimulationLesson = {
+  intro: 'This simulator teaches how a router chooses one route when several prefixes match the same destination address.',
+  focus: 'The key rule is simple: the most specific matching prefix wins.',
+  steps: [
+    {
+      title: 'Destination Lookup',
+      explanation: 'Start with the destination IP. The router must compare it against every prefix in the routing table.',
+      whatToNotice: 'A valid destination address is required before any route comparison can happen.',
+      whyItMatters: 'Forwarding begins with the destination bits, not with the route list order.',
+    },
+    {
+      title: 'Binary Comparison',
+      explanation: 'The router compares leading bits to see which prefixes match. Some routes match broadly, while others match more precisely.',
+      whatToNotice: 'A /8 route matches more addresses than a /24 or /25 route, so several entries can match at once.',
+      whyItMatters: 'Binary prefix comparison is what makes CIDR routing tables flexible and scalable.',
+    },
+    {
+      title: 'Longest Prefix Wins',
+      explanation: 'The router chooses the matching route with the largest prefix length because it describes the destination most exactly.',
+      whatToNotice: 'The highlighted best match usually has the longest prefix among all matching entries.',
+      whyItMatters: 'This lets one table hold both broad defaults and very specific local routes without conflict.',
+    },
+  ],
+  glossary: [
+    { term: 'Prefix', definition: 'The network part of a route, such as 10.20.30.0/24.' },
+    { term: 'Next Hop', definition: 'The next router or gateway that should receive the packet.' },
+    { term: 'Default Route', definition: 'A catch-all route used when nothing more specific matches.' },
+    { term: 'Specific Match', definition: 'A route with more matching prefix bits than another route.' },
+  ],
+  takeaway: 'Longest prefix match is how routers make precise forwarding choices from overlapping route entries.',
+  commonMistake: 'The default route does not win just because it matches everything. It wins only when no more specific route matches.',
+  nextObservation: 'Try two destinations from the same 10.20.30.0/24 range and see why only one falls into the narrower /25 route.',
+};
 
 const isValidIpv4 = (ip: string) => {
   const parts = ip.trim().split('.');
@@ -114,6 +150,7 @@ export const LpmSimulator = ({ onStepChange }: SimulatorStepProps) => {
       current.prefixLength > best.prefixLength ? current : best
     );
   }, [results]);
+  const coachStep = !destinationValid ? 0 : bestMatch ? 2 : 1;
 
   const applyManual = () => {
     if (isValidIpv4(manualInput)) setDestinationIp(manualInput.trim());
@@ -173,7 +210,16 @@ export const LpmSimulator = ({ onStepChange }: SimulatorStepProps) => {
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={destinationValid}>
+      <SimulationCanvas
+        isLive={destinationValid}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={LPM_LESSON}
+            currentStep={coachStep}
+            isComplete={Boolean(bestMatch)}
+          />
+        )}
+      >
         {destinationValid ? (
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 mb-4">
             <h3 className="text-sm font-semibold text-foreground mb-2">Destination Binary</h3>

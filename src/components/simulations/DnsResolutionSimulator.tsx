@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -12,6 +13,7 @@ import {
   toolbarSelectClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 import {
   Play,
   Pause,
@@ -27,6 +29,7 @@ import {
 
 type MessageType = 'query' | 'response' | 'referral' | 'error';
 type EntityId = 'client' | 'localDns' | 'rootDns' | 'tldDns' | 'authDns';
+type ScenarioId = 'recursive' | 'iterative' | 'cached' | 'nxdomain';
 type ContentTab = 'simulation' | 'theory';
 
 interface Step {
@@ -38,7 +41,7 @@ interface Step {
 }
 
 interface Scenario {
-  id: string;
+  id: ScenarioId;
   name: string;
   hint: string;
   steps: Step[];
@@ -65,6 +68,68 @@ const LABEL_BG: Record<MessageType, string> = {
   response: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40',
   referral: 'bg-amber-500/20 text-amber-300 border-amber-400/40',
   error: 'bg-red-500/20 text-red-300 border-red-400/40',
+};
+
+const DNS_LESSON_META: Record<ScenarioId, Omit<SimulationLesson, 'steps'>> = {
+  recursive: {
+    intro: 'This scenario teaches the usual beginner view of DNS: the client asks one resolver, and that resolver does the rest of the work.',
+    focus: 'Watch the local resolver act like a helper. The client stays simple while the resolver talks to other DNS servers.',
+    glossary: [
+      { term: 'DNS', definition: 'The system that translates names like www.example.com into IP addresses.' },
+      { term: 'Resolver', definition: 'The DNS server that helps a client find the answer.' },
+      { term: 'Referral', definition: 'A reply that says which DNS server to ask next.' },
+      { term: 'Authoritative Server', definition: 'The server that owns the final official answer for a domain.' },
+    ],
+    takeaway: 'In recursive lookup, the client asks one helper and receives one final answer back.',
+    commonMistake: 'Beginners often think the root server knows every answer. It usually does not. It mainly points the resolver in the right direction.',
+    nextObservation: 'Notice how the resolver caches the result so the next lookup can be faster.',
+  },
+  iterative: {
+    intro: 'This scenario teaches iterative lookup, where the resolver follows a chain of referrals step by step.',
+    focus: 'Notice that each DNS server may answer with directions instead of the final IP address.',
+    glossary: [
+      { term: 'Iterative Query', definition: 'A lookup where the resolver follows referrals one server at a time.' },
+      { term: 'Root Server', definition: 'The top of the DNS hierarchy that points you toward the right TLD server.' },
+      { term: 'TLD Server', definition: 'A server for a top-level domain such as .com or .org.' },
+      { term: 'Hierarchy', definition: 'A layered structure where each level knows the next place to ask.' },
+    ],
+    takeaway: 'Iterative lookup works by following directions through the DNS hierarchy until the final answer is found.',
+    commonMistake: 'A referral is not a failure. It is a useful answer that tells the resolver where to go next.',
+    nextObservation: 'Compare this flow with recursive lookup and notice that the client still only talks to the local resolver.',
+  },
+  cached: {
+    intro: 'This scenario teaches why DNS often feels fast in real life. The answer is already stored close to the client.',
+    focus: 'Watch how the resolver skips the hierarchy because it already remembers the answer.',
+    glossary: [
+      { term: 'Cache', definition: 'A temporary stored answer that can be reused later.' },
+      { term: 'Latency', definition: 'How long it takes to get an answer back.' },
+      { term: 'Reuse', definition: 'Using a previous answer instead of asking every server again.' },
+      { term: 'Local Resolver', definition: 'The nearby DNS helper that serves the client.' },
+    ],
+    takeaway: 'Caching makes DNS faster because many repeat lookups never need to leave the local resolver.',
+    commonMistake: 'Students sometimes think cached answers are less valid. They are still valid while their timer has not expired.',
+    nextObservation: 'This is why a second visit to the same site often feels faster than the first lookup.',
+  },
+  nxdomain: {
+    intro: 'This scenario teaches what DNS does when the requested name does not exist.',
+    focus: 'Notice that the resolver still follows the normal hierarchy before learning there is no record.',
+    glossary: [
+      { term: 'NXDOMAIN', definition: 'A DNS response that means the requested domain name does not exist.' },
+      { term: 'Domain', definition: 'A human-readable name such as example.com.' },
+      { term: 'Record', definition: 'A DNS entry that stores data like an IP address.' },
+      { term: 'Error Response', definition: 'A reply that explains why the lookup could not succeed.' },
+    ],
+    takeaway: 'DNS can fail cleanly. NXDOMAIN means the system found the right authority and that authority confirmed the name is missing.',
+    commonMistake: 'NXDOMAIN does not mean the internet is broken. It means that specific name has no DNS record.',
+    nextObservation: 'The client still receives a clear answer, even though the answer is an error instead of an IP address.',
+  },
+};
+
+const DNS_MESSAGE_WHY: Record<MessageType, string> = {
+  query: 'This message moves the question closer to a server that can help.',
+  response: 'This message carries a final answer back toward the client.',
+  referral: 'This message teaches the resolver which server should be asked next.',
+  error: 'This message ends the lookup with a clear failure reason instead of silence.',
 };
 
 // --- Entity positions (percentages) ---
@@ -474,7 +539,7 @@ const EntityBox = ({ entity, isHighlighted }: { entity: EntityDef; isHighlighted
 
 // --- Main Component ---
 
-export const DnsResolutionSimulator = ({ onStepChange }: SimulatorStepProps) => {
+export const DnsResolutionSimulator = ({ onStepChange, onGuideStateChange }: SimulatorStepProps) => {
   const [domainInput, setDomainInput] = useState(DEFAULT_DOMAIN);
   const [scenarios, setScenarios] = useState(() => buildScenarios(DEFAULT_DOMAIN));
   const [activePreset, setActivePreset] = useState('recursive');
@@ -488,12 +553,32 @@ export const DnsResolutionSimulator = ({ onStepChange }: SimulatorStepProps) => 
 
   const scenario = scenarios.find((s) => s.id === activePreset) ?? scenarios[0];
   const totalSteps = scenario.steps.length;
+  const guideCurrentStep = totalSteps > 0
+    ? currentStep < 0 ? 0 : Math.min(currentStep, totalSteps - 1)
+    : 0;
+  const isComplete = currentStep >= totalSteps;
+  const coachLesson: SimulationLesson = {
+    ...DNS_LESSON_META[scenario.id],
+    steps: scenario.steps.map((step) => ({
+      title: step.messageLabel,
+      explanation: step.narration,
+      whatToNotice: `${step.from} talks to ${step.to}.`,
+      whyItMatters: DNS_MESSAGE_WHY[step.messageType],
+    })),
+  };
 
   useEffect(() => {
-    if (onStepChange && currentStep >= 0) {
-      onStepChange(Math.min(currentStep, totalSteps - 1));
-    }
-  }, [currentStep, onStepChange, totalSteps]);
+    onStepChange?.(guideCurrentStep);
+    onGuideStateChange?.({
+      steps: scenario.steps.map((step) => ({
+        title: step.messageLabel,
+        description: step.narration,
+      })),
+      currentStep: guideCurrentStep,
+      mode: 'terminal',
+      isComplete,
+    });
+  }, [guideCurrentStep, isComplete, onGuideStateChange, onStepChange, scenario.steps]);
 
   // Narration
   const narration =
@@ -631,14 +716,14 @@ export const DnsResolutionSimulator = ({ onStepChange }: SimulatorStepProps) => 
         </p>
       </div>
 
-      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg w-fit">
+      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
         <button
           type="button"
           onClick={() => setActiveTab('simulation')}
           className={`transition-colors ${
             activeTab === 'simulation'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
           Simulation
@@ -648,11 +733,11 @@ export const DnsResolutionSimulator = ({ onStepChange }: SimulatorStepProps) => 
           onClick={() => setActiveTab('theory')}
           className={`transition-colors ${
             activeTab === 'theory'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
-          Theory
+          Learn More
         </button>
       </div>
 
@@ -661,7 +746,7 @@ export const DnsResolutionSimulator = ({ onStepChange }: SimulatorStepProps) => 
           <SimulatorToolbar
             label="Simulation Controls"
             status={
-              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">
+              <Badge variant="outline" className="border-border bg-background/80 text-xs text-foreground">
                 Step {Math.max(0, currentStep + 1)} / {totalSteps}
               </Badge>
             }
@@ -715,7 +800,18 @@ export const DnsResolutionSimulator = ({ onStepChange }: SimulatorStepProps) => 
             </div>
           </SimulatorToolbar>
 
-          <SimulationCanvas isLive={isPlaying}>
+          <SimulationCanvas
+            isLive={isPlaying}
+            statusMode="terminal"
+            isComplete={isComplete}
+            coachPanel={(
+              <SimulationCoachPanel
+                lesson={coachLesson}
+                currentStep={guideCurrentStep}
+                isComplete={isComplete}
+              />
+            )}
+          >
             <div className="space-y-3">
               <p className="text-sm italic text-zinc-900 dark:text-zinc-200">{narration}</p>
 

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -12,6 +13,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -66,6 +68,20 @@ const PRESETS: Preset[] = [
     hint: 'Just 2 usable hosts -- perfect for connecting two routers directly.',
   },
 ];
+
+const SUBNETTING_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches how one IP prefix divides addresses into the network part and the host part.',
+  focus: 'Watch how changing the prefix length changes network size, usable hosts, and the binary split.',
+  glossary: [
+    { term: 'CIDR Prefix', definition: 'The /number that tells how many leading bits belong to the network.' },
+    { term: 'Subnet Mask', definition: 'A dotted-decimal version of the network-versus-host split.' },
+    { term: 'Network Address', definition: 'The first address in the subnet, identifying the subnet itself.' },
+    { term: 'Broadcast Address', definition: 'The last address in the subnet, used to reach all hosts on that subnet.' },
+  ],
+  takeaway: 'A larger prefix means more network bits, fewer host bits, and therefore a smaller subnet.',
+  commonMistake: 'Students often think /30 is bigger than /24 because 30 is a larger number. It is actually smaller because more bits are reserved for the network.',
+  nextObservation: 'Toggle the binary view and watch where the network bits stop and the host bits start.',
+};
 
 // â”€â”€ Pure helper functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -204,6 +220,33 @@ export const SubnettingCalculator = ({ onStepChange }: SimulatorStepProps) => {
 
   const networkBitsFormatted = formatBinarySegment(networkBits, 0);
   const hostBitsFormatted = formatBinarySegment(hostBits, cidr);
+  const coachStep = !result ? 0 : showBinary ? 2 : 1;
+  const coachLesson: SimulationLesson = {
+    ...SUBNETTING_LESSON,
+    focus: activeHint || SUBNETTING_LESSON.focus,
+    steps: [
+      {
+        title: 'Enter the Prefix',
+        explanation: 'Start with an IP address and a prefix length. Together they define the subnet you want to study.',
+        whatToNotice: `Right now the calculator is using ${ipInput}/${cidr}.`,
+        whyItMatters: 'The prefix length is what decides how many addresses belong to this subnet.',
+      },
+      {
+        title: 'Read the Address Range',
+        explanation: result
+          ? `This subnet starts at ${result.networkAddress}, ends at ${result.broadcastAddress}, and offers ${result.usableHosts} usable host addresses.`
+          : 'Once the input is valid, the calculator can show the subnet range and host capacity.',
+        whatToNotice: 'The first and last addresses are reserved for the network and broadcast roles in normal IPv4 subnetting.',
+        whyItMatters: 'Subnet planning depends on knowing how many usable addresses a prefix actually provides.',
+      },
+      {
+        title: 'See the Binary Split',
+        explanation: 'The binary view shows exactly where the network bits stop and the host bits begin.',
+        whatToNotice: 'Everything before the slash belongs to the subnet identity. Everything after it can vary per host.',
+        whyItMatters: SUBNETTING_LESSON.takeaway,
+      },
+    ],
+  };
 
   return (
     <div className="space-y-5">
@@ -214,14 +257,14 @@ export const SubnettingCalculator = ({ onStepChange }: SimulatorStepProps) => {
         </p>
       </div>
 
-      <div className="flex p-1 bg-zinc-100 dark:bg-zinc-800/50 rounded-lg w-fit">
+      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
         <button
           type="button"
           onClick={() => setActiveTab('simulation')}
           className={`transition-colors ${
             activeTab === 'simulation'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
           Simulation
@@ -231,11 +274,11 @@ export const SubnettingCalculator = ({ onStepChange }: SimulatorStepProps) => {
           onClick={() => setActiveTab('theory')}
           className={`transition-colors ${
             activeTab === 'theory'
-              ? 'bg-zinc-200 dark:bg-zinc-700/60 text-white shadow-sm rounded-md px-4 py-1.5'
-              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 px-4 py-1.5'
+              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
+              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
           }`}
         >
-          Theory
+          Learn More
         </button>
       </div>
 
@@ -244,7 +287,7 @@ export const SubnettingCalculator = ({ onStepChange }: SimulatorStepProps) => {
           <SimulatorToolbar
             label="Subnet Controls"
             status={
-              <Badge variant="outline" className="border-white/10 bg-transparent text-xs text-gray-300">/{cidr}</Badge>
+              <Badge variant="outline" className="border-border bg-background/80 text-xs text-foreground">/{cidr}</Badge>
             }
           >
             <div className="flex min-w-0 flex-1 flex-col gap-3">
@@ -339,7 +382,16 @@ export const SubnettingCalculator = ({ onStepChange }: SimulatorStepProps) => {
             </div>
           </SimulatorToolbar>
 
-          <SimulationCanvas isLive={ipValid && Boolean(result)}>
+          <SimulationCanvas
+            isLive={ipValid && Boolean(result)}
+            coachPanel={(
+              <SimulationCoachPanel
+                lesson={coachLesson}
+                currentStep={coachStep}
+                isComplete={Boolean(result)}
+              />
+            )}
+          >
             <div className="space-y-4">
               {result && (
                 <div className="space-y-3">
@@ -368,7 +420,7 @@ export const SubnettingCalculator = ({ onStepChange }: SimulatorStepProps) => {
               {ipValid && (
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-foreground">Binary Breakdown</label>
-                  <div className="overflow-x-auto rounded-xl bg-gray-950/40 p-4">
+                  <div className="overflow-x-auto rounded-xl border border-border bg-muted/50 p-4">
                     <div className="flex items-center gap-0 font-mono text-sm whitespace-nowrap">
                       <span className="text-primary font-semibold">{networkBitsFormatted}</span>
                       <span className="mx-1 text-zinc-600 dark:text-zinc-400 font-bold select-none">|</span>

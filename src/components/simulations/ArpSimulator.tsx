@@ -3,6 +3,7 @@ import { Network, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -14,6 +15,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 type HostId = 'H1' | 'H2' | 'H3' | 'H4';
 
@@ -50,6 +52,20 @@ const HOSTS: HostInfo[] = [
   { id: 'H3', ip: '10.0.0.33', mac: '00:11:22:33:44:33' },
   { id: 'H4', ip: '10.0.0.44', mac: '00:11:22:33:44:44' },
 ];
+
+const ARP_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches how a host discovers the MAC address that belongs to an IP address on the local network.',
+  focus: 'Watch the broadcast request, the single correct reply, and the cache entry created at the sender.',
+  glossary: [
+    { term: 'ARP', definition: 'The protocol that maps an IP address to a MAC address on a local network.' },
+    { term: 'Broadcast', definition: 'A frame sent to every device on the local LAN.' },
+    { term: 'MAC Address', definition: 'The local-link hardware address used by Ethernet.' },
+    { term: 'ARP Cache', definition: 'A short-term memory of recently learned IP-to-MAC mappings.' },
+  ],
+  takeaway: 'Before sending an Ethernet frame on the LAN, a host often needs ARP to learn the correct destination MAC address.',
+  commonMistake: 'ARP works only on the local network segment. It does not discover MAC addresses across the whole internet.',
+  nextObservation: 'Try a nonexistent IP and compare the silence with the normal successful reply case.',
+};
 
 const TARGET_PRESETS = [
   '10.0.0.22',
@@ -92,6 +108,41 @@ export const ArpSimulator = ({ onStepChange }: SimulatorStepProps) => {
     () => Object.entries(senderCache).sort((left, right) => left[0].localeCompare(right[0])),
     [senderCache]
   );
+  const coachStep = !lastTransaction ? 0 : lastTransaction.reply ? 2 : 1;
+  const coachLesson: SimulationLesson = {
+    ...ARP_BASE_LESSON,
+    focus: lastTransaction
+      ? `The sender is ${sender}. Watch how the request for ${targetIp} affects the reply and cache result.`
+      : ARP_BASE_LESSON.focus,
+    steps: [
+      {
+        title: 'Broadcast Request',
+        explanation: 'The sender asks every host on the local LAN: "Who has this IP address?" because it does not yet know the correct MAC address.',
+        whatToNotice: `The request uses destination MAC ${BROADCAST_MAC}, which reaches every host on the LAN.`,
+        whyItMatters: 'A host cannot build the final Ethernet frame until it knows the destination MAC address for the local hop.',
+      },
+      {
+        title: 'Check for the Owner',
+        explanation: lastTransaction?.reply
+          ? `${lastTransaction.responder} is the only host that owns ${targetIp}, so only that host should answer.`
+          : `No host owns ${targetIp}, so nobody can send a valid ARP reply.`,
+        whatToNotice: lastTransaction?.reply
+          ? 'All hosts hear the broadcast, but only the correct owner sends the reply.'
+          : 'The request was heard, but no reply appears because the target IP is not present on this LAN.',
+        whyItMatters: 'ARP is a local discovery protocol. Correct ownership matters because only one device should claim the IP.',
+      },
+      {
+        title: 'Update the Cache',
+        explanation: lastTransaction?.cacheUpdated
+          ? `${sender} stores ${targetIp} in its ARP cache so later frames can be sent faster.`
+          : 'Without a reply, the sender cannot cache a mapping and must still treat the address as unresolved.',
+        whatToNotice: lastTransaction?.cacheUpdated
+          ? 'The cache row appears immediately after a successful reply.'
+          : 'The cache remains empty when no reply is returned.',
+        whyItMatters: ARP_BASE_LESSON.takeaway,
+      },
+    ],
+  };
 
   const runArpBroadcast = () => {
     if (!isValidIpv4(targetIp)) return;
@@ -224,7 +275,16 @@ export const ArpSimulator = ({ onStepChange }: SimulatorStepProps) => {
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={Boolean(lastTransaction)}>
+      <SimulationCanvas
+        isLive={Boolean(lastTransaction)}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={coachStep}
+            isComplete={Boolean(lastTransaction?.cacheUpdated)}
+          />
+        )}
+      >
         <div className="grid gap-3 md:grid-cols-2">
           {HOSTS.map((host) => {
             const isSender = host.id === sender;
@@ -302,26 +362,26 @@ export const ArpSimulator = ({ onStepChange }: SimulatorStepProps) => {
           )}
         </section>
 
-        <section className="rounded-xl bg-gray-950 p-4 font-mono shadow-inner shadow-black/30">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">Transaction Notes</h3>
+        <section className="rounded-xl border border-border bg-card/80 p-4 font-mono shadow-sm">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Transaction Notes</h3>
           {lastTransaction ? (
             lastTransaction.notes.map((line) => (
-              <div key={line} className="text-sm text-gray-300">
+              <div key={line} className="text-sm text-foreground">
                 {line}
               </div>
             ))
           ) : (
-            <div className="text-sm text-gray-500">No ARP transaction yet.</div>
+            <div className="text-sm text-muted-foreground">No ARP transaction yet.</div>
           )}
         </section>
 
-        <section className="rounded-xl bg-gray-950 p-4 font-mono shadow-inner shadow-black/30">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-gray-500">Event Log</h3>
+        <section className="rounded-xl border border-border bg-card/80 p-4 font-mono shadow-sm">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Event Log</h3>
           {eventLog.length === 0 ? (
-            <div className="text-sm text-gray-500">Log is empty.</div>
+            <div className="text-sm text-muted-foreground">Log is empty.</div>
           ) : (
             eventLog.map((line) => (
-              <div key={line} className="text-sm text-gray-300">
+              <div key={line} className="text-sm text-foreground">
                 {line}
               </div>
             ))

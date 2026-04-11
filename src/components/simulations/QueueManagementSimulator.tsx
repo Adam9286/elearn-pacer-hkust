@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -21,6 +22,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 type FlowId = 'f1' | 'f2' | 'f3';
 type SchedulerPolicy = 'fifo' | 'rr' | 'wfq';
@@ -61,6 +63,20 @@ const POLICY_LABEL: Record<SchedulerPolicy, string> = {
   fifo: 'FIFO',
   rr: 'Round-Robin',
   wfq: 'WFQ',
+};
+
+const QUEUE_MANAGEMENT_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches what happens when multiple traffic flows compete for one output link and one shared buffer.',
+  focus: 'Compare queue size, dropped packets, and fairness while you switch policies or increase burst pressure.',
+  glossary: [
+    { term: 'FIFO', definition: 'First-In First-Out scheduling: packets leave in arrival order.' },
+    { term: 'Round-Robin', definition: 'A policy that takes turns across flows to improve fairness.' },
+    { term: 'WFQ', definition: 'Weighted Fair Queueing: a policy that gives flows service in proportion to their weights.' },
+    { term: 'Drop-Tail', definition: 'A queue policy that drops new packets when the buffer is already full.' },
+  ],
+  takeaway: 'Queue management is about balancing throughput, fairness, and delay when many flows want the same link.',
+  commonMistake: 'A full link is not the same as a fair link. One greedy flow can dominate unless scheduling rules control the queue.',
+  nextObservation: 'Turn burst mode on and compare how FIFO, RR, and WFQ respond to the same traffic pressure.',
 };
 
 const sum = (values: number[]) => values.reduce((acc, value) => acc + value, 0);
@@ -273,6 +289,43 @@ export const QueueManagementSimulator = ({ onStepChange }: SimulatorStepProps) =
     () => computeMaxMinAllocation(demandMap, linkCapacity),
     [demandMap, linkCapacity]
   );
+  const coachStep = selectedSimulation.totalDropped > 0
+    ? 3
+    : policy === 'fifo'
+      ? 1
+      : 2;
+  const coachLesson: SimulationLesson = {
+    ...QUEUE_MANAGEMENT_BASE_LESSON,
+    focus: `Current policy: ${POLICY_LABEL[policy]}. ${burstEnabled ? 'Burst mode is on, so short overload spikes are part of the lesson.' : 'Burst mode is off, so the workload is steadier.'}`,
+    steps: [
+      {
+        title: 'Packet Arrival',
+        explanation: 'Several flows are offering packets to one output queue. If they arrive faster than the link can serve them, pressure builds immediately.',
+        whatToNotice: `Current offered load is ${(demandF1 + demandF2 + demandF3).toFixed(1)} packets per slot versus link capacity ${linkCapacity}.`,
+        whyItMatters: 'Congestion begins when offered traffic exceeds what the link can actually transmit.',
+      },
+      {
+        title: 'Choose a Scheduling Rule',
+        explanation: `The active scheduler is ${POLICY_LABEL[policy]}. Different policies decide who gets served next when several flows are waiting.`,
+        whatToNotice: 'FIFO favors arrival order, Round-Robin rotates across flows, and WFQ uses weights to divide service more deliberately.',
+        whyItMatters: 'Scheduling policy changes both fairness and delay even when the same packets arrive.',
+      },
+      {
+        title: 'Watch Fairness and Share',
+        explanation: `Jain fairness is ${selectedSimulation.fairnessIndex.toFixed(2)} in this run, which helps compare how evenly the link is shared.`,
+        whatToNotice: `Throughput by flow is f1=${selectedSimulation.throughputByFlow.f1.toFixed(2)}, f2=${selectedSimulation.throughputByFlow.f2.toFixed(2)}, f3=${selectedSimulation.throughputByFlow.f3.toFixed(2)} packets/slot.`,
+        whyItMatters: 'A queue can have good total throughput but still treat one flow unfairly.',
+      },
+      {
+        title: 'Handle Overflow',
+        explanation: selectedSimulation.totalDropped > 0
+          ? `${selectedSimulation.totalDropped} packets were dropped because the queue could not hold everything that arrived.`
+          : 'When the queue has enough space, packets are buffered instead of dropped.',
+        whatToNotice: `Longest drop burst is ${selectedSimulation.longestDropBurst} slots and max queue length is ${selectedSimulation.maxQueue}.`,
+        whyItMatters: QUEUE_MANAGEMENT_BASE_LESSON.takeaway,
+      },
+    ],
+  };
 
   const resetDefaults = () => {
     setDemandF1(1.6);
@@ -362,7 +415,16 @@ export const QueueManagementSimulator = ({ onStepChange }: SimulatorStepProps) =
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={selectedSimulation.totalDropped > 0 || burstEnabled}>
+      <SimulationCanvas
+        isLive={selectedSimulation.totalDropped > 0 || burstEnabled}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={coachStep}
+            isComplete={selectedSimulation.totalDropped > 0}
+          />
+        )}
+      >
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-100 dark:bg-zinc-800/50 p-4">
             <div className="text-xs uppercase tracking-wide text-zinc-600 dark:text-zinc-400">Policy</div>

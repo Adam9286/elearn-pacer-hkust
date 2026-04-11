@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -22,6 +23,7 @@ import {
   toolbarToggleButtonClass,
 } from './SimulatorToolbar.styles';
 import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 type Algorithm = 'reno' | 'tahoe';
 type LossType = 'triple-dup-ack' | 'timeout';
@@ -131,6 +133,20 @@ const PRESETS: Preset[] = [
     ],
   },
 ];
+
+const CWND_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches how TCP Reno changes its congestion window when the path is clean, mildly lossy, or severely lossy.',
+  focus: 'Watch how cwnd grows, then pay attention to how different loss signals change the sender’s behavior.',
+  glossary: [
+    { term: 'cwnd', definition: 'The congestion window: how much data TCP is willing to keep in flight.' },
+    { term: 'ssthresh', definition: 'The threshold where TCP switches from fast growth to slower growth.' },
+    { term: 'Triple Duplicate ACK', definition: 'A lighter loss signal that usually means one packet was lost but the path is still moving.' },
+    { term: 'Timeout', definition: 'A severe loss signal that makes TCP become much more cautious.' },
+  ],
+  takeaway: 'TCP Reno does not react the same way to every loss. It treats timeout as more serious than triple duplicate ACK.',
+  commonMistake: 'Students often think any loss sends cwnd back to 1. Reno does that for timeout, but not for the easier triple-duplicate-ACK case.',
+  nextObservation: 'Compare the shape of the graph after an easy loss versus after a timeout.',
+};
 
 const getLossTypeAtRtt = (lossEvents: LossEvent[], rtt: number): LossType | null => {
   const event = lossEvents.find((entry) => entry.rtt === rtt);
@@ -249,6 +265,43 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
   }, [applyPreset]);
 
   const maxCwnd = Math.max(...data.map((point) => point.cwnd), ssthresh + 4);
+  const hasTripleDupLoss = lossEvents.some((event) => event.type === 'triple-dup-ack');
+  const hasTimeoutLoss = lossEvents.some((event) => event.type === 'timeout');
+  const coachStep = hasTimeoutLoss ? 3 : hasTripleDupLoss ? 2 : 1;
+  const coachLesson: SimulationLesson = {
+    ...CWND_BASE_LESSON,
+    focus: activeHint || CWND_BASE_LESSON.focus,
+    steps: [
+      {
+        title: 'Start Conservatively',
+        explanation: 'TCP begins with a small congestion window because it does not yet know how much the network can safely carry.',
+        whatToNotice: 'The graph starts low on purpose. TCP probes for capacity instead of assuming the path can handle a burst.',
+        whyItMatters: 'Starting cautiously helps TCP avoid overwhelming the network at the beginning.',
+      },
+      {
+        title: 'Grow While The Path Looks Safe',
+        explanation: 'During Slow Start, cwnd grows quickly. After ssthresh, it grows more slowly in Congestion Avoidance.',
+        whatToNotice: 'The line first rises steeply, then becomes more gentle after the threshold.',
+        whyItMatters: 'TCP wants to use available bandwidth, but it also wants to avoid creating too much congestion.',
+      },
+      {
+        title: 'Respond To An Easy Loss',
+        explanation: hasTripleDupLoss
+          ? 'A triple duplicate ACK tells Reno that some packets are still getting through, so Reno cuts cwnd but does not panic completely.'
+          : 'If you add an easy loss, Reno will halve its sending rate and enter fast recovery instead of restarting from 1.',
+        whatToNotice: 'This loss response is smaller than a timeout response because the ACK stream still proves the path is partly working.',
+        whyItMatters: 'Not all loss signals mean the same thing, so TCP should not react equally to all of them.',
+      },
+      {
+        title: 'Respond To A Severe Loss',
+        explanation: hasTimeoutLoss
+          ? 'A timeout means TCP waited and heard nothing useful back, so it resets cwnd to 1 and starts probing again.'
+          : 'If you add a timeout, Reno becomes much more cautious and returns to a tiny window.',
+        whatToNotice: 'Timeout causes the sharpest drop because TCP no longer trusts the current sending rate.',
+        whyItMatters: CWND_BASE_LESSON.takeaway,
+      },
+    ],
+  };
 
   return (
     <div className="space-y-6">
@@ -272,14 +325,14 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
               onClick={() => applyPreset(preset)}
               className={`min-w-[190px] max-w-[240px] shrink-0 border-l-2 px-3 py-2 text-left transition-colors ${
                 activePreset === preset.id
-                  ? 'border-cyan-400 bg-cyan-500/10'
-                  : 'border-white/10 bg-transparent hover:border-white/30 hover:bg-white/5'
+                  ? 'border-primary bg-primary/10'
+                  : 'border-border bg-card/70 hover:border-primary/30 hover:bg-muted/50'
               }`}
             >
-              <div className={`text-sm font-semibold ${activePreset === preset.id ? 'text-cyan-100' : 'text-gray-300'}`}>
+              <div className="text-sm font-semibold text-foreground">
                 {preset.title}
               </div>
-              <div className="mt-1 text-xs text-gray-500">{preset.description}</div>
+              <div className="mt-1 text-sm leading-snug text-muted-foreground">{preset.description}</div>
             </button>
           ))}
         </div>
@@ -428,7 +481,16 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
         </div>
       )}
 
-      <SimulationCanvas isLive={lossEvents.length > 0}>
+      <SimulationCanvas
+        isLive={lossEvents.length > 0}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={coachStep}
+            isComplete={lossEvents.length > 0}
+          />
+        )}
+      >
         {activeHint && <p className="mb-3 text-sm italic text-zinc-600 dark:text-zinc-400">{activeHint}</p>}
 
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4">

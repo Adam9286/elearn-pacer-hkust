@@ -1,8 +1,9 @@
-﻿import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Play, RotateCcw, SkipForward } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SimulationCanvas } from './SimulationCanvas';
+import { SimulationCoachPanel } from './SimulationCoachPanel';
 import { SimulatorToolbar } from './SimulatorToolbar';
 import {
   toolbarControlGroupClass,
@@ -11,7 +12,8 @@ import {
   toolbarPrimaryButtonClass,
   toolbarSecondaryButtonClass,
 } from './SimulatorToolbar.styles';
-import type { SimulatorStepProps } from './simulatorStepConfig';
+import type { ConceptStep, SimulatorStepProps } from './simulatorStepConfig';
+import type { SimulationLesson } from './simulationTeaching';
 
 interface MplsHeader {
   label: number;
@@ -46,6 +48,13 @@ interface LfibEntry {
   labelOut: number | 'POP';
 }
 
+const MPLS_GUIDE_STEPS: ConceptStep[] = [
+  { title: 'Ingress Arrival', description: 'A plain IP packet reaches the ingress LER before any label is added.' },
+  { title: 'Label Push', description: 'Ingress classifies the packet, pushes an MPLS header, and sends it into the LSP.' },
+  { title: 'Label Swap', description: 'The transit LSR swaps labels using the LFIB instead of doing a prefix lookup.' },
+  { title: 'Label Pop', description: 'The egress LER removes the MPLS label and restores normal IP forwarding.' },
+];
+
 const STAGE_LABELS: Record<StageId, string> = {
   0: 'IP Arrives At Ingress LER',
   1: 'Ingress LER PUSH',
@@ -75,6 +84,20 @@ const LFIB: LfibEntry[] = [
   },
 ];
 
+const MPLS_LESSON_META: Omit<SimulationLesson, 'steps'> = {
+  intro: 'This simulator teaches how MPLS forwards a packet along a label-switched path instead of making a fresh IP routing decision at every hop.',
+  focus: 'Watch the label change. The important idea is that the packet follows label rules, not a new destination lookup at each core router.',
+  glossary: [
+    { term: 'MPLS', definition: 'A forwarding method that uses short labels instead of repeated IP lookups inside the core.' },
+    { term: 'LER', definition: 'A label edge router that adds or removes labels at the edge of the MPLS path.' },
+    { term: 'LSR', definition: 'A label switch router that swaps one label for another in the core.' },
+    { term: 'LFIB', definition: 'The table that maps incoming labels to outgoing labels and interfaces.' },
+  ],
+  takeaway: 'MPLS turns packet forwarding into a label-following path through the network core.',
+  commonMistake: 'Students often think the label replaces the IP packet. It does not. The IP packet is still there inside the MPLS wrapper.',
+  nextObservation: 'The label is added at the edge, changed in the middle, and removed at the far edge.',
+};
+
 const basePacket: IpPacket = {
   sourceIp: '10.1.1.10',
   destinationIp: '10.9.9.20',
@@ -92,11 +115,23 @@ const headerBits = (header: MplsHeader) => {
   return `${labelBits} ${cosBits} ${sBits} ${ttlBits}`;
 };
 
-export const MplsSimulator = ({ onStepChange }: SimulatorStepProps) => {
+export const MplsSimulator = ({ onStepChange, onGuideStateChange }: SimulatorStepProps) => {
   const [cos, setCos] = useState(3);
   const [ttl, setTtl] = useState(64);
   const [stage, setStage] = useState<StageId>(0);
   const [eventLog, setEventLog] = useState<string[]>([]);
+
+  const isComplete = stage === 3;
+
+  useEffect(() => {
+    onStepChange?.(stage);
+    onGuideStateChange?.({
+      steps: MPLS_GUIDE_STEPS,
+      currentStep: stage,
+      mode: 'terminal',
+      isComplete,
+    });
+  }, [isComplete, onGuideStateChange, onStepChange, stage]);
 
   const ingressHeader = useMemo<MplsHeader>(
     () => ({
@@ -165,6 +200,23 @@ export const MplsSimulator = ({ onStepChange }: SimulatorStepProps) => {
       notes: 'Egress removes MPLS label and forwards original IP packet onward.',
     };
   }, [ingressHeader, stage, transitHeader]);
+  const coachLesson: SimulationLesson = {
+    ...MPLS_LESSON_META,
+    steps: MPLS_GUIDE_STEPS.map((step, index) => ({
+      title: step.title,
+      explanation: step.description,
+      whatToNotice: index === stage
+        ? packetView.notes
+        : 'Follow both the router position and the MPLS label field as the packet moves.',
+      whyItMatters: index === 0
+        ? 'MPLS only starts after the ingress router decides the packet belongs on an LSP.'
+        : index === 1
+          ? 'The push operation is what moves the packet from plain IP forwarding into MPLS forwarding.'
+          : index === 2
+            ? 'Label swapping is the core idea that makes MPLS fast and structured in the middle of the network.'
+            : MPLS_LESSON_META.takeaway,
+    })),
+  };
 
   const logStage = (nextStage: StageId) => {
     const lineByStage: Record<StageId, string> = {
@@ -198,7 +250,7 @@ export const MplsSimulator = ({ onStepChange }: SimulatorStepProps) => {
     setEventLog([]);
   };
 
-  const pathActiveIndex = stage === 0 ? 0 : stage === 1 ? 1 : stage === 2 ? 2 : 2;
+  const pathActiveIndex = stage === 0 ? 0 : stage === 1 ? 1 : 2;
 
   return (
     <div className="space-y-6">
@@ -211,11 +263,11 @@ export const MplsSimulator = ({ onStepChange }: SimulatorStepProps) => {
 
       <SimulatorToolbar
         label="LSP Controls"
-        status={
-          <Badge className="border-cyan-400/25 bg-cyan-500/15 text-cyan-100">
+        status={(
+          <Badge className="border-primary/25 bg-primary/10 text-primary">
             Current Stage: {STAGE_LABELS[stage]}
           </Badge>
-        }
+        )}
       >
         <div className={toolbarControlGroupClass}>
           <label className="text-sm text-zinc-600 dark:text-zinc-400">
@@ -257,7 +309,18 @@ export const MplsSimulator = ({ onStepChange }: SimulatorStepProps) => {
         </div>
       </SimulatorToolbar>
 
-      <SimulationCanvas isLive={stage > 0}>
+      <SimulationCanvas
+        isLive={stage > 0 && !isComplete}
+        statusMode="terminal"
+        isComplete={isComplete}
+        coachPanel={(
+          <SimulationCoachPanel
+            lesson={coachLesson}
+            currentStep={stage}
+            isComplete={isComplete}
+          />
+        )}
+      >
         <div className="rounded-lg border border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-900/95 p-4 space-y-3">
           <h3 className="text-sm font-semibold text-foreground">One-Way LSP Path</h3>
           <div className="flex flex-wrap items-center gap-2">
@@ -364,6 +427,3 @@ export const MplsSimulator = ({ onStepChange }: SimulatorStepProps) => {
     </div>
   );
 };
-
-
-
