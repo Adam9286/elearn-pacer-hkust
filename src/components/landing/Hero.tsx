@@ -1,257 +1,156 @@
 import { motion } from "framer-motion";
-import { Zap, Shield, Cloud, Search, Info, ArrowDown } from "lucide-react";
+import { Activity, ArrowRight, BookOpen, FileText, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import MagneticButton from "./MagneticButton";
-import TCPHandshake from "./TCPHandshake";
+import NetworkHeroVisual from "./NetworkHeroVisual";
+
+const proofMetrics = [
+  { value: "57/60", label: "validated queries" },
+  { value: "17", label: "interactive simulations" },
+  { value: "11 / 22", label: "sections and lessons" },
+  { value: "< 2 min", label: "mock exam generation" },
+];
+
+const heroSignals = [
+  { icon: MessageSquare, label: "Course-grounded AI chat" },
+  { icon: BookOpen, label: "Guided lessons" },
+  { icon: Activity, label: "Protocol simulations" },
+  { icon: FileText, label: "Exam-style practice" },
+];
 
 const Hero = () => {
   const navigate = useNavigate();
 
-  const scrollToContent = () => {
-    window.scrollTo({
-      top: window.innerHeight,
-      behavior: "smooth",
-    });
-  };
-
   return (
-    <section className="relative min-h-screen flex flex-col overflow-hidden bg-[#05070A]">
-      {/* Background Grid - subtle texture */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:100px_100px] pointer-events-none opacity-[0.15]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,243,255,0.03),transparent_70%)] pointer-events-none" />
-      {/* Top Bar - Fixed Height Header */}
-      <div className="relative z-30 h-20 w-full border-b border-[rgba(0,255,255,0.2)] bg-black/30 backdrop-blur-md flex items-center justify-between px-8">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[hsl(var(--hkust-gold))] to-amber-600 flex items-center justify-center">
-            <Zap className="w-5 h-5 text-black fill-black" />
-          </div>
-          <span className="text-xl font-bold tracking-tight text-white">LearningPacer</span>
-        </div>
-
-        {/* HUD Indicators - cyan glow */}
-        <div className="flex items-center gap-6 font-mono text-sm tracking-widest">
-          <div className="hidden md:flex items-center gap-2 text-electric-cyan drop-shadow-[0_0_15px_rgba(0,243,255,0.4)]">
-            <span className="w-1.5 h-1.5 rounded-full bg-electric-cyan animate-pulse shadow-[0_0_6px_hsl(var(--electric-cyan))]" />
-            STATUS: ONLINE
-          </div>
-          <span className="hidden lg:inline text-white/20">//</span>
-          <div className="hidden lg:block text-electric-cyan/90 drop-shadow-[0_0_15px_rgba(0,243,255,0.4)]">TARGET: ELEC3120</div>
-          <span className="hidden lg:inline text-white/20">//</span>
-          <div className="hidden lg:block text-white/25">VERSION: 2.0</div>
-        </div>
-      </div>
-
-      {/* Main Content Area - Centered Grid */}
-      <div className="flex-1 relative z-20 flex items-center justify-center p-4 lg:p-8">
-        <div className="w-full max-w-[1600px] grid lg:grid-cols-12 gap-12 items-center">
-          
-          {/* Left Column: Typography & CTAs (Span 5) */}
-          <div className="lg:col-span-5 flex flex-col gap-8">
-            {/* Protocol Badge - cyan glow */}
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="inline-flex items-center px-4 py-2 rounded border border-electric-cyan/40 bg-electric-cyan/5 text-electric-cyan text-xs font-mono tracking-widest uppercase w-fit drop-shadow-[0_0_15px_rgba(0,243,255,0.4)]"
-            >
-              Protocol Layer 04: Transport
-            </motion.div>
-
-            {/* Headline - single line, no ghost */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
-              <h1 className="text-6xl sm:text-7xl lg:text-8xl font-black leading-none tracking-tighter text-white mb-3 drop-shadow-2xl">
-                LearningPacer
-              </h1>
-              <p className="text-lg md:text-xl text-white/80 font-medium tracking-wide">
-                A Virtual Teaching Assistant for ELEC3120
-              </p>
-            </motion.div>
-
-            {/* Subtext */}
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-base text-white/70 max-w-md leading-relaxed"
-            >
-              Deep dive into university-level network architectures with LearningPacer's Command Center. Establish a persistent connection to knowledge.
-            </motion.p>
-
-            {/* Data Stream Line - Decorative SVG connecting CTA to Video */}
-            <div className="absolute top-[60%] left-[25%] w-[40%] h-[100px] pointer-events-none z-0 hidden lg:block">
-              <svg width="100%" height="100%" viewBox="0 0 400 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0 50 C 100 50, 150 50, 200 50 C 250 50, 300 50, 400 50" stroke="url(#stream-gradient)" strokeWidth="1" strokeOpacity="0.3" />
-                <defs>
-                  <linearGradient id="stream-gradient" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="transparent" />
-                    <stop offset="50%" stopColor="#00F3FF" />
-                    <stop offset="100%" stopColor="transparent" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              <motion.div
-                className="absolute top-[48px] left-0 w-1.5 h-1.5 bg-electric-cyan rounded-full shadow-[0_0_10px_#00F3FF]"
-                animate={{
-                  offsetDistance: ["0%", "100%"],
-                  opacity: [0, 1, 0]
-                }}
-                style={{
-                  offsetPath: "path('M0 50 C 100 50, 150 50, 200 50 C 250 50, 300 50, 400 50')",
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  ease: "linear"
-                }}
-              />
+    <section className="relative overflow-hidden px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
+      <div className="mx-auto max-w-7xl">
+        <div className="rounded-full border border-white/10 bg-white/[0.035] px-4 py-3 shadow-[0_18px_50px_rgba(2,12,27,0.22)] backdrop-blur xl:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-400/25 bg-cyan-400/10 shadow-[0_0_28px_rgba(34,211,238,0.18)]">
+                <Activity className="h-5 w-5 text-cyan-200" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold tracking-tight text-white">LearningPacer</p>
+                <p className="text-xs uppercase tracking-[0.28em] text-white/45">
+                  ELEC3120 Computer Networks
+                </p>
+              </div>
             </div>
 
-            {/* CTAs */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="flex flex-wrap gap-4"
-            >
-              <MagneticButton
-                onClick={() => navigate("/platform")}
-                className="group relative rounded overflow-hidden"
-                strength={0.2}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/55">
+                Course-specific AI learning platform
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate("/auth")}
+                className="rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-white/70 transition-colors hover:border-white/20 hover:bg-white/[0.04] hover:text-white"
               >
-                <div className="bg-[hsl(var(--hkust-gold))] px-8 py-4 flex items-center gap-3 text-black font-bold text-sm tracking-wider hover:bg-amber-400 transition-colors shadow-[0_0_20px_rgba(255,191,0,0.4)]">
-                  START LEARNING
-                  <Zap className="w-4 h-4 fill-black" />
-                </div>
-              </MagneticButton>
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
 
-              <button 
-                onClick={scrollToContent}
-                className="px-8 py-4 border border-white/15 text-white/50 font-bold text-sm tracking-wider rounded hover:bg-white/5 hover:text-white hover:border-white/25 transition-colors flex items-center gap-2"
+        <div className="grid gap-14 pt-16 lg:grid-cols-[minmax(0,1fr)_minmax(540px,0.95fr)] lg:items-center lg:pt-20">
+          <div className="max-w-2xl">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, ease: "easeOut" }}
+              className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.26em] text-cyan-100/90"
+            >
+              Built for revision, not generic prompting
+            </motion.div>
+
+            <motion.h1
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.05, ease: "easeOut" }}
+              className="mt-8 text-5xl font-semibold leading-[0.95] tracking-[-0.04em] text-white sm:text-6xl xl:text-7xl"
+            >
+              Learn Computer Networks the way ELEC3120 teaches it
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.12, ease: "easeOut" }}
+              className="mt-6 max-w-xl text-lg leading-8 text-white/68 sm:text-xl"
+            >
+              Course-grounded AI chat, guided lessons, interactive simulations, and mock exam generation in
+              one focused study platform for ELEC3120.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.18, ease: "easeOut" }}
+              className="mt-8 flex flex-col gap-3 sm:flex-row"
+            >
+              <button
+                type="button"
+                onClick={() => navigate("/platform")}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-300 px-6 py-3.5 text-sm font-semibold text-slate-950 transition-transform hover:-translate-y-0.5 hover:bg-cyan-200"
               >
-                INITIALIZE SYSTEM
-                <ArrowDown className="w-4 h-4" />
+                Explore the Platform
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/platform", { state: { mode: "simulations" } })}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.03] px-6 py-3.5 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/25 hover:bg-white/[0.06] hover:text-white"
+              >
+                View Simulations
+                <ArrowRight className="h-4 w-4" />
               </button>
             </motion.div>
 
-            {/* Stats Row */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className="flex gap-4 pt-4"
+            <motion.div
+              initial={{ opacity: 0, y: 22 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.24, ease: "easeOut" }}
+              className="mt-8 flex flex-wrap gap-2"
             >
-              {[
-                { val: "15k+", label: "NODES", color: "text-electric-cyan", glow: "drop-shadow-[0_0_8px_hsl(var(--electric-cyan)/0.6)]" },
-                { val: "99.9%", label: "UPTIME", color: "text-neon-purple", glow: "drop-shadow-[0_0_8px_hsl(var(--neon-purple)/0.5)]" },
-                { val: "24/7", label: "SUPPORT", color: "text-[hsl(var(--hkust-gold))]", glow: "drop-shadow-[0_0_8px_hsl(var(--hkust-gold)/0.5)]" }
-              ].map((stat, i) => (
-                <div key={i} className="px-6 py-3 rounded border border-white/10 bg-black/40 backdrop-blur-sm min-w-[100px]">
-                  <div className={`text-xl font-bold ${stat.color} ${stat.glow}`}>{stat.val}</div>
-                  <div className="text-[10px] text-white/30 tracking-widest mt-1">{stat.label}</div>
+              {heroSignals.map((signal) => (
+                <div
+                  key={signal.label}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3.5 py-2 text-sm text-white/62 backdrop-blur"
+                >
+                  <signal.icon className="h-4 w-4 text-cyan-200" />
+                  <span>{signal.label}</span>
+                </div>
+              ))}
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.55, delay: 0.3, ease: "easeOut" }}
+              className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"
+            >
+              {proofMetrics.map((metric) => (
+                <div
+                  key={metric.label}
+                  className="rounded-[24px] border border-white/10 bg-white/[0.035] px-4 py-4 shadow-[0_20px_50px_rgba(2,12,27,0.18)] backdrop-blur"
+                >
+                  <div className="text-2xl font-semibold tracking-[-0.03em] text-white">{metric.value}</div>
+                  <div className="mt-1 text-sm text-white/52">{metric.label}</div>
                 </div>
               ))}
             </motion.div>
           </div>
 
-          {/* Right Column: The "Window" (Span 7) */}
-          <div className="lg:col-span-7 relative flex justify-center lg:justify-end">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, ease: "circOut" }}
-              className="relative w-full aspect-video max-w-[1000px] p-1"
-            >
-              {/* Corner Brackets - subtle glow */}
-              <div className="absolute -top-[1px] -left-[1px] w-4 h-4 border-t-2 border-l-2 border-electric-cyan/60 shadow-[0_0_8px_hsl(var(--electric-cyan)/0.4)]" />
-              <div className="absolute -top-[1px] -right-[1px] w-4 h-4 border-t-2 border-r-2 border-electric-cyan/60 shadow-[0_0_8px_hsl(var(--electric-cyan)/0.4)]" />
-              <div className="absolute -bottom-[1px] -left-[1px] w-4 h-4 border-b-2 border-l-2 border-electric-cyan/60 shadow-[0_0_8px_hsl(var(--electric-cyan)/0.4)]" />
-              <div className="absolute -bottom-[1px] -right-[1px] w-4 h-4 border-b-2 border-r-2 border-electric-cyan/60 shadow-[0_0_8px_hsl(var(--electric-cyan)/0.4)]" />
-
-              {/* Window Header */}
-              <div className="absolute top-4 left-6 flex gap-2 z-20">
-                <div className="w-2 h-2 rounded-full bg-red-500" />
-                <div className="w-2 h-2 rounded-full bg-yellow-500" />
-                <div className="w-2 h-2 rounded-full bg-green-500" />
-              </div>
-              <div className="absolute top-4 right-6 font-mono text-[10px] text-electric-cyan tracking-widest z-20 drop-shadow-[0_0_6px_hsl(var(--electric-cyan)/0.7)]">
-                VISUALIZING: TCP_THREE_WAY_HANDSHAKE
-              </div>
-
-              {/* Main Visual Content - radial mask, no hard border */}
-              <div 
-                className="w-full h-full relative overflow-hidden rounded-sm"
-                style={{
-                  maskImage: "radial-gradient(circle, black 50%, transparent 95%)",
-                  WebkitMaskImage: "radial-gradient(circle, black 50%, transparent 95%)",
-                }}
-              >
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <TCPHandshake />
-                </div>
-              </div>
-
-                {/* Floating Badge: Protocol Security (Top Right) */}
-                <motion.div 
-                  initial={{ y: -20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.6 }}
-                  className="absolute top-8 right-8 bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-3 flex items-center gap-3 shadow-xl"
-                >
-                  <div className="w-8 h-8 rounded bg-neon-purple/20 flex items-center justify-center">
-                    <Shield className="w-4 h-4 text-neon-purple" />
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-white/40 tracking-wider">PROTOCOL SECURITY</div>
-                    <div className="text-xs font-bold text-white">SHA-256 ENCRYPTED</div>
-                  </div>
-                </motion.div>
-
-                {/* Floating Badge: Connection Latency (Bottom Left) */}
-                <motion.div 
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                  className="absolute bottom-8 left-8 bg-black/40 backdrop-blur-xl border border-white/10 rounded-lg p-3 flex items-center gap-3 shadow-xl"
-                >
-                  <div className="w-8 h-8 rounded bg-electric-cyan/20 flex items-center justify-center">
-                    <Cloud className="w-4 h-4 text-electric-cyan" />
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-white/40 tracking-wider">CONNECTION LATENCY</div>
-                    <div className="text-xs font-bold text-white">12.4 MS AVERAGE</div>
-                  </div>
-                </motion.div>
-
-                {/* Floating Action Buttons (Right Side) */}
-                <div className="absolute top-20 right-4 flex flex-col gap-2">
-                  <button className="w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
-                    <Search className="w-3 h-3 text-white" />
-                  </button>
-                  <button className="w-8 h-8 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors">
-                    <Info className="w-3 h-3 text-white" />
-                  </button>
-                </div>
-            </motion.div>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Status Line - dark base, accent glow */}
-      <div className="relative z-30 h-8 bg-black/50 backdrop-blur border-t border-[rgba(0,255,255,0.2)] flex items-center justify-between px-4 text-xs font-mono uppercase tracking-wider">
-        <div className="flex items-center gap-4 text-white/25">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_4px_hsl(130,100%,50%)]" />
-            LIVE SERVER NODE: HK-01
-          </div>
-          <span>UPTIME: 242:12:05:44</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-electric-cyan drop-shadow-[0_0_6px_hsl(var(--electric-cyan)/0.6)]">PRT_443: LISTENING</span>
-          <span className="text-neon-purple/90 drop-shadow-[0_0_6px_hsl(var(--neon-purple)/0.5)]">PRT_80: REDIRECT</span>
-          <span className="text-white/20">BUILD_V2.4.0-STABLE</span>
+          <motion.div
+            initial={{ opacity: 0, x: 28 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
+            className="relative"
+          >
+            <div className="absolute -left-10 top-16 hidden h-32 w-32 rounded-full bg-cyan-400/16 blur-3xl lg:block" />
+            <div className="absolute -bottom-10 right-10 hidden h-40 w-40 rounded-full bg-blue-500/16 blur-3xl lg:block" />
+            <NetworkHeroVisual />
+          </motion.div>
         </div>
       </div>
     </section>

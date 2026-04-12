@@ -6,7 +6,6 @@ import {
   Printer,
   Save,
   Trash2,
-  Wand2,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -38,11 +37,7 @@ import type {
   MockExamMcq,
   MockExamStructuredPayload,
 } from "@/types/mockExam";
-import {
-  applyMockExamDraftAutofixes,
-  cloneStructuredPayload,
-  getMockExamDraftWarnings,
-} from "@/utils/mockExamDraft";
+import { cloneStructuredPayload } from "@/utils/mockExamDraft";
 
 interface MockExamDraftEditorDialogProps {
   open: boolean;
@@ -135,7 +130,6 @@ const MockExamDraftEditorDialog = ({
   const [draftStructured, setDraftStructured] = useState<MockExamStructuredPayload | null>(
     normalizeStructured(structured),
   );
-  const [autofixMessages, setAutofixMessages] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) {
@@ -144,10 +138,7 @@ const MockExamDraftEditorDialog = ({
 
     setDraftTopic(topic);
     setDraftStructured(normalizeStructured(structured));
-    setAutofixMessages([]);
   }, [open, topic, structured]);
-
-  const warnings = getMockExamDraftWarnings(draftStructured);
 
   const updateMcq = (index: number, updater: (question: MockExamMcq) => MockExamMcq) => {
     setDraftStructured((current) => {
@@ -269,12 +260,6 @@ const MockExamDraftEditorDialog = ({
     </div>
   );
 
-  const handleAutofix = () => {
-    const result = applyMockExamDraftAutofixes(draftStructured);
-    setDraftStructured(normalizeStructured(result.structured));
-    setAutofixMessages(result.changes);
-  };
-
   const handleSave = async () => {
     if (!draftStructured) {
       return;
@@ -324,38 +309,7 @@ const MockExamDraftEditorDialog = ({
                   placeholder="Computer Networks"
                 />
               </div>
-
-              <div className="flex flex-wrap items-end gap-2">
-                <Button type="button" variant="outline" onClick={handleAutofix} disabled={!draftStructured}>
-                  <Wand2 className="mr-2 h-4 w-4" />
-                  Apply Safety Fixes
-                </Button>
-              </div>
             </div>
-
-            {autofixMessages.length > 0 && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="space-y-1">
-                  <p className="font-medium">Auto-fixes applied</p>
-                  {autofixMessages.map((message) => (
-                    <p key={message}>{message}</p>
-                  ))}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {warnings.length > 0 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription className="space-y-1">
-                  <p className="font-medium">Draft warnings</p>
-                  {warnings.map((warning) => (
-                    <p key={warning}>{warning}</p>
-                  ))}
-                </AlertDescription>
-              </Alert>
-            )}
 
             {!draftStructured ? (
               <Alert variant="destructive">

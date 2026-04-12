@@ -1,198 +1,123 @@
 import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
-import { Brain, Zap, Lock, Target } from "lucide-react";
+import { BookOpen, CheckCircle2, FileText, MessageSquare, Shield } from "lucide-react";
+
+const differentiators = [
+  {
+    icon: MessageSquare,
+    title: "Course-grounded answers",
+    description: "The platform is designed around ELEC3120 materials instead of broad generic knowledge.",
+  },
+  {
+    icon: BookOpen,
+    title: "Structured revision flow",
+    description: "Move from guided lessons into questions, simulations, and practice without leaving the product.",
+  },
+  {
+    icon: FileText,
+    title: "Assessment-oriented support",
+    description: "Mock exams and focused review help you prepare for the way the course is actually assessed.",
+  },
+];
+
+const supportingSignals = [
+  "Grounded in ELEC3120 lecture material and course context",
+  "Designed for revision clarity, not vague AI novelty",
+  "Combines chat, lessons, simulations, and exam practice in one workflow",
+  "Built as a polished final year project product, not a toy demo",
+];
 
 const PlatformIntro = () => {
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.2,
-  });
-
-  const features = [
-    { icon: Brain, text: "Every answer cites Prof. Meng's lecture slides" },
-    { icon: Zap, text: "Ask anything about ELEC3120, get instant answers" },
-    { icon: Lock, text: "Only uses your course materials - no hallucinations" },
-    { icon: Target, text: "Practice with real exam-style questions" },
-  ];
-
   return (
-    <section ref={ref} className="min-h-screen py-20 px-4 relative overflow-hidden">
-      {/* Network Topology Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-dark-void via-navy/20 to-dark-void"></div>
-      
-      {/* Animated Network Topology */}
-      <svg className="absolute inset-0 w-full h-full opacity-30" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="hsl(var(--electric-cyan))" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="hsl(var(--neon-blue))" stopOpacity="0.6" />
-          </linearGradient>
-        </defs>
-        {/* Network connections */}
-        {[...Array(8)].map((_, i) => (
-          <motion.line
-            key={i}
-            x1={`${(i % 4) * 25 + 10}%`}
-            y1={`${Math.floor(i / 4) * 50 + 20}%`}
-            x2={`${((i + 1) % 4) * 25 + 10}%`}
-            y2={`${Math.floor((i + 1) / 4) * 50 + 20}%`}
-            stroke="url(#lineGradient)"
-            strokeWidth="2"
-            initial={{ pathLength: 0, opacity: 0 }}
-            animate={{ pathLength: 1, opacity: 1 }}
-            transition={{ duration: 2, delay: i * 0.2, repeat: Infinity, repeatType: "reverse" }}
-          />
-        ))}
-        {/* Network nodes */}
-        {[...Array(12)].map((_, i) => (
-          <motion.circle
-            key={`node-${i}`}
-            cx={`${(i % 4) * 25 + 10}%`}
-            cy={`${Math.floor(i / 4) * 33 + 15}%`}
-            r="4"
-            fill="hsl(var(--electric-cyan))"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
-            transition={{ duration: 3, delay: i * 0.3, repeat: Infinity }}
-          />
-        ))}
-      </svg>
+    <section className="px-4 py-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <motion.div
+          initial={{ opacity: 0, y: 28 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(6,14,27,0.92),rgba(4,10,19,0.88))] px-6 py-8 shadow-[0_30px_120px_rgba(2,12,27,0.3)] sm:px-8 sm:py-10 lg:px-10"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(34,211,238,0.08),transparent_30%),radial-gradient(circle_at_80%_80%,rgba(59,130,246,0.12),transparent_30%)]" />
 
-      {/* Hexagonal Grid */}
-      <div className="absolute inset-0 opacity-20">
-        {[...Array(6)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-32 h-32 border border-neon-blue/30"
-            style={{
-              left: `${(i % 3) * 33}%`,
-              top: `${Math.floor(i / 3) * 50}%`,
-              clipPath: "polygon(30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%, 0% 50%)",
-            }}
-            animate={{ 
-              opacity: [0.2, 0.6, 0.2],
-              borderColor: ["hsl(var(--neon-blue) / 0.3)", "hsl(var(--electric-cyan) / 0.6)", "hsl(var(--neon-blue) / 0.3)"]
-            }}
-            transition={{ duration: 4, delay: i * 0.5, repeat: Infinity }}
-          />
-        ))}
-      </div>
+          <div className="relative grid gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-start">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
+                Credibility and Differentiation
+              </p>
+              <h2 className="mt-4 max-w-3xl text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
+                Not just another AI chatbot
+              </h2>
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-white/68">
+                LearningPacer is built for ELEC3120 revision. It combines course-grounded AI assistance,
+                guided lessons, interactive protocol visuals, and mock exam practice so the learning flow
+                stays aligned with how the course is actually taught.
+              </p>
 
-      {/* Vertical Data Streams */}
-      <div className="absolute left-0 top-0 bottom-0 w-full overflow-hidden opacity-10">
-        {[...Array(5)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute h-full w-px bg-gradient-to-b from-transparent via-electric-cyan to-transparent"
-            style={{ left: `${i * 20 + 10}%` }}
-            animate={{ y: ["-100%", "100%"] }}
-            transition={{ duration: 8, delay: i * 0.5, repeat: Infinity, ease: "linear" }}
-          />
-        ))}
-      </div>
-
-      {/* Scanline Effect */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-b from-transparent via-electric-cyan/10 to-transparent h-20"
-        animate={{ y: ["-20%", "120%"] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-      />
-      
-      <div className="container mx-auto relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Left: Dashboard mockup */}
-          <motion.div
-            initial={{ opacity: 0, x: -50 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8 }}
-            className="relative"
-          >
-            <div className="glass-card-landing p-8 rounded-2xl border border-white/20 hover:border-white/40 transition-smooth shadow-glow">
-              {/* Mock chat interface */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-white/60 text-sm ml-2">LearningPacer Chat</span>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100">
+                  Course grounding over generic breadth
                 </div>
-                
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.3 }}
-                  className="bg-primary/20 p-4 rounded-lg border-l-4 border-primary"
-                >
-                  <p className="text-white/90 text-sm">What is TCP congestion control?</p>
-                </motion.div>
-                
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: 0.6 }}
-                  className="bg-accent/20 p-4 rounded-lg border-l-4 border-accent"
-                >
-                  <p className="text-white/90 text-sm">TCP congestion control manages network traffic...</p>
-                  <div className="mt-2 text-xs text-white/60">
-                    📚 Source: Unit 4, Slide 23
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={inView ? { opacity: 1 } : {}}
-                  transition={{ delay: 0.9 }}
-                  className="flex gap-2"
-                >
-                  <div className="h-2 w-2 bg-electric-cyan rounded-full animate-pulse"></div>
-                  <div className="h-2 w-2 bg-electric-cyan rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                  <div className="h-2 w-2 bg-electric-cyan rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                </motion.div>
+                <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white/60">
+                  Revision-first workflow
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white/60">
+                  Simulations inside the same platform
+                </div>
               </div>
             </div>
 
-          </motion.div>
-
-          {/* Right: Text content */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={inView ? { opacity: 1, x: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-neon-blue to-electric-cyan bg-clip-text text-transparent">
-              Built Specifically for ELEC3120
-            </h2>
-            
-            <div className="space-y-6">
-              {features.map((feature, index) => (
+            <div className="grid gap-4">
+              {differentiators.map((item, index) => (
                 <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={inView ? { opacity: 1, x: 0 } : {}}
-                  transition={{ delay: 0.4 + index * 0.1 }}
-                  className="flex items-start gap-4 group"
+                  key={item.title}
+                  initial={{ opacity: 0, x: 16 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.45, delay: index * 0.08, ease: "easeOut" }}
+                  className="rounded-[24px] border border-white/10 bg-white/[0.04] p-5 backdrop-blur"
                 >
-                  <div className="p-3 rounded-lg bg-gradient-to-br from-neon-blue/20 to-neon-purple/20 border border-electric-cyan/30 group-hover:scale-110 transition-smooth">
-                    <feature.icon className="w-6 h-6 text-electric-cyan" />
+                  <div className="flex items-start gap-4">
+                    <div className="mt-0.5 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10">
+                      <item.icon className="h-5 w-5 text-cyan-200" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-7 text-white/58">{item.description}</p>
+                    </div>
                   </div>
-                  <p className="text-white text-lg pt-3 font-medium">{feature.text}</p>
                 </motion.div>
               ))}
             </div>
+          </div>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={inView ? { opacity: 1 } : {}}
-              transition={{ delay: 1 }}
-              className="mt-8 p-6 glass-card-landing rounded-xl border border-white/20 bg-gradient-to-r from-accent/10 to-neon-blue/10"
-            >
-              <p className="text-white text-base">
-                <span className="text-accent font-bold">Built for:</span>{" "}
-                <span className="font-semibold">ELEC3120 Computer Networks at HKUST</span>
-              </p>
-            </motion.div>
-          </motion.div>
-        </div>
+          <div className="relative mt-10 grid gap-4 lg:grid-cols-2">
+            <div className="rounded-[24px] border border-white/10 bg-[#07101e]/88 p-6">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04]">
+                  <Shield className="h-5 w-5 text-cyan-200" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/42">
+                    Why It Feels Different
+                  </p>
+                  <p className="mt-1 text-base font-semibold text-white">Closer to the course, easier to revise from</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {supportingSignals.map((signal) => (
+                <div
+                  key={signal}
+                  className="flex items-start gap-3 rounded-[20px] border border-white/10 bg-white/[0.03] px-4 py-4 text-sm text-white/60"
+                >
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-cyan-200" />
+                  <span>{signal}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

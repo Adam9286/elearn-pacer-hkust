@@ -39,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import MockExamDraftEditorDialog from "@/components/MockExamDraftEditorDialog";
+import MockExamReviewDialog from "@/components/MockExamReviewDialog";
 import { requestMockExam } from "@/services/mockExamApi";
 import {
   completeQuickPracticeSession,
@@ -146,29 +147,6 @@ const SESSION_STATUS_PRIORITY: Record<MockExamSessionStatus, number> = {
   failed: 5,
 };
 
-const formatWarningCount = (count: number) =>
-  count === 1 ? "1 workflow warning" : `${count} workflow warnings`;
-
-const getWorkflowReviewDescription = (
-  warnings: string[],
-  requiresReview: boolean,
-  fallback: string,
-) => {
-  if (requiresReview && warnings.length > 0) {
-    return `${formatWarningCount(warnings.length)} returned. Review the draft in the app, apply fixes if needed, and use Print Draft for the stable PDF path.`;
-  }
-
-  if (requiresReview) {
-    return "The workflow flagged this draft for review. Check it in the app, then print locally.";
-  }
-
-  if (warnings.length > 0) {
-    return `${formatWarningCount(warnings.length)} returned. The structured draft is ready in the app and local print is the recommended export path.`;
-  }
-
-  return fallback;
-};
-
 const MockExamMode = () => {
   const [isLoadingQuestions, setIsLoadingQuestions] = useState(false);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -201,6 +179,10 @@ const MockExamMode = () => {
   const [editorTopic, setEditorTopic] = useState("Computer Networks");
   const [editorDifficulty, setEditorDifficulty] = useState<MockExamDifficulty>("medium");
   const [editorStructured, setEditorStructured] = useState<MockExamStructuredPayload | null>(null);
+  const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+  const [reviewTopic, setReviewTopic] = useState("Computer Networks");
+  const [reviewDifficulty, setReviewDifficulty] = useState<MockExamDifficulty>("medium");
+  const [reviewStructured, setReviewStructured] = useState<MockExamStructuredPayload | null>(null);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [isPrintingDraft, setIsPrintingDraft] = useState(false);
   const [showSavedExamsSection, setShowSavedExamsSection] = useState(false);
@@ -503,9 +485,7 @@ const MockExamMode = () => {
         toast({
           title:
             examMode === "exam_simulation"
-              ? response.requiresReview
-                ? "Exam Draft Requires Review"
-                : "Exam Draft Ready"
+              ? "Exam Draft Ready"
               : "Structured exam data received",
           description:
             examMode === "exam_simulation"
@@ -790,11 +770,21 @@ const MockExamMode = () => {
         return;
       }
 
+      const fileLink = session.pdf.link || session.pdf.downloadLink;
+      if (fileLink) {
+        openExternalLink(
+          fileLink,
+          "Open Exam Error",
+          "This saved exam simulation does not have a file link.",
+        );
+        return;
+      }
+
       const savedSession = await getSavedMockExamSession(session.sessionId);
-      if (!savedSession) {
+      if (!savedSession?.normalizedResponse.structured) {
         toast({
           title: "Saved Exam Unavailable",
-          description: "This saved exam could not be loaded.",
+          description: "This saved exam does not have an openable file or editable draft.",
           variant: "destructive",
         });
         return;
@@ -805,23 +795,80 @@ const MockExamMode = () => {
       setLastResponse(savedSession.normalizedResponse);
       resetPracticeState();
       window.scrollTo({ top: 0, behavior: "smooth" });
-
-      if (savedSession.normalizedResponse.structured) {
-        openDraftEditor({
-          sessionId: savedSession.sessionId,
-          topic: savedSession.topic,
-          difficulty: savedSession.difficulty,
-          structured: savedSession.normalizedResponse.structured,
-        });
-      }
+      openDraftEditor({
+        sessionId: savedSession.sessionId,
+        topic: savedSession.topic,
+        difficulty: savedSession.difficulty,
+        structured: savedSession.normalizedResponse.structured,
+      });
 
       toast({
-        title: "Saved Exam Simulation Loaded",
-        description: savedSession.normalizedResponse.structured
-          ? "The saved exam draft is now open. Review, edit, and print it locally."
-          : savedSession.normalizedResponse.pdf.link
-            ? "The saved exam simulation is available as a hosted PDF."
-            : "The saved exam simulation was loaded from your library.",
+        title: "Draft Opened Instead",
+        description:
+          "This saved exam does not have a file link, so the editable draft was opened instead.",
+      });
+    } finally {
+      setLoadingSavedSessionId(null);
+    }
+  };
+
+  const handleEditSavedSession = async (session: MockExamLibrarySummary) => {
+    setLoadingSavedSessionId(session.sessionId);
+
+    try {
+      const savedSession = await getSavedMockExamSession(session.sessionId);
+      if (!savedSession?.normalizedResponse.structured) {
+        toast({
+          title: "Draft Unavailable",
+          description: "This saved exam does not have structured draft content to edit.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      applySavedSessionConfig(savedSession);
+      setError("");
+      setLastResponse(savedSession.normalizedResponse);
+      resetPracticeState();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      openDraftEditor({
+        sessionId: savedSession.sessionId,
+        topic: savedSession.topic,
+        difficulty: savedSession.difficulty,
+        structured: savedSession.normalizedResponse.structured,
+      });
+
+      toast({
+        title: "Exam Draft Opened",
+        description: "You can now review, edit, and print this saved exam draft.",
+      });
+    } finally {
+      setLoadingSavedSessionId(null);
+    }
+  };
+
+  const handleReviewSavedSession = async (session: MockExamLibrarySummary) => {
+    setLoadingSavedSessionId(session.sessionId);
+
+    try {
+      const savedSession = await getSavedMockExamSession(session.sessionId);
+      if (!savedSession?.normalizedResponse.structured) {
+        toast({
+          title: "Review Unavailable",
+          description: "This saved exam does not have structured answer data to review.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setReviewTopic(savedSession.topic);
+      setReviewDifficulty(savedSession.difficulty);
+      setReviewStructured(savedSession.normalizedResponse.structured);
+      setIsReviewDialogOpen(true);
+
+      toast({
+        title: "Answer Review Opened",
+        description: "You can now read the saved answer key and worked solutions for this exam.",
       });
     } finally {
       setLoadingSavedSessionId(null);
@@ -1102,11 +1149,7 @@ const MockExamMode = () => {
             sharedResult.status === "saved" && nextResponse.structured
               ? "A private copy of the shared exam is now open. Review, edit, and print it locally."
               : sharedResult.status === "saved"
-                ? getWorkflowReviewDescription(
-                    nextResponse.warnings,
-                    nextResponse.requiresReview,
-                    "A private copy of the shared exam was added to your library. Review it in the app and print it locally.",
-                  )
+                ? "A private copy of the shared exam was added to your library."
               : sharedResult.reason ||
                 "The shared exam loaded, but a private history copy could not be created.",
           variant: sharedResult.status === "saved" ? "default" : "destructive",
@@ -1838,11 +1881,12 @@ const MockExamMode = () => {
           </div>
 
           <div className="rounded-xl border bg-background/50 p-4">
-            <p className="font-medium">What the buttons mean</p>
-            <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
-              <p><strong className="text-foreground">Open Exam:</strong> opens the paper inside LearningPacer so you can read it, check it, and change it.</p>
+              <p className="font-medium">What the buttons mean</p>
+              <div className="mt-3 grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
+              <p><strong className="text-foreground">Open Exam:</strong> opens the saved exam file directly.</p>
               <p><strong className="text-foreground">Download PDF:</strong> saves a PDF copy of the paper to your device.</p>
-              <p><strong className="text-foreground">Print:</strong> creates a fresh printable version after you finish editing the paper.</p>
+              <p><strong className="text-foreground">Review Answers:</strong> is inside the <strong className="text-foreground">...</strong> menu and opens a read-only answer review.</p>
+              <p><strong className="text-foreground">Edit Exam:</strong> is inside the <strong className="text-foreground">...</strong> menu and opens the draft editor in LearningPacer.</p>
               <p><strong className="text-foreground">Share to Pool:</strong> adds your paper to the shared pool so other students can reuse it.</p>
             </div>
           </div>
@@ -2010,14 +2054,6 @@ const MockExamMode = () => {
                                           {getStatusLabel(session.status)}
                                         </Badge>
                                         <Badge variant="secondary">{session.difficulty}</Badge>
-                                        {session.requiresReview && (
-                                          <Badge variant="destructive">Review Required</Badge>
-                                        )}
-                                        {!session.requiresReview && session.warningCount > 0 && (
-                                          <Badge variant="outline">
-                                            {formatWarningCount(session.warningCount)}
-                                          </Badge>
-                                        )}
                                         {session.isSharedToPool && (
                                           <Badge variant="outline">Shared</Badge>
                                         )}
@@ -2054,14 +2090,6 @@ const MockExamMode = () => {
                                             .join(", ")}
                                         </p>
                                       )}
-                                      {session.mode === "exam_simulation" &&
-                                        (session.requiresReview || session.warningCount > 0) && (
-                                          <p className="text-xs text-amber-700 dark:text-amber-300">
-                                            {session.requiresReview
-                                              ? "This draft should be checked before you print it. Open it in LearningPacer first."
-                                              : `${formatWarningCount(session.warningCount)} were saved with this draft. Open it in LearningPacer before you print it.`}
-                                          </p>
-                                        )}
                                     </div>
 
                                     <div className="flex flex-wrap gap-2 lg:max-w-md lg:justify-end">
@@ -2117,6 +2145,28 @@ const MockExamMode = () => {
                                               View Result
                                             </DropdownMenuItem>
                                           )}
+
+                                          {session.mode === "exam_simulation" && (
+                                              <DropdownMenuItem
+                                                onClick={() =>
+                                                  void handleReviewSavedSession(session)
+                                                }
+                                              >
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                Review Answers
+                                              </DropdownMenuItem>
+                                            )}
+
+                                          {session.mode === "exam_simulation" && (
+                                              <DropdownMenuItem
+                                                onClick={() =>
+                                                  void handleEditSavedSession(session)
+                                                }
+                                              >
+                                                <FileText className="mr-2 h-4 w-4" />
+                                                Edit Exam
+                                              </DropdownMenuItem>
+                                            )}
 
                                           {session.mode === "exam_simulation" &&
                                             session.pdf.downloadLink && (
@@ -2191,14 +2241,6 @@ const MockExamMode = () => {
                                         <Badge variant="outline">{getModeLabel(session.mode)}</Badge>
                                         <Badge variant="secondary">{session.difficulty}</Badge>
                                         <Badge variant="outline">{session.usageCount} uses</Badge>
-                                        {session.requiresReview && (
-                                          <Badge variant="destructive">Review Required</Badge>
-                                        )}
-                                        {!session.requiresReview && session.warningCount > 0 && (
-                                          <Badge variant="outline">
-                                            {formatWarningCount(session.warningCount)}
-                                          </Badge>
-                                        )}
                                       </div>
                                       <div>
                                         <p className="font-medium">{session.topic}</p>
@@ -2221,14 +2263,6 @@ const MockExamMode = () => {
                                             .join(", ")}
                                         </p>
                                       )}
-                                      {session.mode === "exam_simulation" &&
-                                        (session.requiresReview || session.warningCount > 0) && (
-                                          <p className="text-xs text-amber-700 dark:text-amber-300">
-                                            {session.requiresReview
-                                              ? "This shared draft should be checked before you print it. Open it in LearningPacer first."
-                                              : `${formatWarningCount(session.warningCount)} came with this shared draft. Open it in LearningPacer before you print it.`}
-                                          </p>
-                                        )}
                                     </div>
 
                                     <div className="flex flex-wrap gap-2 lg:max-w-md lg:justify-end">
@@ -2763,6 +2797,18 @@ const MockExamMode = () => {
         isPrinting={isPrintingDraft}
         onSave={handleSaveExamDraft}
         onPrint={handlePrintExamDraft}
+      />
+      <MockExamReviewDialog
+        open={isReviewDialogOpen}
+        onOpenChange={(open) => {
+          setIsReviewDialogOpen(open);
+          if (!open) {
+            setReviewStructured(null);
+          }
+        }}
+        topic={reviewTopic}
+        difficulty={reviewDifficulty}
+        structured={reviewStructured}
       />
     </div>
   );

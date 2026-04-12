@@ -51,16 +51,16 @@ export const StructuredResponse = ({ answer }: StructuredResponseProps) => {
             <Calculator className="w-4 h-4" />
             Step-by-Step Solution
           </div>
-          <p className="text-sm italic text-muted-foreground leading-relaxed">
-            {answer.calculation_steps.setup}
-          </p>
+          <div className="text-sm italic text-muted-foreground leading-relaxed">
+            <RenderMarkdown content={answer.calculation_steps.setup} />
+          </div>
           <ol className="space-y-1.5 text-sm">
             {answer.calculation_steps.steps.map((step, i) => (
               <li key={i} className="flex gap-2">
                 <span className="font-mono text-primary w-5 shrink-0 mt-0.5">{i + 1}.</span>
-                <span className="text-foreground leading-relaxed">
+                <div className="text-foreground leading-relaxed min-w-0 flex-1">
                   <RenderMarkdown content={step} />
-                </span>
+                </div>
               </li>
             ))}
           </ol>
@@ -70,9 +70,9 @@ export const StructuredResponse = ({ answer }: StructuredResponseProps) => {
           {answer.calculation_steps.common_mistakes && (
             <div className="flex gap-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/20 text-xs">
               <AlertTriangle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
-              <span className="text-foreground leading-relaxed">
-                <strong>Common mistake:</strong> {answer.calculation_steps.common_mistakes}
-              </span>
+              <div className="text-foreground leading-relaxed min-w-0 flex-1">
+                <RenderMarkdown content={`**Common mistake:** ${answer.calculation_steps.common_mistakes}`} />
+              </div>
             </div>
           )}
         </div>
@@ -124,7 +124,9 @@ export const StructuredResponse = ({ answer }: StructuredResponseProps) => {
       {answer.elec3120_context && (
         <div className="flex gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20 my-3 text-sm">
           <BookOpen className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-          <span className="text-foreground leading-relaxed">{answer.elec3120_context}</span>
+          <div className="text-foreground leading-relaxed min-w-0 flex-1">
+            <RenderMarkdown content={answer.elec3120_context} />
+          </div>
         </div>
       )}
 
@@ -132,9 +134,9 @@ export const StructuredResponse = ({ answer }: StructuredResponseProps) => {
       {answer.exam_tip && (
         <div className="flex gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 my-3 text-sm">
           <Lightbulb className="w-4 h-4 text-yellow-500 mt-0.5 shrink-0" />
-          <span className="text-foreground leading-relaxed">
-            <strong>Exam tip:</strong> {answer.exam_tip}
-          </span>
+          <div className="text-foreground leading-relaxed min-w-0 flex-1">
+            <RenderMarkdown content={`**Exam tip:** ${answer.exam_tip}`} />
+          </div>
         </div>
       )}
 
@@ -142,13 +144,13 @@ export const StructuredResponse = ({ answer }: StructuredResponseProps) => {
       {answer.check_understanding && (
         <div className="flex gap-2 p-3 rounded-lg bg-violet-500/10 border border-violet-500/20 my-3 text-sm">
           <HelpCircle className="w-4 h-4 text-violet-500 mt-0.5 shrink-0" />
-          <div>
+          <div className="min-w-0 flex-1">
             <span className="font-semibold text-foreground block mb-1">
               Check Your Understanding
             </span>
-            <span className="italic text-foreground leading-relaxed">
-              {answer.check_understanding}
-            </span>
+            <div className="italic text-foreground leading-relaxed">
+              <RenderMarkdown content={answer.check_understanding} />
+            </div>
           </div>
         </div>
       )}

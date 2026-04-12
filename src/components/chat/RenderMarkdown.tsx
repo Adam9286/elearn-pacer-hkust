@@ -9,12 +9,22 @@ interface RenderMarkdownProps {
   content: string;
 }
 
+// Canonicalize legacy math delimiters into the single format the renderer
+// should prefer long-term:
+// - \( ... \) -> $...$
+// - \[ ... \] -> $$...$$
+function normalizeMathDelimiters(text: string): string {
+  return text
+    .replace(/\\\[(.*?)\\\]/gs, (_, expr: string) => `$$${expr.trim()}$$`)
+    .replace(/\\\((.*?)\\\)/gs, (_, expr: string) => `$${expr.trim()}$`);
+}
+
 // Parse inline elements (bold, italic, inline math, inline code)
 const parseInline = (text: string, keyPrefix: string): ReactNode[] => {
   const elements: ReactNode[] = [];
   
-  // Regex for inline elements: **bold**, *italic*, `code`, $math$
-  const inlineRegex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\$[^$\n]+\$)/g;
+  // Regex for inline elements: **bold**, *italic*, `code`, $math$, \(math\)
+  const inlineRegex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\\\([^)\n]+\\\)|\$[^$\n]+\$)/g;
   
   let lastIndex = 0;
   let match;
@@ -68,6 +78,20 @@ const parseInline = (text: string, keyPrefix: string): ReactNode[] => {
       } catch {
         elements.push(
           <span key={`${keyPrefix}-math-err-${matchIndex}`} className="text-destructive text-xs">
+            {matched}
+          </span>
+        );
+      }
+    }
+    // Inline math: \( ... \)
+    else if (matched.startsWith('\\(') && matched.endsWith('\\)')) {
+      try {
+        elements.push(
+          <InlineMath key={`${keyPrefix}-math-paren-${matchIndex}`} math={matched.slice(2, -2)} />
+        );
+      } catch {
+        elements.push(
+          <span key={`${keyPrefix}-math-paren-err-${matchIndex}`} className="text-destructive text-xs">
             {matched}
           </span>
         );
@@ -279,7 +303,8 @@ function normalizeNumberedListLines(text: string): string {
 export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
   if (!content) return null;
 
-  const normalizedContent = normalizeNumberedListLines(content);
+  const canonicalContent = normalizeMathDelimiters(content);
+  const normalizedContent = normalizeNumberedListLines(canonicalContent);
   const elements: ReactNode[] = [];
   const lines = normalizedContent.split('\n');
   
@@ -341,18 +366,35 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
 
     // Block math: $$...$$
     if (trimmed.startsWith('$$')) {
-      let mathContent = trimmed.slice(2);
+      let mathContent = '';
       let j = i;
 
-      // Multi-line block math
-      if (!mathContent.endsWith('$$')) {
-        while (j < lines.length - 1 && !lines[j].trim().endsWith('$$')) {
+      // Common display-math form:
+      // $$
+      // expression
+      // $$
+      if (trimmed === '$$') {
+        j = i + 1;
+        while (j < lines.length && lines[j].trim() !== '$$') {
+          mathContent += (mathContent ? '\n' : '') + lines[j].trim();
           j++;
-          mathContent += '\n' + lines[j].trim();
         }
-      }
+      } else {
+        mathContent = trimmed.slice(2);
 
-      mathContent = mathContent.replace(/\$\$$/, '').trim();
+        // Multi-line block math with opening delimiter on the same line
+        if (!mathContent.endsWith('$$')) {
+          while (j < lines.length - 1) {
+            j++;
+            mathContent += '\n' + lines[j].trim();
+            if (lines[j].trim().endsWith('$$')) {
+              break;
+            }
+          }
+        }
+
+        mathContent = mathContent.replace(/\$\$$/, '').trim();
+      }
 
       try {
         elements.push(
@@ -461,7 +503,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
           {listItems.map((item, idx) => (
             <li key={idx} className="flex items-start gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 flex-shrink-0" />
-              <span className="text-foreground">{parseInline(item, `li-${i}-${idx}`)}</span>
+              <span className="text-foreground break-words">{parseInline(item, `li-${i}-${idx}`)}</span>
             </li>
           ))}
         </ul>
@@ -487,7 +529,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
               <span className="text-primary font-medium text-sm mt-0.5 flex-shrink-0 w-5">
                 {item.num}.
               </span>
-              <span className="text-foreground">{parseInline(item.text, `oli-${i}-${idx}`)}</span>
+              <span className="text-foreground break-words">{parseInline(item.text, `oli-${i}-${idx}`)}</span>
             </li>
           ))}
         </ol>
@@ -553,7 +595,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
     
     // Regular paragraph
     elements.push(
-      <p key={`p-${i}`} className="my-3 text-foreground leading-relaxed">
+      <p key={`p-${i}`} className="my-3 text-foreground leading-relaxed break-words">
         {parseInline(trimmed, `p-${i}`)}
       </p>
     );

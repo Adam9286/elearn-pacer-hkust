@@ -1,185 +1,71 @@
 import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
-import { ArrowRight, Sparkles, Rocket, Zap, Shield, Globe } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import MagneticButton from "./MagneticButton";
+
+const closingSignals = [
+  "Course-grounded",
+  "Simulation-backed",
+  "Revision-focused",
+];
 
 const CTA = () => {
-  const [ref, inView] = useInView({
-    triggerOnce: true,
-    threshold: 0.3,
-  });
-  
   const navigate = useNavigate();
 
-  const features = [
-    { icon: Zap, label: "Instant Responses" },
-    { icon: Shield, label: "Accurate Content" },
-    { icon: Globe, label: "Always Available" },
-  ];
-
   return (
-    <section ref={ref} className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0 bg-gradient-to-b from-dark-void via-navy/30 to-dark-void"></div>
-      
-      {/* Animated rings */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        {[...Array(4)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full border border-electric-cyan/20"
-            style={{
-              width: 200 + i * 150,
-              height: 200 + i * 150,
-            }}
-            animate={{
-              scale: [1, 1.1, 1],
-              opacity: [0.3, 0.1, 0.3],
-            }}
-            transition={{
-              duration: 4,
-              delay: i * 0.5,
-              repeat: Infinity,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Floating particles */}
-      {[...Array(15)].map((_, i) => (
+    <section className="px-4 py-24 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl">
         <motion.div
-          key={i}
-          className="absolute w-1 h-1 rounded-full bg-electric-cyan/60"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-          }}
-          animate={{
-            y: [0, -30, 0],
-            opacity: [0.2, 0.8, 0.2],
-          }}
-          transition={{
-            duration: 3 + Math.random() * 2,
-            delay: Math.random() * 2,
-            repeat: Infinity,
-          }}
-        />
-      ))}
-      
-      <div className="container mx-auto relative z-10 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.8 }}
-          className="max-w-3xl mx-auto"
+          initial={{ opacity: 0, y: 26 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.2 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="relative overflow-hidden rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,18,33,0.96),rgba(5,10,20,0.92))] px-6 py-10 text-center shadow-[0_30px_140px_rgba(2,12,27,0.34)] sm:px-10 sm:py-12"
         >
-          {/* Floating icon */}
-          <motion.div
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            className="inline-block mb-8"
-          >
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-neon-blue to-neon-purple flex items-center justify-center shadow-lg shadow-neon-blue/30">
-              <Rocket className="w-10 h-10 text-white" />
-            </div>
-          </motion.div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,rgba(34,211,238,0.14),transparent_28%),radial-gradient(circle_at_75%_15%,rgba(59,130,246,0.18),transparent_30%),radial-gradient(circle_at_50%_120%,rgba(34,211,238,0.12),transparent_40%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:64px_64px] opacity-20" />
 
-          {/* Heading */}
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6"
-          >
-            <span className="text-white">Ready to </span>
-            <span className="bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-clip-text text-transparent">
-              Accelerate
-            </span>
-            <br />
-            <span className="text-white">Your Learning?</span>
-          </motion.h2>
+          <div className="relative mx-auto max-w-3xl">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
+              Final Call to Action
+            </p>
+            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl lg:text-6xl">
+              Built for ELEC3120. Designed for independent mastery.
+            </h2>
+            <p className="mt-5 text-lg leading-8 text-white/64">
+              Move from quick questions to structured lessons, protocol simulations, and exam practice in
+              one focused revision workflow.
+            </p>
 
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="text-lg text-white/60 mb-10 max-w-xl mx-auto"
-          >
-            Start mastering ELEC3120 with AI-powered guidance
-          </motion.p>
-
-          {/* Main CTA Button */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={inView ? { opacity: 1, scale: 1 } : {}}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="mb-12"
-          >
-            <MagneticButton
-              onClick={() => navigate("/platform")}
-              className="group relative inline-flex items-center gap-3 px-12 py-6 text-xl font-bold text-white rounded-full overflow-hidden"
-              strength={0.5}
-            >
-              {/* Animated gradient background */}
-              <motion.div 
-                className="absolute inset-0 bg-gradient-to-r from-neon-blue via-neon-purple to-electric-cyan bg-[length:200%_100%]"
-                animate={{ backgroundPosition: ["0% 0%", "100% 0%", "0% 0%"] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              />
-              <div className="absolute inset-[3px] bg-dark-void rounded-full group-hover:bg-dark-void/80 transition-all duration-300"></div>
-              
-              <span className="relative flex items-center gap-3">
-                <Rocket className="w-6 h-6 group-hover:rotate-45 transition-transform" />
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => navigate("/platform")}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-cyan-300 px-6 py-3.5 text-sm font-semibold text-slate-950 transition-transform hover:-translate-y-0.5 hover:bg-cyan-200"
+              >
                 Launch LearningPacer
-                <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-              </span>
-            </MagneticButton>
-          </motion.div>
-
-          {/* Features row */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 0.8 }}
-            className="flex flex-wrap justify-center gap-6 md:gap-10"
-          >
-            {features.map((feature) => (
-              <motion.div
-                key={feature.label}
-                className="flex items-center gap-2 text-white/60"
-                whileHover={{ scale: 1.05, color: "rgba(255,255,255,0.9)" }}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/platform", { state: { mode: "simulations" } })}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/[0.04] px-6 py-3.5 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/25 hover:bg-white/[0.06] hover:text-white"
               >
-                <feature.icon className="w-5 h-5 text-electric-cyan" />
-                <span className="text-sm">{feature.label}</span>
-              </motion.div>
-            ))}
-          </motion.div>
+                View Simulations
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
 
-          {/* Stats below */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={inView ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8, delay: 1 }}
-            className="mt-16 grid grid-cols-3 gap-4 max-w-lg mx-auto"
-          >
-            {[
-              { value: "Every Answer", label: "Cites Its Source" },
-              { value: "50+ Topics", label: "From ELEC3120" },
-              { value: "PDF Export", label: "For Offline Study" }
-            ].map((stat, index) => (
-              <motion.div 
-                key={index} 
-                className="p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm"
-                whileHover={{ scale: 1.05, borderColor: "rgba(255,255,255,0.2)" }}
-              >
-                <div className="text-lg md:text-xl font-bold bg-gradient-to-r from-white to-electric-cyan bg-clip-text text-transparent mb-1">
-                  {stat.value}
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              {closingSignals.map((signal) => (
+                <div
+                  key={signal}
+                  className="rounded-full border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-medium text-white/64"
+                >
+                  {signal}
                 </div>
-                <div className="text-white/50 text-xs">{stat.label}</div>
-              </motion.div>
-            ))}
-          </motion.div>
+              ))}
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>
