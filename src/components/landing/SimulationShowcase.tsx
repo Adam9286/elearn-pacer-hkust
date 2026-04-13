@@ -1,446 +1,201 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowRight, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-type ShowcaseId = "handshake" | "window" | "routing";
+/* ——— Static simulation preview (right side) ——— */
+const SimulationPreview = () => (
+  <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(180deg,rgba(10,18,36,0.97),rgba(8,14,28,0.96))] shadow-[0_20px_60px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.02)]">
+    {/* Top highlight */}
+    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
 
-const showcases: Array<{
-  id: ShowcaseId;
-  title: string;
-  strap: string;
-  description: string;
-  points: string[];
-}> = [
-  {
-    id: "handshake",
-    title: "TCP Handshake",
-    strap: "Connection setup becomes visible",
-    description:
-      "Watch SYN, SYN-ACK, and ACK establish a reliable session before data starts moving. Beginners stop memorizing names and start seeing direction and timing.",
-    points: [
-      "Clear packet direction instead of abstract arrows in notes",
-      "Shows why data does not start until the session is established",
-      "Turns a classic exam topic into a readable visual sequence",
-    ],
-  },
-  {
-    id: "window",
-    title: "Sliding Window",
-    strap: "Paced delivery becomes intuitive",
-    description:
-      "See how multiple packets can stay in flight, how acknowledgments advance the window, and why losses slow the sender down until reliability is restored.",
-    points: [
-      "Makes flow control and ACK behavior easier to reason about",
-      "Shows throughput as motion instead of a dry rule list",
-      "Helps students understand retransmission and recovery",
-    ],
-  },
-  {
-    id: "routing",
-    title: "Routing Paths",
-    strap: "Shortest paths stop feeling invisible",
-    description:
-      "Route illumination shows how traffic locks onto a best path through the network instead of making routing feel like tables with no motion behind them.",
-    points: [
-      "Highlights path selection in a way that feels immediate",
-      "Supports intuition before diving into algorithm details",
-      "Reinforces the identity of the product as a networks platform",
-    ],
-  },
-];
-
-const previewCardClass =
-  "rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(7,15,29,0.94),rgba(5,10,20,0.88))] shadow-[0_25px_90px_rgba(2,12,27,0.32)] backdrop-blur";
-
-const HandshakePreview = () => {
-  const forwardPoints = [
-    { x: 82, y: 176 },
-    { x: 220, y: 126 },
-    { x: 360, y: 210 },
-    { x: 548, y: 176 },
-  ];
-  const reversePoints = [...forwardPoints].reverse();
-  const times = forwardPoints.map((_, index) => index / (forwardPoints.length - 1));
-
-  return (
-    <div className={`relative min-h-[360px] overflow-hidden p-6 ${previewCardClass}`}>
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:56px_56px] opacity-20" />
-      <div className="relative">
-        <div className="flex flex-wrap gap-2">
-          {["SYN", "SYN-ACK", "ACK"].map((label, index) => (
-            <motion.div
-              key={label}
-              className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-100"
-              animate={{ opacity: [0.45, 1, 0.45] }}
-              transition={{ duration: 3.6, delay: index * 0.6, repeat: Infinity, repeatDelay: 0.5 }}
-            >
-              {label}
-            </motion.div>
-          ))}
+    {/* Window top bar */}
+    <div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.01] px-5 py-3">
+      <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-[6px]">
+          <span className="h-2 w-2 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/[0.05]" />
+          <span className="h-2 w-2 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/[0.05]" />
+          <span className="h-2 w-2 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/[0.05]" />
         </div>
-
-        <svg viewBox="0 0 620 260" className="mt-8 h-[250px] w-full">
-          <defs>
-            <filter id="preview-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3.2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          <path
-            d="M82 176 C 162 112, 302 102, 548 176"
-            stroke="rgba(34,211,238,0.14)"
-            strokeWidth="3"
-            fill="none"
-            strokeLinecap="round"
-          />
-          <line x1="82" y1="176" x2="548" y2="176" stroke="rgba(255,255,255,0.08)" strokeWidth="1.1" />
-
-          <circle cx="82" cy="176" r="10" fill="rgba(34,211,238,0.2)" />
-          <circle cx="82" cy="176" r="6" fill="#7dd3fc" />
-          <circle cx="548" cy="176" r="10" fill="rgba(34,211,238,0.2)" />
-          <circle cx="548" cy="176" r="6" fill="#7dd3fc" />
-
-          <text x="62" y="205" fontSize="10" fontFamily="monospace" fill="rgba(255,255,255,0.4)">
-            CLIENT
-          </text>
-          <text x="518" y="205" fontSize="10" fontFamily="monospace" fill="rgba(255,255,255,0.4)">
-            SERVER
-          </text>
-
-          <motion.circle
-            r="5"
-            fill="#67e8f9"
-            initial={{ cx: forwardPoints[0].x, cy: forwardPoints[0].y, opacity: 0 }}
-            animate={{
-              cx: forwardPoints.map((point) => point.x),
-              cy: forwardPoints.map((point) => point.y),
-              opacity: [0, 1, 1, 0],
-            }}
-            transition={{ duration: 1.2, times, repeat: Infinity, repeatDelay: 2.4 }}
-            style={{ filter: "url(#preview-glow)" }}
-          />
-          <motion.circle
-            r="4"
-            fill="#93c5fd"
-            initial={{ cx: reversePoints[0].x, cy: reversePoints[0].y, opacity: 0 }}
-            animate={{
-              cx: reversePoints.map((point) => point.x),
-              cy: reversePoints.map((point) => point.y),
-              opacity: [0, 1, 1, 0],
-            }}
-            transition={{ duration: 1.2, times, repeat: Infinity, repeatDelay: 2.4, delay: 0.9 }}
-            style={{ filter: "url(#preview-glow)" }}
-          />
-          <motion.circle
-            r="4.5"
-            fill="#22d3ee"
-            initial={{ cx: forwardPoints[0].x, cy: forwardPoints[0].y, opacity: 0 }}
-            animate={{
-              cx: forwardPoints.map((point) => point.x),
-              cy: forwardPoints.map((point) => point.y),
-              opacity: [0, 1, 1, 0],
-            }}
-            transition={{ duration: 1.1, times, repeat: Infinity, repeatDelay: 2.4, delay: 1.8 }}
-            style={{ filter: "url(#preview-glow)" }}
-          />
-        </svg>
+        <div className="h-3.5 w-px bg-white/[0.05]" />
+        <span className="text-[10px] font-semibold text-white/35">
+          TCP 3-Way Handshake
+        </span>
+      </div>
+      <div className="flex items-center gap-1.5 rounded-full border border-white/[0.05] bg-white/[0.02] px-2 py-0.5">
+        <span className="h-[4px] w-[4px] rounded-full bg-emerald-400/60 shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
+        <span className="text-[8px] font-medium uppercase tracking-[0.12em] text-white/25">
+          Interactive
+        </span>
       </div>
     </div>
-  );
-};
 
-const SlidingWindowPreview = () => {
-  const [phase, setPhase] = useState(0);
+    {/* SVG Visualization */}
+    <div className="px-6 py-8">
+      <svg
+        viewBox="0 0 520 280"
+        className="w-full"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* Subtle grid background */}
+        <defs>
+          <pattern id="sim-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="520" height="280" fill="url(#sim-grid)" />
 
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setPhase((current) => (current + 1) % 4);
-    }, 1100);
+        {/* Timeline columns */}
+        <line x1="100" y1="50" x2="100" y2="240" stroke="rgba(34,211,238,0.08)" strokeWidth="1" strokeDasharray="4 4" />
+        <line x1="420" y1="50" x2="420" y2="240" stroke="rgba(34,211,238,0.08)" strokeWidth="1" strokeDasharray="4 4" />
 
-    return () => window.clearInterval(interval);
-  }, []);
+        {/* Column headers */}
+        <text x="100" y="36" textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.35)" fontFamily="monospace" letterSpacing="1.5">CLIENT</text>
+        <text x="420" y="36" textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.35)" fontFamily="monospace" letterSpacing="1.5">SERVER</text>
 
-  return (
-    <div className={`relative min-h-[360px] overflow-hidden p-6 ${previewCardClass}`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_15%,rgba(34,211,238,0.08),transparent_28%),radial-gradient(circle_at_85%_20%,rgba(59,130,246,0.12),transparent_32%)]" />
-      <div className="relative">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/42">
-              Window State
-            </p>
-            <p className="mt-2 text-sm text-white/64">ACKs advance the send window and open room for more packets.</p>
-          </div>
-          <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-100">
-            ACK {phase + 4}
-          </div>
-        </div>
+        {/* Client node */}
+        <circle cx="100" cy="50" r="6" fill="rgba(34,211,238,0.08)" stroke="rgba(34,211,238,0.3)" strokeWidth="1" />
+        <circle cx="100" cy="50" r="2.5" fill="rgba(34,211,238,0.4)" />
 
-        <div className="mt-10 rounded-[24px] border border-white/10 bg-white/[0.03] p-5">
-          <div className="grid grid-cols-8 gap-2">
-            {Array.from({ length: 8 }, (_, index) => {
-              const state =
-                index < phase ? "acked" : index < phase + 4 ? "flight" : "queued";
+        {/* Server node */}
+        <circle cx="420" cy="50" r="6" fill="rgba(34,211,238,0.08)" stroke="rgba(34,211,238,0.3)" strokeWidth="1" />
+        <circle cx="420" cy="50" r="2.5" fill="rgba(34,211,238,0.4)" />
 
-              return (
-                <div
-                  key={index}
-                  className={`rounded-2xl border px-2 py-4 text-center text-sm font-semibold transition-colors ${
-                    state === "acked"
-                      ? "border-emerald-400/25 bg-emerald-400/15 text-emerald-200"
-                      : state === "flight"
-                        ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-100"
-                        : "border-white/10 bg-white/[0.02] text-white/40"
-                  }`}
-                >
-                  {index + 1}
-                </div>
-              );
-            })}
-          </div>
+        {/* SYN arrow: Client → Server */}
+        <line x1="108" y1="85" x2="412" y2="115" stroke="rgba(103,232,249,0.35)" strokeWidth="1.5" />
+        {/* Arrowhead */}
+        <polygon points="412,115 402,110 404,118" fill="rgba(103,232,249,0.35)" />
+        {/* SYN label */}
+        <rect x="220" y="82" width="80" height="22" rx="6" fill="rgba(34,211,238,0.06)" stroke="rgba(34,211,238,0.12)" strokeWidth="0.8" />
+        <text x="260" y="97" textAnchor="middle" fontSize="9" fill="rgba(103,232,249,0.7)" fontFamily="monospace" letterSpacing="1">SYN</text>
 
-          <motion.div
-            className="mt-6 h-1 rounded-full bg-gradient-to-r from-cyan-300 via-sky-300 to-blue-300"
-            animate={{ width: ["18%", "44%", "70%", "44%"] }}
-            transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }}
-          />
+        {/* SYN-ACK arrow: Server → Client */}
+        <line x1="412" y1="140" x2="108" y2="170" stroke="rgba(147,197,253,0.3)" strokeWidth="1.5" />
+        {/* Arrowhead */}
+        <polygon points="108,170 118,165 116,173" fill="rgba(147,197,253,0.3)" />
+        {/* SYN-ACK label */}
+        <rect x="218" y="138" width="84" height="22" rx="6" fill="rgba(59,130,246,0.06)" stroke="rgba(59,130,246,0.12)" strokeWidth="0.8" />
+        <text x="260" y="153" textAnchor="middle" fontSize="9" fill="rgba(147,197,253,0.65)" fontFamily="monospace" letterSpacing="1">SYN-ACK</text>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-[#07101e]/82 px-4 py-4 text-sm text-white/60">
-              Four packets can stay in flight before the sender has to wait.
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-[#07101e]/82 px-4 py-4 text-sm text-white/60">
-              As ACKs arrive, the sender slides the window and keeps the pipe moving.
-            </div>
-          </div>
-        </div>
-      </div>
+        {/* ACK arrow: Client → Server */}
+        <line x1="108" y1="195" x2="412" y2="225" stroke="rgba(34,211,238,0.3)" strokeWidth="1.5" />
+        {/* Arrowhead */}
+        <polygon points="412,225 402,220 404,228" fill="rgba(34,211,238,0.3)" />
+        {/* ACK label */}
+        <rect x="220" y="192" width="80" height="22" rx="6" fill="rgba(34,211,238,0.06)" stroke="rgba(34,211,238,0.12)" strokeWidth="0.8" />
+        <text x="260" y="207" textAnchor="middle" fontSize="9" fill="rgba(103,232,249,0.65)" fontFamily="monospace" letterSpacing="1">ACK</text>
+
+        {/* Connection established indicator */}
+        <line x1="80" y1="248" x2="440" y2="248" stroke="rgba(52,211,153,0.15)" strokeWidth="1" strokeDasharray="3 6" />
+        <text x="260" y="268" textAnchor="middle" fontSize="8" fill="rgba(52,211,153,0.4)" fontFamily="monospace" letterSpacing="1.5">CONNECTION ESTABLISHED</text>
+      </svg>
     </div>
-  );
-};
 
-const RoutingPreview = () => {
-  const [routeIndex, setRouteIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setRouteIndex((current) => (current + 1) % 3);
-    }, 2200);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
-  const routes = [
-    ["s", "r1", "r4", "d"],
-    ["s", "r2", "r4", "d"],
-    ["s", "r2", "r5", "d"],
-  ] as const;
-  const nodes = {
-    s: { x: 84, y: 210 },
-    r1: { x: 208, y: 98 },
-    r2: { x: 220, y: 210 },
-    r4: { x: 384, y: 138 },
-    r5: { x: 400, y: 286 },
-    d: { x: 560, y: 210 },
-  } as const;
-  const edges: Array<[keyof typeof nodes, keyof typeof nodes]> = [
-    ["s", "r1"],
-    ["s", "r2"],
-    ["r1", "r4"],
-    ["r2", "r4"],
-    ["r2", "r5"],
-    ["r4", "d"],
-    ["r5", "d"],
-  ];
-  const activeRoute = routes[routeIndex];
-  const activeEdge = (left: keyof typeof nodes, right: keyof typeof nodes) =>
-    activeRoute.some((node, index) => {
-      const next = activeRoute[index + 1];
-      return (node === left && next === right) || (node === right && next === left);
-    });
-
-  const pathPoints = activeRoute.map((node) => nodes[node]);
-  const times = pathPoints.map((_, index) => index / (pathPoints.length - 1));
-
-  return (
-    <div className={`relative min-h-[360px] overflow-hidden p-6 ${previewCardClass}`}>
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:60px_60px] opacity-18" />
-      <div className="relative">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/42">
-              Routing View
-            </p>
-            <p className="mt-2 text-sm text-white/64">The best path stands out when the graph itself becomes readable.</p>
-          </div>
-          <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-100">
-            Path {routeIndex + 1}
-          </div>
-        </div>
-
-        <svg viewBox="0 0 620 330" className="mt-8 h-[250px] w-full">
-          <defs>
-            <filter id="route-preview-glow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="3.2" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {edges.map(([left, right]) => (
-            <motion.line
-              key={`${left}-${right}`}
-              x1={nodes[left].x}
-              y1={nodes[left].y}
-              x2={nodes[right].x}
-              y2={nodes[right].y}
-              strokeLinecap="round"
-              animate={{
-                stroke: activeEdge(left, right) ? "rgba(34,211,238,0.84)" : "rgba(255,255,255,0.08)",
-                strokeWidth: activeEdge(left, right) ? 2.4 : 1.2,
-              }}
-              transition={{ duration: 0.4, ease: "easeInOut" }}
-              filter={activeEdge(left, right) ? "url(#route-preview-glow)" : undefined}
-            />
-          ))}
-
-          {Object.entries(nodes).map(([label, node]) => {
-            const active = activeRoute.includes(label as typeof activeRoute[number]);
-            return (
-              <g key={label}>
-                <circle cx={node.x} cy={node.y} r={active ? 8 : 6} fill={active ? "#7dd3fc" : "rgba(255,255,255,0.25)"} />
-                <text
-                  x={node.x}
-                  y={node.y + 26}
-                  textAnchor="middle"
-                  fontSize="10"
-                  fontFamily="monospace"
-                  fill="rgba(255,255,255,0.38)"
-                >
-                  {label.toUpperCase()}
-                </text>
-              </g>
-            );
-          })}
-
-          <motion.circle
-            r="4.5"
-            fill="#67e8f9"
-            initial={{ cx: pathPoints[0].x, cy: pathPoints[0].y, opacity: 0 }}
-            animate={{
-              cx: pathPoints.map((point) => point.x),
-              cy: pathPoints.map((point) => point.y),
-              opacity: [0, 1, 1, 0],
-            }}
-            transition={{ duration: 1.5, times, repeat: Infinity, repeatDelay: 0.7 }}
-            style={{ filter: "url(#route-preview-glow)" }}
-          />
-        </svg>
+    {/* Bottom info bar */}
+    <div className="flex items-center justify-between border-t border-white/[0.05] px-5 py-3">
+      <div className="flex items-center gap-3">
+        {["SYN", "SYN-ACK", "ACK"].map((step, i) => (
+          <span
+            key={step}
+            className="rounded-md border border-white/[0.06] bg-white/[0.025] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-white/30"
+          >
+            {step}
+          </span>
+        ))}
       </div>
+      <span className="text-[9px] tabular-nums text-white/20">
+        Step 3 / 3
+      </span>
     </div>
-  );
-};
+  </div>
+);
 
+/* ——— Main component ——— */
 const SimulationShowcase = () => {
   const navigate = useNavigate();
-  const [activeId, setActiveId] = useState<ShowcaseId>("handshake");
-  const active = showcases.find((item) => item.id === activeId) ?? showcases[0];
-
-  const renderPreview = () => {
-    if (activeId === "window") return <SlidingWindowPreview />;
-    if (activeId === "routing") return <RoutingPreview />;
-    return <HandshakePreview />;
-  };
 
   return (
-    <section id="simulations" className="px-4 py-24 sm:px-6 lg:px-8">
+    <section id="simulations" className="px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 lg:grid-cols-[360px_minmax(0,1fr)] lg:items-start">
+        <div className="grid gap-14 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-center lg:gap-20">
+          {/* ——— Left side: text ——— */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.55, ease: "easeOut" }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
-              Signature Visual Section
+            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-300/60">
+              Interactive Simulations
             </p>
-            <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
-              When protocols move, understanding clicks
+            <h2 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.03em] text-white sm:text-[2.5rem]">
+              See protocols move,
+              <br />
+              not just read about them
             </h2>
-            <p className="mt-5 text-lg leading-8 text-white/64">
-              This is where LearningPacer stops feeling like a chatbot and starts feeling like a
-              networking product. The visual layer turns protocol behavior into something students can
-              actually follow.
+            <p className="mt-4 text-[15px] leading-[1.75] text-white/45">
+              LearningPacer's 18 simulators turn abstract protocol behavior
+              into visual systems you can step through, replay, and reason
+              about.
             </p>
 
-            <div className="mt-8 space-y-3">
-              {showcases.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveId(item.id)}
-                  className={`w-full rounded-[24px] border px-5 py-4 text-left transition-colors ${
-                    item.id === activeId
-                      ? "border-cyan-300/25 bg-cyan-400/10"
-                      : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.045]"
-                  }`}
-                >
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">
-                    {item.strap}
-                  </p>
-                  <p className="mt-2 text-xl font-semibold text-white">{item.title}</p>
-                  <p className="mt-2 text-sm leading-7 text-white/56">{item.description}</p>
-                </button>
+            {/* Key points */}
+            <div className="mt-8 space-y-4">
+              {[
+                {
+                  title: "Step-by-step packet flow",
+                  desc: "Watch SYN, ACK, and data segments move between nodes with real timing.",
+                },
+                {
+                  title: "Visual intuition",
+                  desc: "Sliding windows, congestion control, and routing become spatial rather than abstract.",
+                },
+                {
+                  title: "Exam-aligned topics",
+                  desc: "Every simulator maps to a concept that appears in ELEC3120 assessments.",
+                },
+              ].map((point) => (
+                <div key={point.title} className="flex items-start gap-3">
+                  <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-400/[0.06] ring-1 ring-cyan-400/[0.08]">
+                    <Eye className="h-2.5 w-2.5 text-cyan-400/50" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-medium text-white/65">
+                      {point.title}
+                    </p>
+                    <p className="mt-0.5 text-[12px] leading-[1.6] text-white/35">
+                      {point.desc}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
 
             <button
               type="button"
-              onClick={() => navigate("/platform", { state: { mode: "simulations" } })}
-              className="mt-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/20 hover:bg-white/[0.06] hover:text-white"
+              onClick={() =>
+                navigate("/platform", { state: { mode: "simulations" } })
+              }
+              className="group/btn mt-10 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.02] px-5 py-2.5 text-[13px] font-medium text-white/55 transition-all duration-200 hover:-translate-y-px hover:border-cyan-400/[0.15] hover:bg-white/[0.04] hover:text-white/80"
             >
-              Open Simulations Mode
-              <ArrowRight className="h-4 w-4" />
+              Open Simulations
+              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
             </button>
           </motion.div>
 
+          {/* ——— Right side: visual ——— */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
+            viewport={{ once: true, amount: 0.15 }}
             transition={{ duration: 0.55, delay: 0.08, ease: "easeOut" }}
+            className="relative"
           >
-            <motion.div key={activeId} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-              {renderPreview()}
-            </motion.div>
-
-            <div className="mt-5 rounded-[28px] border border-white/10 bg-white/[0.035] p-6 backdrop-blur">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/42">
-                    Learning Benefit
-                  </p>
-                  <h3 className="mt-2 text-2xl font-semibold text-white">{active.title}</h3>
-                  <p className="mt-3 max-w-3xl text-sm leading-7 text-white/58">{active.description}</p>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3 md:grid-cols-3">
-                {active.points.map((point) => (
-                  <div key={point} className="rounded-[20px] border border-white/10 bg-[#07101e]/82 px-4 py-4 text-sm text-white/62">
-                    {point}
-                  </div>
-                ))}
-              </div>
+            {/* Faint glow behind */}
+            <div className="pointer-events-none absolute -inset-10 hidden lg:block">
+              <div className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-500/[0.04] blur-[80px]" />
             </div>
+
+            <SimulationPreview />
           </motion.div>
         </div>
       </div>

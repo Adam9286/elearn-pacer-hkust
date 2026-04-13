@@ -6,11 +6,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const DEFAULT_WEBHOOK_URL =
-  "https://smellycat9286.app.n8n.cloud/webhook-test/exam-generator";
-
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
+
+const getRequiredEnv = (key: string) => {
+  const value = Deno.env.get(key)?.trim();
+
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${key}`);
+  }
+
+  return value;
+};
 
 const parseJsonResponse = async (response: Response) => {
   const responseText = await response.text();
@@ -119,7 +126,7 @@ serve(async (req) => {
       sessionId = `exam-${Date.now()}`,
     } = requestBody;
 
-    const webhookUrl = Deno.env.get("N8N_EXAM_GENERATOR_URL") || DEFAULT_WEBHOOK_URL;
+    const webhookUrl = getRequiredEnv("N8N_EXAM_GENERATOR_URL");
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 120000);
 

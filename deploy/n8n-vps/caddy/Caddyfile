@@ -1,0 +1,13 @@
+{
+    email {$LETSENCRYPT_EMAIL}
+}
+
+{$N8N_HOST} {
+    encode gzip zstd
+
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+        header_up X-Forwarded-Proto {scheme}
+        header_up X-Forwarded-Host {host}
+    }
+}

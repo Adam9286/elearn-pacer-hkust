@@ -1,169 +1,282 @@
 import { motion } from "framer-motion";
-import { Activity, ArrowRight, BookOpen, FileText, MessageSquare } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  BookOpen,
+  FileText,
+  MessageSquare,
+  Sparkles,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
+/* ——— Mini visual for AI Chat card ——— */
+const ChatVisual = () => (
+  <div className="mt-5 space-y-2">
+    {/* User bubble */}
+    <div className="flex justify-end">
+      <div className="max-w-[80%] rounded-xl rounded-br-md bg-white/[0.05] px-3 py-2">
+        <p className="text-[10px] leading-[1.5] text-white/40">
+          What's the difference between TCP and UDP?
+        </p>
+      </div>
+    </div>
+    {/* AI bubble */}
+    <div className="flex justify-start">
+      <div className="max-w-[85%] rounded-xl rounded-bl-md border border-cyan-400/[0.06] bg-cyan-400/[0.025] px-3 py-2">
+        <p className="text-[10px] leading-[1.5] text-white/45">
+          TCP provides <span className="text-cyan-300/60">reliable, ordered</span>{" "}
+          delivery with flow control. UDP is connectionless…
+        </p>
+        <div className="mt-1.5 flex items-center gap-1 text-[8px] text-white/20">
+          <Sparkles className="h-2.5 w-2.5 text-cyan-400/40" />
+          Lecture 5, Slide 8
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/* ——— Mini visual for Lessons card ——— */
+const LessonsVisual = () => (
+  <div className="mt-5 space-y-1.5">
+    {[
+      { label: "Application Layer", done: true },
+      { label: "Transport Layer", done: true },
+      { label: "Network Layer", active: true },
+      { label: "Link Layer", done: false },
+    ].map((item) => (
+      <div
+        key={item.label}
+        className={`flex items-center gap-2.5 rounded-lg px-3 py-1.5 ${
+          item.active
+            ? "bg-cyan-400/[0.06] ring-1 ring-cyan-400/[0.08]"
+            : ""
+        }`}
+      >
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${
+            item.done
+              ? "bg-emerald-400/50"
+              : item.active
+                ? "bg-cyan-400/60"
+                : "bg-white/10"
+          }`}
+        />
+        <span
+          className={`text-[10px] font-medium ${
+            item.active ? "text-white/55" : item.done ? "text-white/30" : "text-white/20"
+          }`}
+        >
+          {item.label}
+        </span>
+        {item.active && (
+          <span className="ml-auto text-[8px] font-medium text-cyan-300/40">
+            In progress
+          </span>
+        )}
+      </div>
+    ))}
+    {/* Progress bar */}
+    <div className="mt-2 px-3">
+      <div className="h-1 w-full overflow-hidden rounded-full bg-white/[0.04]">
+        <div className="h-full w-[45%] rounded-full bg-gradient-to-r from-cyan-400/40 to-cyan-400/20" />
+      </div>
+      <p className="mt-1.5 text-[8px] tabular-nums text-white/18">
+        10 / 22 lessons completed
+      </p>
+    </div>
+  </div>
+);
+
+/* ——— Mini visual for Simulations card ——— */
+const SimVisual = () => (
+  <div className="mt-5">
+    <svg
+      viewBox="0 0 200 64"
+      className="w-full"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Edges */}
+      <line x1="30" y1="28" x2="100" y2="18" stroke="rgba(34,211,238,0.15)" strokeWidth="1" />
+      <line x1="100" y1="18" x2="170" y2="28" stroke="rgba(34,211,238,0.15)" strokeWidth="1" />
+      <line x1="30" y1="28" x2="100" y2="42" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      <line x1="100" y1="42" x2="170" y2="28" stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
+      {/* Nodes */}
+      <circle cx="30" cy="28" r="5" fill="rgba(34,211,238,0.1)" stroke="rgba(34,211,238,0.3)" strokeWidth="0.8" />
+      <circle cx="100" cy="18" r="4" fill="rgba(59,130,246,0.1)" stroke="rgba(59,130,246,0.25)" strokeWidth="0.8" />
+      <circle cx="100" cy="42" r="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" strokeWidth="0.8" />
+      <circle cx="170" cy="28" r="5" fill="rgba(34,211,238,0.1)" stroke="rgba(34,211,238,0.3)" strokeWidth="0.8" />
+      {/* Labels */}
+      <text x="30" y="54" textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.2)" fontFamily="monospace" letterSpacing="0.5">SRC</text>
+      <text x="170" y="54" textAnchor="middle" fontSize="6" fill="rgba(255,255,255,0.2)" fontFamily="monospace" letterSpacing="0.5">DST</text>
+    </svg>
+    <div className="mt-2 flex gap-1.5">
+      {["TCP", "Routing", "Congestion"].map((tag) => (
+        <span
+          key={tag}
+          className="rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-0.5 text-[8px] font-medium text-white/25"
+        >
+          {tag}
+        </span>
+      ))}
+    </div>
+  </div>
+);
+
+/* ——— Mini visual for Exam card ——— */
+const ExamVisual = () => (
+  <div className="mt-5 space-y-2">
+    {[
+      { q: "Q1", topic: "Transport Layer", difficulty: "Medium" },
+      { q: "Q2", topic: "Network Layer", difficulty: "Hard" },
+      { q: "Q3", topic: "Application Layer", difficulty: "Easy" },
+    ].map((item) => (
+      <div
+        key={item.q}
+        className="flex items-center gap-2.5 rounded-lg border border-white/[0.04] bg-white/[0.015] px-3 py-1.5"
+      >
+        <span className="text-[10px] font-semibold tabular-nums text-white/30">
+          {item.q}
+        </span>
+        <span className="text-[9px] text-white/25">{item.topic}</span>
+        <span
+          className={`ml-auto rounded-full px-1.5 py-0.5 text-[7px] font-semibold uppercase tracking-[0.08em] ${
+            item.difficulty === "Hard"
+              ? "bg-red-400/[0.08] text-red-300/50"
+              : item.difficulty === "Medium"
+                ? "bg-amber-400/[0.08] text-amber-300/50"
+                : "bg-emerald-400/[0.08] text-emerald-300/50"
+          }`}
+        >
+          {item.difficulty}
+        </span>
+      </div>
+    ))}
+  </div>
+);
+
+/* ——— Feature data ——— */
 const features = [
   {
     id: "chat",
     icon: MessageSquare,
-    title: "Chat Mode",
-    metric: "Course-grounded answers",
+    title: "AI Chat",
+    subtitle: "Course-grounded answers",
     description:
-      "Ask ELEC3120 questions in plain language and get structured responses designed for revision instead of vague generic explanations.",
-    bullets: [
-      "Focused on course-specific context",
-      "Built for follow-up questions and study flow",
-      "Better aligned to networking topics you actually revise",
-    ],
+      "Ask ELEC3120 questions and get structured responses with citations to lecture slides and textbook sections.",
+    visual: ChatVisual,
   },
   {
     id: "course",
     icon: BookOpen,
-    title: "Course Mode",
-    metric: "11 sections · 22 lessons",
+    title: "Guided Lessons",
+    subtitle: "11 sections \u00b7 22 lessons",
     description:
-      "Study through a structured lesson layout instead of bouncing between scattered notes, tabs, and screenshots.",
-    bullets: [
-      "Guided progression through the course",
-      "Clearer review path before exams",
-      "Designed for independent mastery",
-    ],
+      "Study through a structured lesson layout with per-slide AI explanations and tracked progress.",
+    visual: LessonsVisual,
   },
   {
     id: "simulations",
     icon: Activity,
-    title: "Simulations",
-    metric: "17 interactive visuals",
+    title: "Protocol Simulations",
+    subtitle: "18 interactive visuals",
     description:
-      "Make packet flow, retransmission, routing, congestion control, and other network concepts visible enough to reason about.",
-    bullets: [
-      "Step-by-step protocol behavior",
-      "Visual intuition for abstract concepts",
-      "A signature differentiator of the product",
-    ],
+      "See TCP handshakes, sliding windows, routing, and congestion control as animated visual systems.",
+    visual: SimVisual,
   },
   {
     id: "exam",
     icon: FileText,
-    title: "Mock Exam Mode",
-    metric: "Targeted practice generation",
+    title: "Mock Exams",
+    subtitle: "Targeted generation",
     description:
-      "Generate practice material by topic so revision stays focused on the parts of ELEC3120 you actually need to strengthen.",
-    bullets: [
-      "Topic-oriented revision support",
-      "Exam-style practice inside the platform",
-      "Fits naturally into the same study workflow",
-    ],
+      "Generate topic-specific practice papers with configurable difficulty and scope for focused revision.",
+    visual: ExamVisual,
   },
 ];
 
-const workflowSteps = ["Ask", "Study", "Simulate", "Practice"];
-
+/* ——— Main component ——— */
 const ModesShowcase = () => {
   const navigate = useNavigate();
 
-  const openMode = (mode: string) => {
-    navigate("/platform", { state: { mode } });
-  };
-
   return (
-    <section id="features" className="px-4 py-24 sm:px-6 lg:px-8">
+    <section id="features" className="px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
       <div className="mx-auto max-w-7xl">
+        {/* Section header */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
-          className="max-w-3xl"
-        >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
-            Feature Architecture
-          </p>
-          <h2 className="mt-4 text-4xl font-semibold tracking-[-0.035em] text-white sm:text-5xl">
-            Four ways to master the course
-          </h2>
-          <p className="mt-5 text-lg leading-8 text-white/64">
-            LearningPacer is strongest when the pieces work together. You can ask, study, simulate, and
-            practice without leaving the same product or losing the course context.
-          </p>
-        </motion.div>
-
-        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          {features.map((feature, index) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.2 }}
-              transition={{ duration: 0.45, delay: index * 0.06, ease: "easeOut" }}
-              className="group flex h-full flex-col rounded-[28px] border border-white/10 bg-white/[0.035] p-6 shadow-[0_22px_70px_rgba(2,12,27,0.2)] backdrop-blur transition-transform hover:-translate-y-1 hover:border-cyan-300/20"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10">
-                  <feature.icon className="h-5 w-5 text-cyan-200" />
-                </div>
-                <span className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/50">
-                  {feature.metric}
-                </span>
-              </div>
-
-              <div className="mt-6">
-                <h3 className="text-2xl font-semibold tracking-[-0.03em] text-white">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-white/58">{feature.description}</p>
-              </div>
-
-              <div className="mt-6 space-y-3">
-                {feature.bullets.map((bullet) => (
-                  <div key={bullet} className="flex items-start gap-3 text-sm text-white/62">
-                    <span className="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-cyan-200" />
-                    <span>{bullet}</span>
-                  </div>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => openMode(feature.id)}
-                className="mt-8 inline-flex items-center gap-2 text-sm font-semibold text-cyan-100 transition-colors hover:text-white"
-              >
-                Open {feature.title}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
-            </motion.div>
-          ))}
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 22 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="mt-10 rounded-[28px] border border-white/10 bg-[#06101f]/82 p-5 backdrop-blur"
+          className="max-w-xl"
         >
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/42">
-                Unified Study Workflow
-              </p>
-              <p className="mt-2 text-lg font-semibold text-white">
-                One platform, four steps that naturally fit together
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              {workflowSteps.map((step, index) => (
-                <div key={step} className="flex items-center gap-3">
-                  <div className="rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm font-medium text-white/68">
-                    {step}
-                  </div>
-                  {index < workflowSteps.length - 1 && (
-                    <ArrowRight className="hidden h-4 w-4 text-white/28 sm:block" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-300/60">
+            Platform Modes
+          </p>
+          <h2 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.03em] text-white sm:text-[2.5rem]">
+            Four ways to study
+          </h2>
+          <p className="mt-3 text-[15px] leading-[1.7] text-white/45">
+            Chat, study, simulate, and practice — each mode is designed for a
+            different part of the revision workflow.
+          </p>
         </motion.div>
+
+        {/* 2×2 Bento grid */}
+        <div className="mt-14 grid gap-5 sm:grid-cols-2">
+          {features.map((feature, index) => (
+            <motion.div
+              key={feature.id}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.15 }}
+              transition={{
+                duration: 0.45,
+                delay: index * 0.06,
+                ease: "easeOut",
+              }}
+              className="group relative overflow-hidden rounded-2xl border border-white/[0.06] bg-[rgba(8,16,32,0.6)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-400/[0.12] hover:bg-[rgba(10,20,40,0.7)] hover:shadow-[0_8px_32px_rgba(0,0,0,0.3),0_0_0_1px_rgba(34,211,238,0.04)]"
+            >
+              {/* Top accent line — shifts cyan on hover */}
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent transition-opacity duration-300 group-hover:opacity-0" />
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-400/[0.2] to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+              {/* Header row */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400/[0.07] ring-1 ring-cyan-400/[0.1] transition-colors duration-300 group-hover:bg-cyan-400/[0.12] group-hover:ring-cyan-400/[0.18]">
+                    <feature.icon className="h-4 w-4 text-cyan-300/70 transition-colors duration-300 group-hover:text-cyan-200/90" />
+                  </div>
+                  <div>
+                    <h3 className="text-[15px] font-semibold text-white/85">
+                      {feature.title}
+                    </h3>
+                    <p className="text-[10px] font-medium text-white/30">
+                      {feature.subtitle}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate("/platform", { state: { mode: feature.id } })
+                  }
+                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.02] text-white/25 opacity-0 transition-all group-hover:opacity-100 group-hover:text-white/50"
+                >
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {/* Description */}
+              <p className="mt-3 text-[12px] leading-[1.65] text-white/38">
+                {feature.description}
+              </p>
+
+              {/* Mini visual */}
+              <feature.visual />
+            </motion.div>
+          ))}
+        </div>
       </div>
     </section>
   );
