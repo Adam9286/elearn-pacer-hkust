@@ -111,7 +111,7 @@ const TestYourselfCard = ({
   if (hasBeenAnswered && previouslyCorrect && !hasSubmitted) {
     return (
       <Card className={cn(
-        "border-green-500/30 bg-green-500/5",
+        "rounded-[24px] border border-green-500/20 bg-green-500/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
         className
       )}>
         <CardHeader className="pb-3">
@@ -123,8 +123,8 @@ const TestYourselfCard = ({
                 Correct!
               </Badge>
             </CardTitle>
-            <Badge variant="secondary" className="text-xs">
-              Page {pageNumber}
+            <Badge variant="secondary" className="rounded-full border border-white/8 bg-white/[0.03] text-xs">
+              Slide {pageNumber}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground text-left mt-1">
@@ -137,9 +137,9 @@ const TestYourselfCard = ({
 
   return (
     <Card className={cn(
-      "border-primary/20 transition-all",
-      isExpanded && "ring-1 ring-primary/20",
-      hasSubmitted && isCorrect && "border-green-500/30 bg-green-500/5",
+      "rounded-[24px] border border-white/6 bg-white/[0.03] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+      isExpanded && "border-white/10",
+      hasSubmitted && isCorrect && "border-green-500/20 bg-green-500/5",
       className
     )}>
       {/* Collapsible Header */}
@@ -165,8 +165,8 @@ const TestYourselfCard = ({
               )}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Badge variant="secondary" className="text-xs">
-                Page {pageNumber}
+              <Badge variant="secondary" className="rounded-full border border-white/8 bg-white/[0.03] text-xs">
+                Slide {pageNumber}
               </Badge>
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4 text-muted-foreground" />
@@ -177,7 +177,7 @@ const TestYourselfCard = ({
           </div>
           {!isExpanded && !hasSubmitted && (
             <p className="text-sm text-muted-foreground text-left mt-1">
-              Click to test your understanding of this page
+              Click to test your understanding of this slide
             </p>
           )}
         </CardHeader>
@@ -188,7 +188,7 @@ const TestYourselfCard = ({
         <CardContent className="pt-0 space-y-4">
           {/* First-time tip */}
           {!hasSeenTip && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="flex items-start gap-2 rounded-2xl border border-blue-500/20 bg-blue-500/10 p-3">
               <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
               <div className="flex-1 text-sm text-muted-foreground">
                 <p>Answer questions to track your progress.</p>
@@ -220,8 +220,8 @@ const TestYourselfCard = ({
                 <div
                   key={optionLetter}
                   className={cn(
-                    "flex items-center space-x-3 rounded-lg border p-3 transition-colors",
-                    !hasSubmitted && "hover:bg-muted/50 cursor-pointer",
+                    "flex items-center space-x-3 rounded-2xl border border-white/8 bg-black/10 p-3 transition-colors",
+                    !hasSubmitted && "cursor-pointer hover:bg-white/[0.04]",
                     showCorrectAnswer && isThisCorrect && "border-green-500 bg-green-500/10",
                     hasSubmitted && isSelected && !isThisCorrect && "border-red-500 bg-red-500/10"
                   )}
@@ -259,7 +259,7 @@ const TestYourselfCard = ({
             <div className="space-y-3">
               {isCorrect ? (
                 // Correct answer - show full explanation
-                <div className="rounded-lg p-4 bg-green-500/10">
+                <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-4">
                   <p className="font-medium mb-2 text-green-700 dark:text-green-400">
                     Great job!
                   </p>
@@ -269,7 +269,7 @@ const TestYourselfCard = ({
                 </div>
               ) : attemptCount >= MAX_ATTEMPTS ? (
                 // Exhausted attempts - reveal answer and explanation
-                <div className="rounded-lg p-4 bg-amber-500/10">
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
                   <p className="font-medium mb-2 text-amber-700 dark:text-amber-400">
                     Here's the correct answer
                   </p>
@@ -282,7 +282,7 @@ const TestYourselfCard = ({
                 </div>
               ) : (
                 // Wrong but has retries - show hint only, NOT the answer
-                <div className="rounded-lg p-4 bg-amber-500/10">
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4">
                   <p className="font-medium mb-2 text-amber-700 dark:text-amber-400">
                     Not quite right
                   </p>

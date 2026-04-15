@@ -207,13 +207,7 @@ export const WirelessAssociationSimulator = ({ onStepChange }: SimulatorStepProp
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Wireless Association and Sync Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Mobile scans synchronization signals every {SCAN_INTERVAL_MS}ms and selects a base station to associate.
-        </p>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar
         label="Simulation Controls"

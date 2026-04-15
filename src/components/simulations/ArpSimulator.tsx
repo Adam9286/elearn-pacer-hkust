@@ -205,13 +205,7 @@ export const ArpSimulator = ({ onStepChange }: SimulatorStepProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">ARP Broadcast and Cache Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Resolve IP to MAC using LAN broadcast (`FF:FF:FF:FF:FF:FF`), then cache the result at the sender.
-        </p>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar label="Request Setup">
         <div className="flex min-w-0 flex-1 flex-col gap-3">

@@ -482,12 +482,6 @@ export const DijkstraSimulator = ({ onStepChange, onGuideStateChange }: Simulato
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Dijkstra Shortest Path Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Step through shortest-path selection and relaxation, then compare with OSPF-style routing logic.
-        </p>
-      </div>
 
       <SimulatorToolbar
         label="Simulation Controls"

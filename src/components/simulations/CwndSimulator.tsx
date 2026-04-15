@@ -304,17 +304,7 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">TCP Reno State Machine Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Visualize Reno transitions for Triple Duplicate ACK (easy loss) versus Timeout (severe loss).
-        </p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Badge className="bg-primary/10 text-primary border-primary/40">Project Checkpoint 3</Badge>
-          <Badge variant="outline">Lecture-Style State Transitions</Badge>
-        </div>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar label="Scenario Controls">
         <div className="flex min-w-0 flex-1 flex-col gap-3">

@@ -371,13 +371,7 @@ export const DistanceVectorSimulator = ({ onStepChange, onGuideStateChange }: Si
   );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Distance Vector (RIP-Style) Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Four-node topology A-B-C-D. Routers exchange vectors each lock-step round and update routes via min(all paths).
-        </p>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar
         label="Topology and Controls"

@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GEMINI_MODEL = "gemini-2.0-flash";
+const GEMINI_MODEL = "gemini-2.5-flash-lite";
 
 // Section content mapping for quiz generation context (11 sections)
 const chapterContent: Record<number, { title: string; topics: string[] }> = {

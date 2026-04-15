@@ -180,12 +180,12 @@ export async function triggerBatchGeneration(
   forceRegenerate: boolean = false
 ): Promise<BatchGenerationResponse> {
   const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/batch-generate-slides`,
+    `${import.meta.env.VITE_KNOWLEDGE_BASE_URL}/functions/v1/batch-generate-slides`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${import.meta.env.VITE_KNOWLEDGE_BASE_ANON_KEY}`,
       },
       body: JSON.stringify({
         lecture_id: lectureId,
@@ -210,12 +210,12 @@ export async function generateSingleSlide(
   slideNumber: number
 ): Promise<SlideExplanation> {
   const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-single-slide`,
+    `${import.meta.env.VITE_KNOWLEDGE_BASE_URL}/functions/v1/generate-single-slide`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        Authorization: `Bearer ${import.meta.env.VITE_KNOWLEDGE_BASE_ANON_KEY}`,
       },
       body: JSON.stringify({
         lecture_id: lectureId,

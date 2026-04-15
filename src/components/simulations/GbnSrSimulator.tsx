@@ -206,7 +206,7 @@ export const GbnSrSimulator = ({ onStepChange, onGuideStateChange }: SimulatorSt
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [activeHint, setActiveHint] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('side-by-side');
-  const [activeTab, setActiveTab] = useState<ContentTab>('simulation');
+  const [activeTab] = useState<ContentTab>('simulation');
   const [showSecondaryControls, setShowSecondaryControls] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -641,38 +641,7 @@ export const GbnSrSimulator = ({ onStepChange, onGuideStateChange }: SimulatorSt
   const showSr = viewMode === 'side-by-side' || viewMode === 'sr-only';
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Go-Back-N vs Selective Repeat</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-          Compare how two ARQ protocols handle packet loss side by side.
-        </p>
-      </div>
-
-      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('simulation')}
-          className={`transition-colors ${
-            activeTab === 'simulation'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Simulation
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('theory')}
-          className={`transition-colors ${
-            activeTab === 'theory'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Learn More
-        </button>
-      </div>
+    <div className="space-y-4">
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">

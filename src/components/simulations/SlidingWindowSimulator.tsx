@@ -247,7 +247,7 @@ export const SlidingWindowSimulator = ({ onStepChange, onGuideStateChange }: Sim
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [activeHint, setActiveHint] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [activeTab, setActiveTab] = useState<ContentTab>('simulation');
+  const [activeTab] = useState<ContentTab>('simulation');
   const [narration, setNarration] = useState('Choose a scenario above, then press Play or Step to begin.');
 
   const guideState = useMemo(
@@ -488,38 +488,7 @@ export const SlidingWindowSimulator = ({ onStepChange, onGuideStateChange }: Sim
   const windowEnd = Math.min(sendBase + windowSize - 1, TOTAL_PACKETS);
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Sliding Window Protocol</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-          Visualize how TCP&apos;s sliding window sends, acknowledges, and retransmits packets.
-        </p>
-      </div>
-
-      <div className="mb-2 flex w-fit rounded-lg border border-border bg-muted/50 p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('simulation')}
-          className={`transition-colors ${
-            activeTab === 'simulation'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Simulation
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('theory')}
-          className={`transition-colors ${
-            activeTab === 'theory'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Learn More
-        </button>
-      </div>
+    <div className="space-y-4">
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">

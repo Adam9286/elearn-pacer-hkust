@@ -13,6 +13,22 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { Loader2, ArrowLeft } from "lucide-react";
 import AuthTutorial from "@/components/AuthTutorial";
 
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const normalizeEmail = (value: string) => value.trim().toLowerCase();
+
+const getAuthErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof TypeError && error.message.toLowerCase().includes("fetch")) {
+    return "Could not reach the account service. Check the deployed Supabase URL, anon key, and Auth site URL configuration.";
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+
+  return fallback;
+};
+
 const Auth = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -40,8 +56,14 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!normalizedEmail || !password) {
       toast.error("Please fill in all fields");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      toast.error("Please enter a valid email address");
       return;
     }
     if (password.length < 6) {
@@ -51,75 +73,103 @@ const Auth = () => {
 
     setLoading(true);
     const redirectUrl = `${window.location.origin}/platform`;
-    
-    const { error } = await externalSupabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl
-      }
-    });
 
-    setLoading(false);
-    if (error) {
-      if (error.message.includes("already registered")) {
-        toast.error("This email is already registered. Please sign in instead.");
+    try {
+      const { error } = await externalSupabase.auth.signUp({
+        email: normalizedEmail,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        if (error.message.includes("already registered")) {
+          toast.error("This email is already registered. Please sign in instead.");
+        } else {
+          toast.error(error.message);
+        }
       } else {
-        toast.error(error.message);
+        toast.success("Account created! Check your email to verify your account.");
       }
-    } else {
-      toast.success("Account created! Check your email to verify your account.");
+    } catch (error) {
+      toast.error(getAuthErrorMessage(error, "Could not create your account."));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!normalizedEmail || !password) {
       toast.error("Please fill in all fields");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
     setLoading(true);
-    const { error } = await externalSupabase.auth.signInWithPassword({
-      email,
-      password,
-    });
 
-    setLoading(false);
-    if (error) {
-      if (error.message.includes("Invalid login")) {
-        toast.error("Invalid email or password");
-      } else if (error.message.includes("Email not confirmed")) {
-        toast.error("Please verify your email before signing in. Check your inbox!");
+    try {
+      const { error } = await externalSupabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (error) {
+        if (error.message.includes("Invalid login")) {
+          toast.error("Invalid email or password");
+        } else if (error.message.includes("Email not confirmed")) {
+          toast.error("Please verify your email before signing in. Check your inbox!");
+        } else {
+          toast.error(error.message);
+        }
       } else {
-        toast.error(error.message);
+        toast.success("Welcome back!");
+        navigate("/platform");
       }
-    } else {
-      toast.success("Welcome back!");
-      navigate("/platform");
+    } catch (error) {
+      toast.error(getAuthErrorMessage(error, "Could not sign you in."));
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleForgotPassword = async () => {
-    if (!resetEmail) {
+    const normalizedEmail = normalizeEmail(resetEmail);
+
+    if (!normalizedEmail) {
       toast.error("Please enter your email");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      toast.error("Please enter a valid email address");
       return;
     }
 
     setSendingReset(true);
     const redirectUrl = `${window.location.origin}/reset-password`;
-    
-    const { error } = await externalSupabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: redirectUrl
-    });
 
-    setSendingReset(false);
-    if (error) {
-      toast.error(error.message);
-    } else {
-      toast.success("Check your email for the password reset link!");
-      setForgotPasswordOpen(false);
-      setResetEmail("");
+    try {
+      const { error } = await externalSupabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: redirectUrl
+      });
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success("Check your email for the password reset link!");
+        setForgotPasswordOpen(false);
+        setResetEmail("");
+      }
+    } catch (error) {
+      toast.error(getAuthErrorMessage(error, "Could not send a password reset email."));
+    } finally {
+      setSendingReset(false);
     }
   };
 

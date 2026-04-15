@@ -342,13 +342,7 @@ export const QueueManagementSimulator = ({ onStepChange }: SimulatorStepProps) =
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Queue Management Simulator (09-Queue)</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Three flows (f1, f2, f3), drop-tail buffering, and scheduler comparison between FIFO, Round-Robin, and WFQ.
-        </p>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar label="Simulation Controls">
         <div className="flex min-w-0 flex-1 flex-col gap-4">

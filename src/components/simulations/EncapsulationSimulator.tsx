@@ -366,7 +366,7 @@ export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => 
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState<Direction>('encapsulate');
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activeTab, setActiveTab] = useState<ContentTab>('simulation');
+  const [activeTab] = useState<ContentTab>('simulation');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const scenario = SCENARIOS[scenarioIdx];
@@ -647,38 +647,7 @@ export const EncapsulationSimulator = ({ onStepChange }: SimulatorStepProps) => 
   };
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Packet Encapsulation Simulator</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-          Follow how transport, network, and link headers wrap application data into a frame.
-        </p>
-      </div>
-
-      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('simulation')}
-          className={`transition-colors ${
-            activeTab === 'simulation'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Simulation
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('theory')}
-          className={`transition-colors ${
-            activeTab === 'theory'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Learn More
-        </button>
-      </div>
+    <div className="space-y-4">
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">

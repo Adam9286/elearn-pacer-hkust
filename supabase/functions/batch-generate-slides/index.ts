@@ -17,9 +17,10 @@ const EXAM_SUPABASE_URL = "https://oqgotlmztpvchkipslnc.supabase.co";
 const EXAM_SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9xZ290bG16dHB2Y2hraXBzbG5jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAzMjc0MjAsImV4cCI6MjA3NTkwMzQyMH0.1yt8V-9weq5n7z2ncN1p9vAgRvNI4TAIC5VyDFcuM7w";
 
-// ModelScope API (Qwen2.5-32B-Instruct)
-const MODELSCOPE_API_URL = "https://api-inference.modelscope.cn/v1/chat/completions";
-const MODELSCOPE_MODEL = "Qwen/Qwen2.5-32B-Instruct";
+// Gemini API — model selected per slide based on content weight
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/models";
+const GEMINI_FLASH = "gemini-2.5-flash";          // diagram-heavy / visual slides
+const GEMINI_FLASH_LITE = "gemini-2.5-flash-lite"; // text-heavy / bulk slides
 
 // Lecture context metadata for all 22 lectures
 const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: string[] }> = {
@@ -137,7 +138,7 @@ const LECTURE_CONTEXT: Record<string, { chapter: string; title: string; topics: 
 
 interface SlideContent {
   slide_number: number;
-  slide_text: string;
+  content: string;
 }
 
 interface GeneratedContent {
@@ -157,10 +158,48 @@ addEventListener('beforeunload', (ev: Event) => {
   console.log('[batch-generate-slides] Shutting down:', detail?.reason);
 });
 
+/** Pick model tier based on extracted text length */
+function selectModel(slideText: string): string {
+  const wordCount = slideText.split(/\s+/).filter(Boolean).length;
+  return wordCount < 30 ? GEMINI_FLASH : GEMINI_FLASH_LITE;
+}
+
 function buildLectureOutline(slides: SlideContent[]): string {
   return slides
-    .map((s) => `Slide ${s.slide_number}: ${s.slide_text.slice(0, 100)}${s.slide_text.length > 100 ? '...' : ''}`)
+    .map((s) => `Slide ${s.slide_number}: ${s.content.slice(0, 100)}${s.content.length > 100 ? '...' : ''}`)
     .join('\n');
+}
+
+async function callGemini(
+  model: string,
+  systemPrompt: string,
+  userPrompt: string,
+  apiKey: string
+): Promise<string> {
+  const url = `${GEMINI_BASE_URL}/${model}:generateContent?key=${apiKey}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+      generationConfig: {
+        temperature: 0.7,
+        responseMimeType: "application/json",
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error(`Gemini API error (${model}):`, response.status, errorText);
+    if (response.status === 429) throw new Error("Gemini rate limit exceeded.");
+    if (response.status === 403) throw new Error("Gemini API key invalid.");
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
 }
 
 async function generateSlideExplanation(
@@ -178,85 +217,61 @@ async function generateSlideExplanation(
   };
 
   const systemPrompt = `You are an expert computer networks instructor for ELEC3120 at HKUST.
-Your role is to explain lecture slides clearly to undergraduate students.
+Your role is to explain lecture slide content clearly and accurately to undergraduate engineering students.
 
-CRITICAL INSTRUCTIONS:
-- Do NOT start explanations with greetings like "Welcome!", "Welcome back!", "Hello!", etc.
-- Only slide 1 of a lecture may include a brief introduction to the lecture topic.
+GROUNDING RULES:
+1. ONLY explain what is on the provided slide. Do not add information from external knowledge unless the slide explicitly references it.
+2. Every technical claim must be traceable to content on this slide or earlier slides in this lecture.
+3. Use the EXACT terminology from the slides. If the slide says "segment", do not substitute "packet" unless the slide itself equates them.
+4. Do NOT produce generic textbook summaries. Explain what THIS slide is teaching and why it matters in the lecture sequence.
+
+STYLE RULES:
+- Do NOT start with greetings like "Welcome!", "Hello!", etc.
+- Only slide 1 may include a brief introduction to the lecture topic.
 - For slides 2+, dive directly into the content without preamble.
-- Write as if you're continuing a conversation, not starting a new one.
-- Connect concepts to what was covered in previous slides when relevant.
-- Keep the tone educational, clear, and engaging without being repetitive.`;
+- Write as if continuing a conversation, not starting a new one.
+- Be conversational but technically accurate.
+- Use analogies and concrete examples with specific values (e.g., "window size = 4") where appropriate.
+- For mathematical formulas, use LaTeX notation where helpful.
+- Keep the tone educational, clear, and engaging.`;
 
   const isFirstSlide = slideNumber === 1;
-  const positionInstruction = isFirstSlide
-    ? "This is the FIRST slide - you may briefly introduce the lecture topic."
-    : "NOT the first slide - skip any introduction or greeting, dive straight into the content.";
+  const isLowText = slideText.split(/\s+/).filter(Boolean).length < 30;
 
-  const userPrompt = `Generate an explanation for this lecture slide.
+  const userPrompt = `Explain this lecture slide.
 
-LECTURE CONTEXT:
-- Course: ELEC3120 Computer Networks
-- Chapter: ${context.chapter}
-- Lecture: ${context.title}
-- Topics covered: ${context.topics.join(", ")}
+LECTURE: ${context.title} (ELEC3120 Computer Networks)
+CHAPTER: ${context.chapter}
+TOPICS: ${context.topics.join(", ")}
+SLIDE: ${slideNumber} of ${totalSlides}
 
-CURRENT SLIDE:
-- Slide ${slideNumber} of ${totalSlides}
-- Position: ${positionInstruction}
-
-LECTURE OUTLINE (for context):
+LECTURE OUTLINE:
 ${lectureOutline}
 
 SLIDE CONTENT:
 ${slideText}
-
+${isLowText ? "\nNOTE: This slide has very little text — it likely contains a diagram, chart, or visual. Explain what the visual likely illustrates based on the text labels and the lecture context.\n" : ""}
 INSTRUCTIONS:
-- ${isFirstSlide ? "You may include ONE brief introduction to this lecture topic." : "Do NOT include any greeting or 'welcome' - dive straight into explaining the content."}
-- Reference previous concepts from this lecture if relevant.
-- Keep explanations connected and flowing.
+- ${isFirstSlide ? "You may include ONE brief introduction to the lecture topic." : "Skip any introduction — dive straight into explaining the content."}
+- Explain what this slide teaches and connect to earlier slides where relevant.
+- If the slide introduces a formula or protocol mechanism, use a concrete example.
 
 Return a JSON object with:
-1. "explanation": A clear, engaging 2-4 paragraph explanation (NO greetings except slide 1)
-2. "keyPoints": An array of 3-5 key takeaways (strings)
-3. "comprehensionQuestion": An object with:
-   - "question": A multiple-choice question testing understanding
-   - "options": Array of exactly 4 answer choices
-   - "correctIndex": Index (0-3) of the correct answer
-   - "explanation": Why the correct answer is right
+1. "explanation": A clear, grounded 2-4 paragraph explanation of THIS slide's content
+2. "keyPoints": 3-5 specific takeaways a student could use as study notes (each one sentence)
+3. "comprehensionQuestion": {
+     "question": "A question answerable using ONLY information from this slide",
+     "options": ["A", "B", "C", "D"],
+     "correctIndex": 0-3,
+     "explanation": "Why the correct answer is right"
+   }
 
-Respond ONLY with valid JSON, no markdown or extra text.`;
+Respond ONLY with valid JSON.`;
 
-  const response = await fetch(MODELSCOPE_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: MODELSCOPE_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: 2048,
-    }),
-  });
+  const model = selectModel(slideText);
+  console.log(`[batch] Using ${model} for slide ${slideNumber} (${isLowText ? "diagram-heavy" : "text-heavy"})`);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("ModelScope API error:", response.status, errorText);
-    if (response.status === 429) {
-      throw new Error("Rate limit exceeded. Please try again in a moment.");
-    }
-    if (response.status === 401) {
-      throw new Error("Invalid ModelScope API key.");
-    }
-    throw new Error(`ModelScope API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
+  const content = await callGemini(model, systemPrompt, userPrompt, apiKey);
 
   if (!content) {
     throw new Error("No content in AI response");
@@ -264,15 +279,9 @@ Respond ONLY with valid JSON, no markdown or extra text.`;
 
   // Parse JSON from response (handle markdown code blocks)
   let jsonStr = content.trim();
-  if (jsonStr.startsWith("```json")) {
-    jsonStr = jsonStr.slice(7);
-  }
-  if (jsonStr.startsWith("```")) {
-    jsonStr = jsonStr.slice(3);
-  }
-  if (jsonStr.endsWith("```")) {
-    jsonStr = jsonStr.slice(0, -3);
-  }
+  if (jsonStr.startsWith("```json")) jsonStr = jsonStr.slice(7);
+  if (jsonStr.startsWith("```")) jsonStr = jsonStr.slice(3);
+  if (jsonStr.endsWith("```")) jsonStr = jsonStr.slice(0, -3);
   jsonStr = jsonStr.trim();
 
   try {
@@ -295,7 +304,7 @@ async function processSlides(
   const examSupabase = createClient(examSupabaseUrl, examSupabaseKey);
   const totalSlides = allSlides.length;
   const lectureOutline = buildLectureOutline(allSlides);
-  
+
   let generated = 0;
   let errors = 0;
 
@@ -306,7 +315,7 @@ async function processSlides(
       const content = await generateSlideExplanation(
         lectureId,
         slide.slide_number,
-        slide.slide_text,
+        slide.content,
         totalSlides,
         lectureOutline,
         apiKey
@@ -335,8 +344,8 @@ async function processSlides(
         console.log(`[background] Slide ${slide.slide_number} done (${generated}/${slides.length})`);
       }
 
-      // Rate limiting: wait 1.5 seconds between API calls
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Rate limiting: wait 1 second between API calls
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (err) {
       console.error(`[background] Error generating slide ${slide.slide_number}:`, err);
       errors++;
@@ -361,10 +370,10 @@ serve(async (req) => {
       );
     }
 
-    const MODELSCOPE_API_KEY = Deno.env.get("MODELSCOPE_API_KEY");
-    if (!MODELSCOPE_API_KEY) {
+    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "MODELSCOPE_API_KEY not configured" }),
+        JSON.stringify({ error: "GEMINI_API_KEY not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -377,7 +386,7 @@ serve(async (req) => {
     // Fetch all slides for this lecture from lecture_slides_course
     let query = examSupabase
       .from("lecture_slides_course")
-      .select("slide_number, slide_text")
+      .select("slide_number, content")
       .eq("lecture_id", lecture_id)
       .order("slide_number", { ascending: true });
 
@@ -407,7 +416,7 @@ serve(async (req) => {
     // Always fetch ALL slides for context (even if we're only regenerating a range)
     const { data: allSlides } = await examSupabase
       .from("lecture_slides_course")
-      .select("slide_number, slide_text")
+      .select("slide_number, content")
       .eq("lecture_id", lecture_id)
       .order("slide_number", { ascending: true });
 
@@ -451,13 +460,12 @@ serve(async (req) => {
     }
 
     // Start background processing using EdgeRuntime.waitUntil
-    // This allows the function to return immediately while processing continues
     EdgeRuntime.waitUntil(
       processSlides(
         slidesToProcess,
         fullSlideList,
         lecture_id,
-        MODELSCOPE_API_KEY,
+        GEMINI_API_KEY,
         EXAM_SUPABASE_URL,
         EXAM_SUPABASE_ANON_KEY
       )

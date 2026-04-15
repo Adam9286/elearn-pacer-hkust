@@ -162,13 +162,7 @@ export const LpmSimulator = ({ onStepChange }: SimulatorStepProps) => {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Longest Prefix Match (LPM) Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Compare destination bits against all matching prefixes and forward using the most specific match.
-        </p>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar
         label="Destination IP"

@@ -301,6 +301,9 @@ const SimulationsMode = () => {
     <SimulationShell
       title={activeConfig.label}
       category={activeConfig.module}
+      difficulty={activeConfig.difficulty}
+      lectureRef={activeConfig.lectureRef}
+      checkpointRel={activeConfig.checkpointRel}
       summary={activeConfig.summary}
       learningFocus={activeConfig.learningFocus}
       conceptSteps={activeGuideState?.steps ?? []}

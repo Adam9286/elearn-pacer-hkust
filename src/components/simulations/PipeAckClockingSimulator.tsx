@@ -320,13 +320,7 @@ export const PipeAckClockingSimulator = ({ onStepChange }: SimulatorStepProps) =
   }, [applyPreset]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">BDP Pipe Model and ACK Clocking Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Model pipe volume (BDP), ACK-paced sending, and queue buildup at a bottleneck router.
-        </p>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar label="Scenario Controls">
         <div className="flex min-w-0 flex-1 flex-col gap-3">

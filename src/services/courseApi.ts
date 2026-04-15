@@ -30,9 +30,14 @@ async function fallbackToRealTimeGeneration(
 ): Promise<SlideExplanationResponse> {
   console.log('[CourseAPI] No approved content found for slide', request.slideNumber, '— generating in real-time');
 
+  // Resolve lectureId (e.g., "02-Web") so the Edge Function can query
+  // lecture_slides_course directly for real slide content.
+  const resolvedLectureId = getLectureId(request.lessonId);
+
   const { data, error } = await examSupabase.functions.invoke('explain-slide', {
     body: {
       lessonId: request.lessonId,
+      lectureId: resolvedLectureId,
       slideNumber: request.slideNumber,
       totalSlides: request.totalSlides,
       lessonTitle: request.lessonTitle,

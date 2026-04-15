@@ -118,17 +118,17 @@ const Index = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Welcome Card */}
-        <Card className="mb-8 glass-card border-2 shadow-lg transition-smooth hover:shadow-glow">
-          <CardHeader>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+        <Card className="mb-6 glass-card border-2 shadow-lg transition-smooth hover:shadow-glow">
+          <CardHeader className="pb-5">
+            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Welcome to Your AI Teaching Assistant
             </CardTitle>
             
             {/* Study Tips Box */}
-            <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-accent/15 via-primary/10 to-accent/15 border border-accent/30 shadow-inner">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-lg bg-accent/20">
-                  <Lightbulb className="w-4 h-4 text-accent animate-pulse" />
+            <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-accent/15 via-primary/10 to-accent/15 border border-accent/30 shadow-inner">
+              <div className="flex items-center gap-2 mb-1.5">
+                <div className="p-1 rounded-lg bg-accent/20">
+                  <Lightbulb className="w-3.5 h-3.5 text-accent animate-pulse" />
                 </div>
                 <span className="text-xs font-bold uppercase tracking-wider text-accent">
                   Study Tip
@@ -136,7 +136,7 @@ const Index = () => {
               </div>
               <p 
                 key={tipIndex}
-                className="text-foreground/90 italic text-base leading-relaxed animate-fade-in"
+                className="text-sm text-foreground/90 italic leading-relaxed animate-fade-in"
               >
                 {studyTips[tipIndex]}
               </p>

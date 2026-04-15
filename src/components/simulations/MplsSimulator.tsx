@@ -253,13 +253,7 @@ export const MplsSimulator = ({ onStepChange, onGuideStateChange }: SimulatorSte
   const pathActiveIndex = stage === 0 ? 0 : stage === 1 ? 1 : 2;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">MPLS Label Switching Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Emulate a virtual circuit (LSP): ingress PUSH, transit SWAP by label/interface mapping, egress POP.
-        </p>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar
         label="LSP Controls"

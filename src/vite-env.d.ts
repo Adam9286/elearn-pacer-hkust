@@ -7,8 +7,6 @@ interface ImportMetaEnv {
   readonly VITE_KNOWLEDGE_BASE_URL: string;
   readonly VITE_KNOWLEDGE_BASE_ANON_KEY: string;
   readonly VITE_N8N_BASE_URL?: string;
-  readonly VITE_CHAT_RESEARCH_WEBHOOK_URL?: string;
-  readonly VITE_EXAM_GENERATOR_WEBHOOK_URL?: string;
   readonly VITE_APP_ENV?: string;
   readonly VITE_TIMEOUT_AGENT?: string;
 }

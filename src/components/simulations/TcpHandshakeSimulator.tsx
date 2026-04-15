@@ -352,7 +352,7 @@ export const TcpHandshakeSimulator = ({ onStepChange, onGuideStateChange }: Simu
   const [activeHint, setActiveHint] = useState<string>(SCENARIOS[0].hint);
   const [currentStep, setCurrentStep] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activeTab, setActiveTab] = useState<ContentTab>('simulation');
+  const [activeTab] = useState<ContentTab>('simulation');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const scenario = SCENARIOS.find((s) => s.id === activePreset) ?? SCENARIOS[0];
@@ -511,38 +511,7 @@ export const TcpHandshakeSimulator = ({ onStepChange, onGuideStateChange }: Simu
   const timelineHeight = Math.max(400, ARROW_TOP_OFFSET + totalSteps * ARROW_SPACING + 60);
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">TCP Handshake Simulator</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-          Step through setup, failure, and teardown behavior in the TCP state machine.
-        </p>
-      </div>
-
-      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('simulation')}
-          className={`transition-colors ${
-            activeTab === 'simulation'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Simulation
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('theory')}
-          className={`transition-colors ${
-            activeTab === 'theory'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Learn More
-        </button>
-      </div>
+    <div className="space-y-4">
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">

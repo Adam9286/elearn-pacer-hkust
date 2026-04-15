@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn } from 'lucide-react';
+import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn, GripHorizontal } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import { validateFiles, validateImageFile } from '@/utils/fileValidation';
 import { UPLOAD_CONFIG, ALLOWED_TYPES_DISPLAY } from '@/constants/upload';
 import { formatSource } from '@/utils/sourceFormatter';
 import { computeFileHash } from '@/utils/fileHash';
+import { useAutosizeTextarea } from '@/hooks/useAutosizeTextarea';
 
 interface LocalMessage {
   id: string;
@@ -78,6 +79,11 @@ export const ChatConversation = ({
   const [isUserAtBottom, setIsUserAtBottom] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { handleResizeDragStart, resetHeight } = useAutosizeTextarea(inputRef, input, {
+    minHeight: 80,
+    maxHeight: 260,
+  });
 
   // Determine active loading state based on auth
   const activeIsWaitingForAI = isAuthenticated ? isWaitingForAI : isLoading;
@@ -238,6 +244,7 @@ export const ChatConversation = ({
       setLocalMessages((prev) => [...prev, userMessage]);
       setInput('');
       setAttachments([]);
+      resetHeight();
       setIsLoading(true);
 
       // Initialize progress tracking
@@ -418,6 +425,7 @@ export const ChatConversation = ({
       // For authenticated users, delegate to parent
       setInput('');
       setAttachments([]);
+      resetHeight();
       setIsLoading(true);
       
       try {
@@ -436,7 +444,7 @@ export const ChatConversation = ({
   }, [isAuthenticated, messages.length]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full min-h-0 flex-col">
 
       {/* Auth prompt for non-authenticated users */}
       {!isAuthenticated && (
@@ -452,7 +460,7 @@ export const ChatConversation = ({
       )}
 
       {/* Chat Interface */}
-      <Card className="glass-card shadow-lg flex-1 mx-4 my-4 flex flex-col overflow-hidden">
+      <Card className="glass-card mx-4 my-4 flex min-h-0 flex-1 flex-col overflow-hidden shadow-lg">
         <CardHeader className="border-b bg-gradient-to-r from-primary/80 to-accent/70 py-3">
           <CardTitle className="flex items-center gap-2 text-white">
             <MessageSquare className={`w-5 h-5 ${isLoading ? 'animate-pulse' : ''}`} />
@@ -478,7 +486,7 @@ export const ChatConversation = ({
           )}
 
           {/* Messages */}
-          <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+          <ScrollArea className="min-h-0 flex-1 p-4" ref={scrollAreaRef}>
             {isLoadingMessages ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
@@ -585,7 +593,19 @@ export const ChatConversation = ({
           </ScrollArea>
 
           {/* Input Area */}
-          <div className="p-4 border-t bg-background/50 space-y-3">
+          <div className="sticky bottom-0 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 space-y-3">
+            <div className="hidden sm:flex justify-center">
+              <button
+                type="button"
+                aria-label="Composer resize handle"
+                onMouseDown={handleResizeDragStart}
+                className="group -mt-1 flex h-6 w-16 cursor-ns-resize items-center justify-center rounded-full text-cyan-200/25 transition-colors hover:text-cyan-200/55"
+                tabIndex={-1}
+              >
+                <span className="sr-only">Resize composer</span>
+                <GripHorizontal className="h-4 w-4 transition-transform group-hover:scale-105" />
+              </button>
+            </div>
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {attachments.map((file, index) => (
@@ -599,7 +619,7 @@ export const ChatConversation = ({
                 ))}
               </div>
             )}
-            <div className="flex gap-2">
+            <div className="flex items-end gap-2">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -630,20 +650,23 @@ export const ChatConversation = ({
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <Textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onPaste={handlePaste}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    !isLoading && handleSend();
-                  }
-                }}
-                placeholder="Ask about TCP flow control, routing algorithms, or any ELEC3120 topic..."
-                className="flex-1 min-h-[80px] max-h-[400px] resize-none"
-                disabled={isLoading}
-              />
+              <div className="flex-1">
+                <Textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onPaste={handlePaste}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      !isLoading && handleSend();
+                    }
+                  }}
+                  placeholder="Ask about TCP flow control, routing algorithms, or any ELEC3120 topic..."
+                  className="min-h-[80px] max-h-[260px] resize-none overflow-y-hidden"
+                  disabled={isLoading}
+                />
+              </div>
               <Button
                 onClick={handleSend}
                 className="gradient-primary shadow-glow hover:animate-pulse-glow transition-smooth shrink-0"

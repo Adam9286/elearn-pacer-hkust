@@ -270,7 +270,7 @@ const ChatMode = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] min-h-[600px]">
+    <div className="sticky top-24 flex h-[calc(100vh-10rem)] min-h-[560px] max-h-[calc(100vh-10rem)]">
       {/* Sidebar - only show when authenticated */}
       {isAuthenticated && (
         <ChatSidebar
@@ -289,7 +289,7 @@ const ChatMode = () => {
       )}
 
       {/* Main Chat Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
         <ChatConversation
           messages={messages}
           isLoadingMessages={isLoadingMessages}

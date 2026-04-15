@@ -351,13 +351,7 @@ export const StpSimulator = ({ onStepChange, onGuideStateChange }: SimulatorStep
   const forwardingLinks = tree.linkStatus.filter((link) => link.status === 'forwarding').length;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">Spanning Tree Protocol (STP) Simulator</h2>
-        <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
-          Exchange BPDUs in rounds to elect the root bridge, block loop-causing links, and recompute after root-link failure.
-        </p>
-      </div>
+    <div className="space-y-4">
 
       <SimulatorToolbar
         label="Simulation Controls"

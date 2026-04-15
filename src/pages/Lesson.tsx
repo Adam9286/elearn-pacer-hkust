@@ -1,8 +1,8 @@
 // Lesson Page - Main lesson display with Overview and AI Tutor tabs
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle, Circle, Clock, LogIn, Sparkles } from "lucide-react";
+import { ArrowLeft, CheckCircle, Circle, Clock, Home, LogIn, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -14,7 +14,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import ThemeToggle from "@/components/ThemeToggle";
 import { useUserProgress } from "@/contexts/UserProgressContext";
 import { toast } from "sonner";
-import { chapters, findLesson } from "@/data/courseContent";
+import { findLesson } from "@/data/courseContent";
 import GuidedLearning from "@/components/lesson/GuidedLearning";
 
 const Lesson = () => {
@@ -22,12 +22,17 @@ const Lesson = () => {
   const navigate = useNavigate();
   const [lessonProgress, setLessonProgress] = useState(0);
   const [activeTab, setActiveTab] = useState("overview");
-  const { user, loading, markLessonComplete, markLessonIncomplete, getChapterProgress, isChapterUnlocked, getLessonsCompleted, getTotalLessons } = useUserProgress();
-  
-  // Hide sidebar in AI Tutor mode for more horizontal space
+  const {
+    user,
+    markLessonComplete,
+    markLessonIncomplete,
+    getChapterProgress,
+    getLessonsCompleted,
+    getTotalLessons,
+  } = useUserProgress();
+
   const showSidebar = activeTab === "overview";
 
-  // Find current lesson and chapter using helper
   const lessonData = lessonId ? findLesson(lessonId) : null;
   const currentChapter = lessonData?.chapter ?? null;
   const currentLesson = lessonData?.lesson ?? null;
@@ -50,7 +55,10 @@ const Lesson = () => {
   }
 
   const previousLesson = lessonIndex > 0 ? currentChapter.lessons[lessonIndex - 1] : null;
-  const nextLesson = lessonIndex < currentChapter.lessons.length - 1 ? currentChapter.lessons[lessonIndex + 1] : null;
+  const nextLesson =
+    lessonIndex < currentChapter.lessons.length - 1
+      ? currentChapter.lessons[lessonIndex + 1]
+      : null;
 
   const handleMarkComplete = async () => {
     if (user && currentChapter && currentLesson) {
@@ -71,28 +79,35 @@ const Lesson = () => {
   const chapterProgress = currentChapter ? getChapterProgress(currentChapter.id) : undefined;
   const lessonsCompleted = getLessonsCompleted(currentChapter.id);
   const totalLessons = getTotalLessons(currentChapter.id);
-  const sectionProgressPercent = totalLessons > 0 ? Math.round((lessonsCompleted / totalLessons) * 100) : 0;
+  const sectionProgressPercent =
+    totalLessons > 0 ? Math.round((lessonsCompleted / totalLessons) * 100) : 0;
 
   return (
     <ThemeProvider>
       <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-16 items-center justify-between px-4">
+        <header className="sticky top-0 z-50 border-b border-white/10 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
+          <div className="container flex h-24 items-center justify-between px-4">
             <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/platform", { state: { mode: "course" } })}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => navigate("/platform", { state: { mode: "course" } })}
+                className="h-12 rounded-2xl border-white/10 bg-white/[0.04] px-5 text-sm font-semibold text-foreground shadow-[0_12px_30px_rgba(0,0,0,0.18)] transition-all hover:border-white/15 hover:bg-white/[0.07] hover:text-foreground focus-visible:ring-primary/60"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4 text-primary/80" />
+                <Home className="mr-2 h-4 w-4 text-primary/65" />
                 Back to Course
               </Button>
-              <Separator orientation="vertical" className="h-6" />
+              <Separator orientation="vertical" className="h-8" />
               <div>
-                <h1 className="text-sm font-semibold text-foreground">Section {currentChapter.id}</h1>
-                <p className="text-xs text-muted-foreground">{currentChapter.title}</p>
+                <h1 className="text-base font-semibold text-foreground">Section {currentChapter.id}</h1>
+                <p className="text-sm text-muted-foreground">{currentChapter.title}</p>
               </div>
             </div>
+
             <div className="flex items-center gap-4">
               {!user && (
-                <Button variant="outline" size="sm" onClick={() => navigate("/auth")}>
+                <Button variant="outline" size="sm" onClick={() => navigate("/auth")} className="h-11 px-4">
                   <LogIn className="mr-2 h-4 w-4" />
                   Sign In
                 </Button>
@@ -102,68 +117,78 @@ const Lesson = () => {
           </div>
         </header>
 
-        <div className={`${showSidebar ? 'container' : 'w-full max-w-[1800px] mx-auto px-4 lg:px-8'} grid grid-cols-1 ${showSidebar ? 'lg:grid-cols-4' : ''} gap-6 py-6`}>
-          {/* Sidebar - Chapter Navigation (hidden in AI Tutor mode) */}
-          {showSidebar && <aside className="lg:col-span-1">
-            <Card className="glass-card sticky top-20">
-              <CardHeader>
-                <CardTitle className="text-lg text-foreground">Section {currentChapter.id} Lessons</CardTitle>
-                {currentChapter.textbookPages && (
-                  <CardDescription>Textbook: p.{currentChapter.textbookPages}</CardDescription>
-                )}
-                <div className="mt-2">
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-muted-foreground">Progress</span>
-                    <span className="font-medium text-foreground">{lessonsCompleted}/{totalLessons}</span>
+        <div
+          className={`${
+            showSidebar ? "container" : "mx-auto w-full max-w-[1800px] px-4 lg:px-8"
+          } grid grid-cols-1 gap-8 py-8 ${showSidebar ? "lg:grid-cols-4" : ""}`}
+        >
+          {showSidebar && (
+            <aside className="lg:col-span-1">
+              <Card className="glass-card sticky top-28 rounded-[24px] border-white/8 shadow-[0_20px_60px_rgba(2,8,23,0.22)]">
+                <CardHeader>
+                  <CardTitle className="text-lg text-foreground">Section {currentChapter.id} Lessons</CardTitle>
+                  {currentChapter.textbookPages && (
+                    <CardDescription>Textbook: p.{currentChapter.textbookPages}</CardDescription>
+                  )}
+                  <div className="mt-2">
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Progress</span>
+                      <span className="font-medium text-foreground">
+                        {lessonsCompleted}/{totalLessons}
+                      </span>
+                    </div>
+                    <Progress value={sectionProgressPercent} className="h-2 bg-white/8" />
                   </div>
-                  <Progress value={sectionProgressPercent} className="h-2" />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[calc(100vh-16rem)]">
-                  <div className="space-y-2">
-                    {currentChapter.lessons.map((lesson) => {
-                      const isCompleted = chapterProgress?.lessons_completed?.includes(lesson.id);
-                      return (
-                        <Button
-                          key={lesson.id}
-                          variant={lesson.id === lessonId ? "secondary" : "ghost"}
-                          className="w-full justify-start"
-                          onClick={() => navigate(`/platform/lesson/${lesson.id}`)}
-                        >
-                          {isCompleted ? (
-                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                          ) : (
-                            <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
-                          )}
-                          <div className="text-left flex-1">
-                            <div className="text-sm font-medium text-foreground">{lesson.number}</div>
-                            <div className="text-xs text-muted-foreground truncate">{lesson.title}</div>
-                          </div>
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </aside>}
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[calc(100vh-16rem)]">
+                    <div className="space-y-2">
+                      {currentChapter.lessons.map((lesson) => {
+                        const isCompleted = chapterProgress?.lessons_completed?.includes(lesson.id);
+                        return (
+                          <Button
+                            key={lesson.id}
+                            variant={lesson.id === lessonId ? "secondary" : "ghost"}
+                            className="w-full justify-start rounded-2xl px-3 py-6"
+                            onClick={() => navigate(`/platform/lesson/${lesson.id}`)}
+                          >
+                            {isCompleted ? (
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                            ) : (
+                              <Circle className="mr-2 h-4 w-4 text-muted-foreground" />
+                            )}
+                            <div className="min-w-0 flex-1 text-left">
+                              <div className="text-sm font-medium text-foreground">{lesson.number}</div>
+                              <div className="truncate text-xs text-muted-foreground">{lesson.title}</div>
+                            </div>
+                          </Button>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </aside>
+          )}
 
-          {/* Main Content */}
-          <main className={`${showSidebar ? 'lg:col-span-3' : ''} space-y-6`}>
-            {/* Lesson Header */}
-            <Card className="glass-card">
-              <CardHeader>
+          <main className={`${showSidebar ? "lg:col-span-3" : ""} space-y-6`}>
+            <Card className="glass-card rounded-[28px] border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] shadow-[0_24px_80px_rgba(2,8,23,0.24)]">
+              <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="outline">{currentLesson.number}</Badge>
+                    <div className="mb-2 flex items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className="rounded-full border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
+                      >
+                        Lesson {currentLesson.number}
+                      </Badge>
                     </div>
-                    <CardTitle className="text-2xl mb-2 text-foreground">{currentLesson.title}</CardTitle>
-                    <CardDescription className="flex items-center gap-4">
+                    <CardTitle className="mb-2 text-[1.85rem] text-foreground">{currentLesson.title}</CardTitle>
+                    <CardDescription className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {currentLesson.estimatedMinutes} min
+                        About {currentLesson.estimatedMinutes} min
                       </span>
                       {currentLesson.textbookSections && (
                         <span>Textbook: {currentLesson.textbookSections}</span>
@@ -171,119 +196,113 @@ const Lesson = () => {
                     </CardDescription>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="mt-3">
+                  <div className="mb-2 flex items-center justify-between">
                     <span className="text-sm font-medium text-foreground">Your Progress</span>
-                    <span className="text-sm font-bold text-primary">{lessonProgress}%</span>
+                    <span className="text-sm font-semibold text-primary/90">{lessonProgress}%</span>
                   </div>
-                  <Progress value={lessonProgress} className="h-2" />
+                  <Progress value={lessonProgress} className="h-1.5 bg-white/8" />
                 </div>
               </CardHeader>
             </Card>
 
-            {/* Lesson Content Tabs */}
-            <Card className="glass-card">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <CardHeader className="pb-4">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="ai-tutor" className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4" />
-                      AI Tutor
-                    </TabsTrigger>
-                  </TabsList>
-                </CardHeader>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+              <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-1.5 shadow-[0_18px_48px_rgba(2,8,23,0.18)]">
+                <TabsList className="grid h-auto w-full grid-cols-2 bg-transparent p-0">
+                  <TabsTrigger
+                    value="overview"
+                    className="rounded-[18px] px-4 py-3 text-sm font-medium text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-white/[0.06] data-[state=active]:text-foreground data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  >
+                    Lesson Overview
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="ai-tutor"
+                    className="flex items-center gap-2 rounded-[18px] px-4 py-3 text-sm font-medium text-muted-foreground transition-all hover:text-foreground data-[state=active]:bg-white/[0.06] data-[state=active]:text-foreground data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    AI Tutor
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-                <CardContent className="pt-0">
-                  <TabsContent value="overview" className="mt-0">
-                    <div className="space-y-6">
-                      {/* Lesson Info Card */}
-                      <Card className="glass-card">
-                        <CardContent className="pt-6">
-                          <div className="flex flex-col items-center text-center space-y-4">
-                            {/* Lesson Number and Title */}
-                            <div className="space-y-2">
-                              <div className="text-sm font-medium text-muted-foreground">
-                                {currentLesson.number}
-                              </div>
-                              <CardTitle className="text-2xl">{currentLesson.title}</CardTitle>
-                            </div>
-
-                            {/* Lesson Metadata */}
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-4 w-4" />
-                                <span>~{currentLesson.estimatedMinutes} min</span>
-                              </div>
-                              {currentLesson.textbookSections && (
-                                <>
-                                  <Separator orientation="vertical" className="h-4" />
-                                  <span>Textbook: {currentLesson.textbookSections}</span>
-                                </>
-                              )}
-                            </div>
-
-                            {/* Mark As Complete/Incomplete Button */}
-                            <div className="pt-4">
-                              {chapterProgress?.lessons_completed?.includes(currentLesson.id) ? (
-                                <div className="space-y-5">
-                                  <Badge variant="default" className="bg-green-600 text-white px-4 py-2 text-sm">
-                                    <CheckCircle className="h-4 w-4 mr-2" />
-                                    Completed
-                                  </Badge>
-                                  <Button 
-                                    size="sm" 
-                                    variant="ghost"
-                                    onClick={handleMarkIncomplete}
-                                    className="text-muted-foreground hover:text-foreground"
-                                  >
-                                    Mark As Incomplete
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Button 
-                                  size="lg" 
-                                  onClick={handleMarkComplete}
-                                  className="px-8"
-                                >
-                                  Mark As Complete
-                                </Button>
-                              )}
-                            </div>
+              <TabsContent value="overview" className="mt-0">
+                <div className="space-y-6">
+                  <Card className="glass-card rounded-[26px] border-white/8 shadow-[0_20px_60px_rgba(2,8,23,0.2)]">
+                    <CardContent className="pt-6">
+                      <div className="flex flex-col items-center space-y-4 text-center">
+                        <div className="space-y-2">
+                          <div className="text-sm font-medium text-muted-foreground">
+                            {currentLesson.number}
                           </div>
-                        </CardContent>
-                      </Card>
+                          <CardTitle className="text-2xl">{currentLesson.title}</CardTitle>
+                        </div>
 
-                      {/* Navigation */}
-                      <div className="flex justify-between pt-4">
-                        {previousLesson ? (
-                          <Button variant="outline" onClick={() => navigate(`/platform/lesson/${previousLesson.id}`)}>
-                            Previous: {previousLesson.title}
-                          </Button>
-                        ) : (
-                          <div />
-                        )}
-                        {nextLesson ? (
-                          <Button variant="outline" onClick={() => navigate(`/platform/lesson/${nextLesson.id}`)}>
-                            Next: {nextLesson.title}
-                          </Button>
-                        ) : (
-                          <div />
-                        )}
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-4 w-4" />
+                            <span>~{currentLesson.estimatedMinutes} min</span>
+                          </div>
+                          {currentLesson.textbookSections && (
+                            <>
+                              <Separator orientation="vertical" className="h-4" />
+                              <span>Textbook: {currentLesson.textbookSections}</span>
+                            </>
+                          )}
+                        </div>
+
+                        <div className="pt-4">
+                          {chapterProgress?.lessons_completed?.includes(currentLesson.id) ? (
+                            <div className="space-y-5">
+                              <Badge variant="default" className="bg-green-600 px-4 py-2 text-sm text-white">
+                                <CheckCircle className="mr-2 h-4 w-4" />
+                                Completed
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={handleMarkIncomplete}
+                                className="text-muted-foreground hover:text-foreground"
+                              >
+                                Mark As Incomplete
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button size="lg" onClick={handleMarkComplete} className="px-8">
+                              Mark As Complete
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </TabsContent>
+                    </CardContent>
+                  </Card>
 
-                  <TabsContent value="ai-tutor" className="mt-0">
-                    <GuidedLearning 
-                      lesson={currentLesson} 
-                      chapter={currentChapter}
-                      onComplete={handleMarkComplete}
-                    />
-                  </TabsContent>
-                </CardContent>
-              </Tabs>
-            </Card>
+                  <div className="flex justify-between pt-4">
+                    {previousLesson ? (
+                      <Button variant="outline" onClick={() => navigate(`/platform/lesson/${previousLesson.id}`)}>
+                        Previous: {previousLesson.title}
+                      </Button>
+                    ) : (
+                      <div />
+                    )}
+                    {nextLesson ? (
+                      <Button variant="outline" onClick={() => navigate(`/platform/lesson/${nextLesson.id}`)}>
+                        Next: {nextLesson.title}
+                      </Button>
+                    ) : (
+                      <div />
+                    )}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="ai-tutor" className="mt-0">
+                <GuidedLearning
+                  lesson={currentLesson}
+                  chapter={currentChapter}
+                  onComplete={handleMarkComplete}
+                />
+              </TabsContent>
+            </Tabs>
           </main>
         </div>
       </div>

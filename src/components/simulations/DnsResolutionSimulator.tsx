@@ -546,7 +546,7 @@ export const DnsResolutionSimulator = ({ onStepChange, onGuideStateChange }: Sim
   const [activeHint, setActiveHint] = useState(buildScenarios(DEFAULT_DOMAIN)[0].hint);
   const [currentStep, setCurrentStep] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [activeTab, setActiveTab] = useState<ContentTab>('simulation');
+  const [activeTab] = useState<ContentTab>('simulation');
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const svgContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 700, height: 420 });
@@ -708,38 +708,7 @@ export const DnsResolutionSimulator = ({ onStepChange, onGuideStateChange }: Sim
   };
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-xl font-bold text-foreground">DNS Resolution Simulator</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">
-          Visualize recursive and iterative DNS lookups from client query to final response.
-        </p>
-      </div>
-
-      <div className="flex w-fit rounded-lg border border-border bg-muted/50 p-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('simulation')}
-          className={`transition-colors ${
-            activeTab === 'simulation'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Simulation
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('theory')}
-          className={`transition-colors ${
-            activeTab === 'theory'
-              ? 'rounded-md border border-border bg-background px-4 py-1.5 text-foreground shadow-sm'
-              : 'px-4 py-1.5 text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Learn More
-        </button>
-      </div>
+    <div className="space-y-4">
 
       {activeTab === 'simulation' ? (
         <div className="space-y-3">
