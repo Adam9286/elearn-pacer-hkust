@@ -1407,7 +1407,7 @@ const MockExamMode = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center">
-              <div className="text-6xl font-bold text-primary mb-2">{percentage}%</div>
+              <div className="text-5xl font-bold text-primary mb-2">{percentage}%</div>
               <p className="text-muted-foreground">
                 {scoredPoints} out of {totalPoints} points
               </p>
@@ -2489,7 +2489,7 @@ const MockExamMode = () => {
 
           <CollapsibleContent>
             <CardContent className="space-y-6">
-          <div className="space-y-4 p-4 border rounded-lg bg-secondary/20">
+          <div className="mx-auto max-w-4xl space-y-4 rounded-lg border bg-secondary/20 p-4">
             <h3 className="font-semibold text-lg">Customize Your Exam</h3>
 
             <div className="space-y-3 pt-2 border-t">
@@ -2696,7 +2696,7 @@ const MockExamMode = () => {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="mx-auto max-w-4xl grid md:grid-cols-2 gap-6">
             <div className="flex items-start space-x-3">
               <CheckCircle2 className="w-5 h-5 text-green-500 mt-1" />
               <div>

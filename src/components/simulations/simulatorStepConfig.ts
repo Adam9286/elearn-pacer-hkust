@@ -1,3 +1,5 @@
+import type { ComprehensionQuestion } from '@/types/courseTypes';
+
 export interface ConceptStep {
   title: string;
   description: string;
@@ -8,6 +10,7 @@ export type SimulatorGuideMode = 'terminal' | 'convergence' | 'exploratory';
 export interface SimulatorGuideConfig {
   mode: SimulatorGuideMode;
   steps: ConceptStep[];
+  quizQuestions?: ComprehensionQuestion[];
 }
 
 export interface SimulatorGuideState {
@@ -69,6 +72,30 @@ export const simulatorGuideConfigById: Record<string, SimulatorGuideConfig> = {
       { title: 'SYN-ACK', description: 'The server responds with its own sequence number and acknowledges the client SYN.' },
       { title: 'ACK', description: 'The client confirms the server sequence number and the connection is established.' },
     ],
+    quizQuestions: [
+      {
+        question: 'After a client sends a SYN in the normal TCP handshake, what should the server send back next?',
+        options: [
+          'Another SYN with no acknowledgment',
+          'A SYN-ACK that acknowledges the client and shares the server sequence number',
+          'An ACK that immediately closes the connection',
+          'A FIN to start teardown',
+        ],
+        correctIndex: 1,
+        explanation: 'The server replies with SYN-ACK so it can acknowledge the client SYN and advertise its own starting sequence number.',
+      },
+      {
+        question: 'What does the client\'s final ACK accomplish in the three-way handshake?',
+        options: [
+          'It confirms the server response so both sides can enter ESTABLISHED',
+          'It asks the server to retransmit the SYN-ACK',
+          'It resets the connection if packets are delayed',
+          'It carries the first application data payload',
+        ],
+        correctIndex: 0,
+        explanation: 'The last ACK confirms the server side of the exchange, which completes the handshake and lets both endpoints move into ESTABLISHED.',
+      },
+    ],
   },
   'sliding-window': {
     mode: 'terminal',
@@ -77,6 +104,30 @@ export const simulatorGuideConfigById: Record<string, SimulatorGuideConfig> = {
       { title: 'Packet Transmission', description: 'Packets are sent up to the window limit without waiting for individual ACKs.' },
       { title: 'ACK Reception', description: 'As ACKs return, the window slides forward and allows new packets to be sent.' },
       { title: 'Window Full', description: 'When the window is full, the sender must wait for ACKs before sending more.' },
+    ],
+    quizQuestions: [
+      {
+        question: 'What is the main benefit of using a sliding window instead of sending one packet and waiting each time?',
+        options: [
+          'It lets the sender keep several packets in flight before waiting for ACKs',
+          'It guarantees packets can never be lost',
+          'It removes the need for acknowledgments',
+          'It makes every packet arrive in one step',
+        ],
+        correctIndex: 0,
+        explanation: 'A sliding window improves efficiency by allowing multiple packets to be in flight at once instead of pausing after every single packet.',
+      },
+      {
+        question: 'What happens when the sender\'s window is full and no new ACK has arrived yet?',
+        options: [
+          'The sender immediately doubles the window size',
+          'The sender keeps sending anyway and ignores the limit',
+          'The sender must wait until ACKs free space in the window',
+          'The receiver automatically retransmits the missing packet',
+        ],
+        correctIndex: 2,
+        explanation: 'The window size limits how many unacknowledged packets may be outstanding, so the sender must wait for ACKs before sending more.',
+      },
     ],
   },
   'gbn-sr': {
@@ -128,6 +179,30 @@ export const simulatorGuideConfigById: Record<string, SimulatorGuideConfig> = {
       { title: 'Relax Neighbors', description: 'For the current node, update tentative distances to all unvisited neighbors.' },
       { title: 'Select Minimum', description: 'Choose the unvisited node with the smallest tentative distance.' },
       { title: 'Repeat Until Done', description: 'Continue until all nodes are visited and the shortest-path tree is complete.' },
+    ],
+    quizQuestions: [
+      {
+        question: 'In Dijkstra\'s algorithm, which node should be chosen next after each step?',
+        options: [
+          'The unvisited node with the largest tentative distance',
+          'Any random neighbor of the current node',
+          'The unvisited node with the smallest tentative distance',
+          'The destination node, even if its cost is still unknown',
+        ],
+        correctIndex: 2,
+        explanation: 'Dijkstra works by repeatedly finalizing the unvisited node with the smallest known tentative distance.',
+      },
+      {
+        question: 'What does it mean to relax an edge in Dijkstra\'s algorithm?',
+        options: [
+          'Delete the edge from the graph',
+          'Check whether going through the current node gives a cheaper path to a neighbor',
+          'Mark the neighbor as permanently visited without comparing costs',
+          'Increase all path costs by one hop',
+        ],
+        correctIndex: 1,
+        explanation: 'Relaxation means testing whether the path through the current node improves the best-known cost to a neighboring node.',
+      },
     ],
   },
   'distance-vector': {

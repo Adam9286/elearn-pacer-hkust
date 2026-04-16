@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Send, Lightbulb, Activity } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import ChatMode from "@/components/ChatMode";
@@ -53,7 +52,7 @@ const Index = () => {
       <div className="min-h-screen bg-background">
       {/* Header with improved contrast */}
       <header className="bg-gradient-to-r from-navy/95 to-dark-void/95 dark:bg-gradient-to-r dark:from-navy/95 dark:to-dark-void/95 light:bg-white/95 light:border-b light:border-gray-200 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-white/10">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link 
@@ -116,50 +115,34 @@ const Index = () => {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        {/* Welcome Card */}
-        <Card className="mb-6 glass-card border-2 shadow-lg transition-smooth hover:shadow-glow">
-          <CardHeader className="pb-5">
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Welcome to Your AI Teaching Assistant
-            </CardTitle>
-            
-            {/* Study Tips Box */}
-            <div className="mt-3 p-3 rounded-xl bg-gradient-to-r from-accent/15 via-primary/10 to-accent/15 border border-accent/30 shadow-inner">
-              <div className="flex items-center gap-2 mb-1.5">
-                <div className="p-1 rounded-lg bg-accent/20">
-                  <Lightbulb className="w-3.5 h-3.5 text-accent animate-pulse" />
-                </div>
-                <span className="text-xs font-bold uppercase tracking-wider text-accent">
-                  Study Tip
-                </span>
-              </div>
-              <p 
-                key={tipIndex}
-                className="text-sm text-foreground/90 italic leading-relaxed animate-fade-in"
-              >
-                {studyTips[tipIndex]}
-              </p>
-            </div>
-          </CardHeader>
-        </Card>
+      <main className="container mx-auto px-4 py-4">
+        {/* Compact study tip strip */}
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-accent/20 bg-accent/5 px-4 py-2.5">
+          <Lightbulb className="h-4 w-4 shrink-0 text-accent" />
+          <p
+            key={tipIndex}
+            className="min-w-0 truncate text-sm italic text-foreground/80 animate-fade-in"
+          >
+            {studyTips[tipIndex]}
+          </p>
+        </div>
 
         {/* Mode Selector */}
-        <Tabs value={activeMode} onValueChange={setActiveMode} className="space-y-6">
+        <Tabs value={activeMode} onValueChange={setActiveMode} className="space-y-4">
           <TabsList className="grid w-full grid-cols-6 h-auto p-2 glass-card">
             <TabsTrigger
               value="chat"
               className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <MessageSquare className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Chat Mode</span>
+              <span className="font-semibold hidden sm:inline">Chat</span>
             </TabsTrigger>
             <TabsTrigger
               value="course"
               className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <BookOpen className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Course Mode</span>
+              <span className="font-semibold hidden sm:inline">Course</span>
             </TabsTrigger>
             <TabsTrigger
               value="exam"
@@ -191,27 +174,27 @@ const Index = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="chat" className="mt-6">
+          <TabsContent value="chat" className="mt-3">
             <ChatMode />
           </TabsContent>
 
-          <TabsContent value="course" className="mt-6">
+          <TabsContent value="course" className="mt-3">
             <CourseMode />
           </TabsContent>
 
-          <TabsContent value="exam" className="mt-6">
+          <TabsContent value="exam" className="mt-3">
             <MockExamMode />
           </TabsContent>
 
-          <TabsContent value="simulations" className="mt-6">
+          <TabsContent value="simulations" className="mt-3">
             <SimulationsMode />
           </TabsContent>
 
-          <TabsContent value="feedback" className="mt-6">
+          <TabsContent value="feedback" className="mt-3">
             <Feedback />
           </TabsContent>
 
-          <TabsContent value="info" className="mt-6">
+          <TabsContent value="info" className="mt-3">
             <HowItWorks />
           </TabsContent>
         </Tabs>

@@ -25,6 +25,7 @@ import type { ComprehensionQuestion } from "@/types/courseTypes";
 interface TestYourselfCardProps {
   question: ComprehensionQuestion | null;
   pageNumber: number;
+  badgeLabel?: string;
   hasBeenAnswered?: boolean;      // Whether this page was already answered in DB
   previouslyCorrect?: boolean;    // Whether the previous answer was correct
   onAnswer: (correct: boolean, isRetry: boolean) => void;
@@ -41,6 +42,7 @@ interface TestYourselfCardProps {
 const TestYourselfCard = ({
   question,
   pageNumber,
+  badgeLabel,
   hasBeenAnswered = false,
   previouslyCorrect = false,
   onAnswer,
@@ -57,6 +59,7 @@ const TestYourselfCard = ({
   });
   
   const MAX_ATTEMPTS = 3;
+  const resolvedBadgeLabel = badgeLabel ?? `Slide ${pageNumber}`;
   
   // Only show correct answer if user got it right OR exhausted all attempts
   const showCorrectAnswer = hasSubmitted && (isCorrect || attemptCount >= MAX_ATTEMPTS);
@@ -124,7 +127,7 @@ const TestYourselfCard = ({
               </Badge>
             </CardTitle>
             <Badge variant="secondary" className="rounded-full border border-white/8 bg-white/[0.03] text-xs">
-              Slide {pageNumber}
+              {resolvedBadgeLabel}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground text-left mt-1">
@@ -166,7 +169,7 @@ const TestYourselfCard = ({
             </CardTitle>
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="rounded-full border border-white/8 bg-white/[0.03] text-xs">
-                Slide {pageNumber}
+                {resolvedBadgeLabel}
               </Badge>
               {isExpanded ? (
                 <ChevronUp className="h-4 w-4 text-muted-foreground" />

@@ -86,13 +86,13 @@ const Lesson = () => {
     <ThemeProvider>
       <div className="min-h-screen bg-background">
         <header className="sticky top-0 z-50 border-b border-white/10 bg-background/90 backdrop-blur-xl supports-[backdrop-filter]:bg-background/75">
-          <div className="container flex h-24 items-center justify-between px-4">
+          <div className="container flex h-14 items-center justify-between px-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="outline"
-                size="default"
+                size="sm"
                 onClick={() => navigate("/platform", { state: { mode: "course" } })}
-                className="h-12 rounded-2xl border-white/10 bg-white/[0.04] px-5 text-sm font-semibold text-foreground shadow-[0_12px_30px_rgba(0,0,0,0.18)] transition-all hover:border-white/15 hover:bg-white/[0.07] hover:text-foreground focus-visible:ring-primary/60"
+                className="h-9 rounded-xl border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-foreground transition-all hover:border-white/15 hover:bg-white/[0.07] hover:text-foreground focus-visible:ring-primary/60"
               >
                 <ArrowLeft className="mr-2 h-4 w-4 text-primary/80" />
                 <Home className="mr-2 h-4 w-4 text-primary/65" />
@@ -119,12 +119,12 @@ const Lesson = () => {
 
         <div
           className={`${
-            showSidebar ? "container" : "mx-auto w-full max-w-[1800px] px-4 lg:px-8"
-          } grid grid-cols-1 gap-8 py-8 ${showSidebar ? "lg:grid-cols-4" : ""}`}
+            showSidebar ? "container" : "mx-auto w-full max-w-[1800px] px-4 lg:px-6"
+          } grid grid-cols-1 gap-6 py-5 ${showSidebar ? "lg:grid-cols-4" : ""}`}
         >
           {showSidebar && (
             <aside className="lg:col-span-1">
-              <Card className="glass-card sticky top-28 rounded-[24px] border-white/8 shadow-[0_20px_60px_rgba(2,8,23,0.22)]">
+              <Card className="glass-card sticky top-16 rounded-[24px] border-white/8 shadow-[0_20px_60px_rgba(2,8,23,0.22)]">
                 <CardHeader>
                   <CardTitle className="text-lg text-foreground">Section {currentChapter.id} Lessons</CardTitle>
                   {currentChapter.textbookPages && (
@@ -141,7 +141,7 @@ const Lesson = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <ScrollArea className="h-[calc(100vh-16rem)]">
+                  <ScrollArea className="h-[calc(100vh-11rem)]">
                     <div className="space-y-2">
                       {currentChapter.lessons.map((lesson) => {
                         const isCompleted = chapterProgress?.lessons_completed?.includes(lesson.id);
@@ -171,42 +171,33 @@ const Lesson = () => {
             </aside>
           )}
 
-          <main className={`${showSidebar ? "lg:col-span-3" : ""} space-y-6`}>
-            <Card className="glass-card rounded-[28px] border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(34,211,238,0.08),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02))] shadow-[0_24px_80px_rgba(2,8,23,0.24)]">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="mb-2 flex items-center gap-2">
-                      <Badge
-                        variant="outline"
-                        className="rounded-full border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]"
-                      >
-                        Lesson {currentLesson.number}
-                      </Badge>
-                    </div>
-                    <CardTitle className="mb-2 text-[1.85rem] text-foreground">{currentLesson.title}</CardTitle>
-                    <CardDescription className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        About {currentLesson.estimatedMinutes} min
-                      </span>
-                      {currentLesson.textbookSections && (
-                        <span>Textbook: {currentLesson.textbookSections}</span>
-                      )}
-                    </CardDescription>
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-sm font-medium text-foreground">Your Progress</span>
-                    <span className="text-sm font-semibold text-primary/90">{lessonProgress}%</span>
-                  </div>
-                  <Progress value={lessonProgress} className="h-1.5 bg-white/8" />
-                </div>
-              </CardHeader>
-            </Card>
+          <main className={`${showSidebar ? "lg:col-span-3" : ""} space-y-4`}>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-white/8 bg-white/[0.03] px-5 py-3.5">
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <Badge
+                  variant="outline"
+                  className="shrink-0 rounded-full border-white/10 bg-white/[0.03] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em]"
+                >
+                  {currentLesson.number}
+                </Badge>
+                <h1 className="truncate text-base font-semibold text-foreground">{currentLesson.title}</h1>
+                <CardDescription className="hidden items-center gap-3 text-sm sm:flex">
+                  <span className="flex items-center gap-1">
+                    <Clock className="h-3.5 w-3.5" />
+                    {currentLesson.estimatedMinutes} min
+                  </span>
+                  {currentLesson.textbookSections && (
+                    <span className="text-muted-foreground/70">§ {currentLesson.textbookSections}</span>
+                  )}
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-primary/90">{lessonProgress}%</span>
+                <Progress value={lessonProgress} className="h-1.5 w-24 bg-white/8" />
+              </div>
+            </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-4">
               <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-1.5 shadow-[0_18px_48px_rgba(2,8,23,0.18)]">
                 <TabsList className="grid h-auto w-full grid-cols-2 bg-transparent p-0">
                   <TabsTrigger

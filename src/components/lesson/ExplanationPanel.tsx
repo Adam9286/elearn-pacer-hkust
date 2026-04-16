@@ -56,12 +56,12 @@ const ExplanationPanel = ({
   return (
     <section
       className={cn(
-        "flex min-h-[420px] flex-col rounded-[24px] border border-white/6 bg-white/[0.03] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
+        "flex min-h-[300px] flex-col rounded-[24px] border border-white/6 bg-white/[0.03] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]",
         className
       )}
     >
-      <div className="border-b border-white/6 pb-5">
-        <div className="flex flex-col gap-4">
+      <div className="border-b border-white/6 pb-4">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
@@ -125,18 +125,10 @@ const ExplanationPanel = ({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Current slide focus
-            </div>
-            <p className="text-sm text-muted-foreground">
-              The tutor on the right is explaining the slide currently shown on the left.
-            </p>
-          </div>
         </div>
       </div>
 
-      <div className="flex-1 pt-5">
+      <div className="flex-1 pt-4">
         {contentState === "loading" && (
           <div className="space-y-3">
             <Skeleton className="h-4 w-full bg-white/8" />
