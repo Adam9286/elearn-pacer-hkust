@@ -63,7 +63,7 @@ const parseInline = (text: string, keyPrefix: string): ReactNode[] => {
       elements.push(
         <code
           key={`${keyPrefix}-code-${matchIndex}`}
-          className="px-1.5 py-0.5 rounded bg-muted text-primary font-mono text-[0.9em]"
+          className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 font-mono text-[0.9em] border border-amber-500/20"
         >
           {matched.slice(1, -1)}
         </code>

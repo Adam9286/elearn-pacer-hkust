@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Send, Lightbulb, Activity } from "lucide-react";
+import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Send, Lightbulb, Activity, GitCompareArrows, MoreHorizontal } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import ChatMode from "@/components/ChatMode";
 import CourseMode from "@/components/CourseMode";
@@ -9,12 +10,14 @@ import MockExamMode from "@/components/MockExamMode";
 import HowItWorks from "@/components/HowItWorks";
 import SimulationsMode from "@/components/SimulationsMode";
 import Feedback from "@/components/Feedback";
+import CompareMode from "@/components/compare/CompareMode";
 import ThemeToggle from "@/components/ThemeToggle";
 import AccountSettings from "@/components/AccountSettings";
 import AdminDropdown from "@/components/AdminDropdown";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useUserProgress } from "@/contexts/UserProgressContext";
 import { externalSupabase } from "@/lib/externalSupabase";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 const studyTips = [
@@ -25,6 +28,8 @@ const studyTips = [
   "Canvas notifications = broadcast, WhatsApp group = multicast, DM your groupmate = unicast.",
   "When stuck, think in layers: Physical (cables) → Link (WiFi) → Network (routing) → Transport (TCP/UDP) → Application (your app).",
 ];
+
+const overflowModes = ["info", "feedback"];
 
 const Index = () => {
   const navigate = useNavigate();
@@ -129,53 +134,89 @@ const Index = () => {
 
         {/* Mode Selector */}
         <Tabs value={activeMode} onValueChange={setActiveMode} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-6 h-auto p-2 glass-card">
+          <TabsList className="flex h-auto w-full items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-800/60 p-2">
             <TabsTrigger
               value="chat"
-              className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <MessageSquare className="w-5 h-5" />
               <span className="font-semibold hidden sm:inline">Chat</span>
             </TabsTrigger>
             <TabsTrigger
+              value="compare"
+              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+            >
+              <GitCompareArrows className="w-5 h-5" />
+              <span className="font-semibold hidden sm:inline">Compare</span>
+            </TabsTrigger>
+            <TabsTrigger
               value="course"
-              className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <BookOpen className="w-5 h-5" />
               <span className="font-semibold hidden sm:inline">Course</span>
             </TabsTrigger>
             <TabsTrigger
               value="exam"
-              className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <FileText className="w-5 h-5" />
               <span className="font-semibold hidden sm:inline">Mock Exam</span>
             </TabsTrigger>
             <TabsTrigger
               value="simulations"
-              className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
             >
               <Activity className="w-5 h-5" />
               <span className="font-semibold hidden sm:inline">Simulations</span>
             </TabsTrigger>
-            <TabsTrigger
-              value="feedback"
-              className="flex items-center gap-2 py-3 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
-            >
-              <Send className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Feedback</span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="info"
-              className="flex items-center gap-2 py-3 data-[state=active]:gradient-accent data-[state=active]:text-navy transition-smooth"
-            >
-              <Info className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">How It Works</span>
-            </TabsTrigger>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Open more platform modes"
+                  className={cn(
+                    "ml-auto inline-flex h-11 items-center justify-center whitespace-nowrap rounded-sm px-3 py-3 text-sm font-medium text-slate-300 ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 hover:bg-slate-700/60 hover:text-slate-100",
+                    overflowModes.includes(activeMode) && "bg-slate-700/60 text-slate-100",
+                  )}
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-56 border-slate-700/80 bg-slate-900/95 text-slate-100"
+              >
+                <DropdownMenuItem
+                  onSelect={() => setActiveMode("info")}
+                  className={cn(
+                    "gap-2 text-slate-200 focus:bg-slate-800/60 focus:text-slate-100",
+                    activeMode === "info" && "bg-slate-800/60 text-slate-100",
+                  )}
+                >
+                  <Info className="h-4 w-4" />
+                  <span>How It Works</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={() => setActiveMode("feedback")}
+                  className={cn(
+                    "gap-2 text-slate-200 focus:bg-slate-800/60 focus:text-slate-100",
+                    activeMode === "feedback" && "bg-slate-800/60 text-slate-100",
+                  )}
+                >
+                  <Send className="h-4 w-4" />
+                  <span>Feedback</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </TabsList>
 
           <TabsContent value="chat" className="mt-3">
             <ChatMode />
+          </TabsContent>
+
+          <TabsContent value="compare" className="mt-3">
+            <CompareMode />
           </TabsContent>
 
           <TabsContent value="course" className="mt-3">
