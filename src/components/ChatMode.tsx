@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { externalSupabase } from '@/lib/externalSupabase';
 import { useChatHistory } from '@/hooks/useChatHistory';
-import type { ChatMessage } from '@/types/chatTypes';
+import type { ChatResponseStyle } from '@/types/chatTypes';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
 import { WEBHOOKS, TIMEOUTS } from '@/constants/api';
@@ -70,7 +70,11 @@ const ChatMode = () => {
   const [isWaitingForAI, setIsWaitingForAI] = useState(false);
 
   // Handle sending a message
-  const handleSendMessage = async (content: string, attachments: File[]) => {
+  const handleSendMessage = async (
+    content: string,
+    attachments: File[],
+    responseStyle: ChatResponseStyle,
+  ) => {
     if (!userId) return;
 
     let conversationId = activeConversationId;
@@ -166,6 +170,7 @@ const ChatMode = () => {
           sessionId,
           attachments: uploadedUrls,
           mode: 'auto',
+          responseStyle,
         }),
         signal: controller.signal,
       });
@@ -212,6 +217,7 @@ const ChatMode = () => {
           ...aiMessage,
           structured_answer: structured ?? undefined,
           responseTime,
+          responseStyle,
         });
       }
     } catch (error) {

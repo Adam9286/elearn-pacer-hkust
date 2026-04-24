@@ -60,7 +60,7 @@ const ThemeToggle = () => {
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="relative flex items-center gap-2 px-4 py-2.5 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 hover:border-primary/60 hover:shadow-[0_0_20px_rgba(0,255,255,0.2)] transition-all duration-300"
+          className="relative flex items-center gap-2 rounded-full border-2 border-primary/30 bg-gradient-to-r from-primary/10 to-accent/10 px-4 py-2.5 transition-all duration-300 hover:border-primary/60 hover:shadow-[0_0_20px_hsl(var(--primary)/0.25)]"
         >
           <Palette className="h-4 w-4" />
           <span className="text-sm font-semibold hidden sm:inline tracking-wide">Theme</span>

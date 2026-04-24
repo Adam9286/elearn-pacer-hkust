@@ -1,71 +1,143 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+
+import { LANDING_SECTION_SCROLL_MARGIN } from "@/constants/landing";
+import { platformModeSummaries, totalSimulationCount } from "@/data/platformContent";
 
 const CTA = () => {
-  const navigate = useNavigate();
-
   return (
-    <section className="px-4 py-28 sm:px-6 lg:px-8 lg:py-36">
-      <div className="mx-auto max-w-7xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
+    <section
+      id="cta"
+      style={{
+        padding: "8rem clamp(1rem, 3vw, 2.5rem)",
+        textAlign: "center",
+        position: "relative",
+        overflow: "hidden",
+        scrollMarginTop: LANDING_SECTION_SCROLL_MARGIN,
+      }}
+    >
+      <div
+        className="animate-lp-drift"
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(34,211,238,0.055), transparent 70%)",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(ellipse 30% 30% at 30% 70%, rgba(249,115,22,0.025), transparent 60%)",
+        }}
+      />
+
+      <div style={{ position: "relative", maxWidth: 700, margin: "0 auto" }}>
+        <motion.p
+          initial={{ opacity: 0.9, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.2 }}
-          transition={{ duration: 0.55, ease: "easeOut" }}
-          className="mx-auto max-w-2xl text-center"
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10,
+            letterSpacing: "0.2em",
+            textTransform: "uppercase",
+            color: "#f97316",
+            marginBottom: "1rem",
+          }}
         >
-          <h2 className="font-display text-[2rem] font-bold tracking-[-0.03em] text-white sm:text-[2.5rem] lg:text-[2.75rem]">
-            Built for ELEC3120.
-            <br />
-            <span className="text-white/50">
-              Designed for independent mastery.
-            </span>
-          </h2>
+          READY TO DEMO?
+        </motion.p>
+        <motion.h2
+          initial={{ opacity: 0.9, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.4, ease: "easeOut", delay: 0.06 }}
+          style={{
+            fontFamily: "'Inter Tight', sans-serif",
+            fontSize: "clamp(2rem, 4.5vw, 3.75rem)",
+            fontWeight: 900,
+            letterSpacing: "-0.045em",
+            color: "#f0f4ff",
+            lineHeight: 1.0,
+            marginBottom: "1rem",
+          }}
+        >
+          Open the full ELEC3120 study stack.
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0.9, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.4, ease: "easeOut", delay: 0.12 }}
+          style={{
+            fontFamily: "'Inter Tight', sans-serif",
+            fontSize: "1rem",
+            color: "#6e82a4",
+            marginBottom: "2.25rem",
+            lineHeight: 1.6,
+          }}
+        >
+          Sign in to explore {platformModeSummaries.chat.label}, {platformModeSummaries.course.label}, {platformModeSummaries.simulations.label}, {platformModeSummaries.exam.label}, and {platformModeSummaries.compare.label} in one place.
+        </motion.p>
 
-          <p className="mt-5 text-[15px] leading-[1.75] text-white/40">
-            From quick questions to structured revision — chat, study,
-            simulate, and practice in one focused workflow.
-          </p>
-
-          {/* CTAs */}
-          <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row sm:items-center">
-            <button
-              type="button"
-              onClick={() => navigate("/platform")}
-              className="group inline-flex items-center justify-center gap-2.5 rounded-full bg-cyan-400 px-7 py-3 text-[13px] font-semibold text-[#040c1b] shadow-[0_0_20px_rgba(34,211,238,0.2),0_2px_8px_rgba(0,0,0,0.3)] transition-all hover:-translate-y-px hover:bg-cyan-300 hover:shadow-[0_0_28px_rgba(34,211,238,0.3),0_4px_12px_rgba(0,0,0,0.3)]"
-            >
-              Launch LearningPacer
-              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/platform", { state: { mode: "simulations" } })
-              }
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/[0.1] bg-white/[0.02] px-6 py-3 text-[13px] font-medium text-white/60 transition-all hover:border-white/[0.16] hover:bg-white/[0.04] hover:text-white/85"
-            >
-              View Simulations
-            </button>
-          </div>
-
-          {/* Subtle signal chips */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-2">
-            {["Course-grounded", "Simulation-backed", "Revision-focused"].map(
-              (signal) => (
-                <span
-                  key={signal}
-                  className="rounded-full border border-white/[0.05] bg-white/[0.015] px-3.5 py-1.5 text-[11px] font-medium text-white/30"
-                >
-                  {signal}
-                </span>
-              ),
-            )}
+        <motion.div
+          initial={{ opacity: 0.9, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.12 }}
+          transition={{ duration: 0.4, ease: "easeOut", delay: 0.18 }}
+          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 12 }}
+        >
+          <Link
+            to="/auth"
+            className="animate-lp-cyan-pulse"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 9,
+              padding: "14px 30px",
+              background: "#22d3ee",
+              color: "#030816",
+              borderRadius: 8,
+              fontFamily: "'Inter Tight', sans-serif",
+              fontWeight: 800,
+              fontSize: 15,
+              textDecoration: "none",
+              letterSpacing: "-0.02em",
+              whiteSpace: "nowrap",
+              transition: "opacity .2s ease, transform .2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.opacity = "0.87";
+              e.currentTarget.style.transform = "translateY(-2px)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.opacity = "1";
+              e.currentTarget.style.transform = "none";
+            }}
+          >
+            Start learning now
+            <ArrowRight size={15} strokeWidth={2.5} color="#030816" />
+          </Link>
+          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "1rem" }}>
+            {[`${Object.keys(platformModeSummaries).length} study modes`, `${totalSimulationCount} simulations`, "Course-grounded chat"].map((item) => (
+              <span
+                key={item}
+                style={{
+                  fontSize: 11,
+                  color: "#6e82a4",
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
+              >
+                {item}
+              </span>
+            ))}
           </div>
         </motion.div>
-
-        {/* Divider */}
-        <div className="mx-auto mt-20 h-px max-w-xs bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
       </div>
     </section>
   );

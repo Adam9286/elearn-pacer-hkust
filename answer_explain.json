@@ -1,0 +1,43 @@
+{
+  "question_type": "comparison",
+  "title": "Go-Back-N vs Selective Repeat ARQ",
+  "summary": "Both are sliding-window ARQ schemes, but Go-Back-N retransmits a whole run of unacknowledged packets after a loss, while Selective Repeat retransmits only the specific missing packets.",
+  "main_explanation": "The key difference is **what happens when one packet is lost but later packets have already been sent**.\n\n- In **Go-Back-N (GBN)**, the receiver mainly accepts only the next expected packet in order. If packet 3 is lost and packets 4, 5, 6 arrive, those later packets are not useful immediately. After timeout, the sender goes back and retransmits packet 3 **and all later unacknowledged packets**.\n- In **Selective Repeat (SR)**, the receiver can keep correctly received out-of-order packets. If packet 3 is lost but 4, 5, 6 arrive correctly, the receiver buffers them and individually acknowledges them. The sender only needs to retransmit **packet 3**.\n\nSo the tradeoff is:\n\n- **GBN**: simpler, less receiver complexity, but wastes bandwidth when losses happen.\n- **SR**: more efficient under loss, but needs more buffering and more complicated bookkeeping.\n\nA concrete example:\n\n1. Sender sends packets 1, 2, 3, 4, 5.\n2. Packet 3 is lost.\n3. Packets 4 and 5 still arrive.\n\nWith **GBN**:\n- Receiver discards 4 and 5 because 3 is missing.\n- Receiver keeps acknowledging the last in-order packet.\n- Sender eventually times out for packet 3.\n- Sender retransmits 3, 4, 5.\n\nWith **SR**:\n- Receiver buffers 4 and 5.\n- Receiver sends ACKs for 4 and 5 individually.\n- Window may not fully slide yet because packet 3 is still missing.\n- Sender retransmits only packet 3.\n- Once 3 arrives, buffered 4 and 5 can now be delivered in order.\n\nA common mistake is to think SR means the application receives packets out of order. Actually, SR may **buffer out-of-order packets**, but reliable delivery to the upper layer is still typically made in order.\n\nAnother common mistake is to say GBN always resends everything in the window. More precisely, after timeout it resends **the oldest unacknowledged packet and all later unacknowledged packets**.\n\nWhy SR is usually more efficient:\n\n- If losses are rare, both work reasonably well.\n- If the link has noticeable loss or long delay, GBN can waste many retransmissions.\n- SR avoids resending packets that were already received correctly.\n\nWhy GBN is simpler:\n\n- Receiver logic is simpler because it mostly tracks only the next expected sequence number.\n- Sender can often use a simpler timer strategy.\n- Fewer buffering requirements at the receiver.\n\nIn short:\n\n- Choose **GBN** when you want conceptual simplicity.\n- Choose **SR** when you want better efficiency during loss.",
+  "table": {
+    "headers": [
+      "Aspect",
+      "Go-Back-N",
+      "Selective Repeat"
+    ],
+    "rows": [
+      [
+        "Receiver behavior",
+        "Accepts mainly in-order packets; out-of-order packets are discarded",
+        "Accepts and buffers out-of-order packets"
+      ],
+      [
+        "ACK style",
+        "Typically cumulative ACKs",
+        "Typically individual ACKs for correctly received packets"
+      ],
+      [
+        "Retransmission after loss",
+        "Retransmit the missing packet and all later unacknowledged packets",
+        "Retransmit only the specific missing packet(s)"
+      ],
+      [
+        "Efficiency and complexity",
+        "Lower complexity, but less efficient under loss",
+        "Higher complexity, but more efficient under loss"
+      ]
+    ]
+  },
+  "diagram": {
+    "type": "mermaid",
+    "code": "sequenceDiagram\n participant S as Sender\n participant R as Receiver\n\n rect rgb(245,245,245)\n Note over S,R: Go-Back-N\n S->>R: pkt1\n S->>R: pkt2\n S-xR: pkt3 lost\n S->>R: pkt4\n S->>R: pkt5\n R-->>S: ACK1, ACK2, repeated cumulative ACK\n Note over R: pkt4 and pkt5 discarded as out-of-order\n Note over S: timeout for pkt3\n S->>R: retransmit pkt3, pkt4, pkt5\n end\n\n rect rgb(235,245,255)\n Note over S,R: Selective Repeat\n S->>R: pkt1\n S->>R: pkt2\n S-xR: pkt3 lost\n S->>R: pkt4\n S->>R: pkt5\n R-->>S: ACK1\n R-->>S: ACK2\n R-->>S: ACK4\n R-->>S: ACK5\n Note over R: pkt4 and pkt5 buffered\n Note over S: retransmit only pkt3\n S->>R: pkt3\n Note over R: now deliver pkt3, pkt4, pkt5 in order\n end"
+  },
+  "elec3120_context": "In ELEC3120 transport-layer material, both protocols are presented as sliding-window methods for handling loss, with Selective Repeat emphasized as more efficient because it avoids unnecessary retransmissions.",
+  "exam_tip": "If asked to compare them, mention all four of these: receiver handling of out-of-order packets, ACK type, retransmission rule, and complexity vs efficiency. That usually earns full comparison marks.",
+  "check_understanding": "If packets 7, 8, 9 are sent and packet 8 is lost but 9 arrives, what does the receiver do in GBN, and what does it do in SR?",
+  "calculation_steps": null
+}

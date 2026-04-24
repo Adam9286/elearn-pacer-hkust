@@ -14,8 +14,10 @@ import CompareMode from "@/components/compare/CompareMode";
 import ThemeToggle from "@/components/ThemeToggle";
 import AccountSettings from "@/components/AccountSettings";
 import AdminDropdown from "@/components/AdminDropdown";
+import StudyToolsStrip from "@/components/platform/StudyToolsStrip";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useUserProgress } from "@/contexts/UserProgressContext";
+import { platformModeSummaries } from "@/data/platformContent";
 import { externalSupabase } from "@/lib/externalSupabase";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -56,32 +58,32 @@ const Index = () => {
     <ThemeProvider defaultTheme="midnight">
       <div className="min-h-screen bg-background">
       {/* Header with improved contrast */}
-      <header className="bg-gradient-to-r from-navy/95 to-dark-void/95 dark:bg-gradient-to-r dark:from-navy/95 dark:to-dark-void/95 light:bg-white/95 light:border-b light:border-gray-200 backdrop-blur-md shadow-lg sticky top-0 z-50 border-b border-white/10">
+      <header className="sticky top-0 z-50 border-b border-border bg-card/85 backdrop-blur-md shadow-sm">
         <div className="container mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link 
-                to="/" 
-                className="flex items-center gap-2 text-sm dark:text-white/90 text-gray-800 dark:hover:text-white hover:text-gray-900 transition-colors dark:hover:bg-white/10 hover:bg-gray-100 px-3 py-2 rounded-lg"
+              <Link
+                to="/"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 <Home className="w-4 h-4" />
                 <span className="font-medium">Home</span>
               </Link>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center shadow-glow">
-                  <BookOpen className="w-6 h-6 text-navy" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary shadow-glow">
+                  <BookOpen className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold dark:text-white text-gray-900">LearningPacer</h1>
-                  <p className="text-sm dark:text-white/80 text-gray-700">ELEC3120: Computer Networks</p>
+                  <h1 className="text-2xl font-bold text-foreground">LearningPacer</h1>
+                  <p className="text-sm text-muted-foreground">ELEC3120: Computer Networks</p>
                 </div>
               </div>
             </div>
-                <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4">
               <ThemeToggle />
               {user ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm dark:text-white/80 text-gray-700 hidden sm:block">
+                  <span className="hidden text-sm text-muted-foreground sm:block">
                     {user.email}
                   </span>
                   <AdminDropdown />
@@ -132,43 +134,45 @@ const Index = () => {
           </p>
         </div>
 
+        <StudyToolsStrip />
+
         {/* Mode Selector */}
         <Tabs value={activeMode} onValueChange={setActiveMode} className="space-y-4">
-          <TabsList className="flex h-auto w-full items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-800/60 p-2">
+          <TabsList className="flex h-auto w-full items-center gap-2 rounded-xl border border-border bg-muted/40 p-2">
             <TabsTrigger
               value="chat"
-              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-muted-foreground transition-smooth hover:bg-accent/10 hover:text-foreground data-[state=active]:gradient-primary data-[state=active]:text-primary-foreground"
             >
               <MessageSquare className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Chat</span>
+              <span className="font-semibold hidden sm:inline">{platformModeSummaries.chat.label}</span>
             </TabsTrigger>
             <TabsTrigger
               value="compare"
-              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-muted-foreground transition-smooth hover:bg-accent/10 hover:text-foreground data-[state=active]:gradient-primary data-[state=active]:text-primary-foreground"
             >
               <GitCompareArrows className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Compare</span>
+              <span className="font-semibold hidden sm:inline">{platformModeSummaries.compare.label}</span>
             </TabsTrigger>
             <TabsTrigger
               value="course"
-              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-muted-foreground transition-smooth hover:bg-accent/10 hover:text-foreground data-[state=active]:gradient-primary data-[state=active]:text-primary-foreground"
             >
               <BookOpen className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Course</span>
+              <span className="font-semibold hidden sm:inline">{platformModeSummaries.course.label}</span>
             </TabsTrigger>
             <TabsTrigger
               value="exam"
-              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-muted-foreground transition-smooth hover:bg-accent/10 hover:text-foreground data-[state=active]:gradient-primary data-[state=active]:text-primary-foreground"
             >
               <FileText className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Mock Exam</span>
+              <span className="font-semibold hidden sm:inline">{platformModeSummaries.exam.label}</span>
             </TabsTrigger>
             <TabsTrigger
               value="simulations"
-              className="flex flex-1 items-center gap-2 py-3 text-slate-300 hover:bg-slate-700/60 hover:text-slate-100 data-[state=active]:gradient-primary data-[state=active]:text-white transition-smooth"
+              className="flex flex-1 items-center gap-2 py-3 text-muted-foreground transition-smooth hover:bg-accent/10 hover:text-foreground data-[state=active]:gradient-primary data-[state=active]:text-primary-foreground"
             >
               <Activity className="w-5 h-5" />
-              <span className="font-semibold hidden sm:inline">Simulations</span>
+              <span className="font-semibold hidden sm:inline">{platformModeSummaries.simulations.label}</span>
             </TabsTrigger>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -176,8 +180,8 @@ const Index = () => {
                   type="button"
                   aria-label="Open more platform modes"
                   className={cn(
-                    "ml-auto inline-flex h-11 items-center justify-center whitespace-nowrap rounded-sm px-3 py-3 text-sm font-medium text-slate-300 ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 hover:bg-slate-700/60 hover:text-slate-100",
-                    overflowModes.includes(activeMode) && "bg-slate-700/60 text-slate-100",
+                    "ml-auto inline-flex h-11 items-center justify-center whitespace-nowrap rounded-md px-3 py-3 text-sm font-medium text-muted-foreground ring-offset-background transition-all hover:bg-accent/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    overflowModes.includes(activeMode) && "bg-accent/15 text-foreground",
                   )}
                 >
                   <MoreHorizontal className="h-5 w-5" />
@@ -185,13 +189,13 @@ const Index = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-56 border-slate-700/80 bg-slate-900/95 text-slate-100"
+                className="w-56 border-border bg-popover text-popover-foreground"
               >
                 <DropdownMenuItem
                   onSelect={() => setActiveMode("info")}
                   className={cn(
-                    "gap-2 text-slate-200 focus:bg-slate-800/60 focus:text-slate-100",
-                    activeMode === "info" && "bg-slate-800/60 text-slate-100",
+                    "gap-2 focus:bg-accent/15 focus:text-foreground",
+                    activeMode === "info" && "bg-accent/15 text-foreground",
                   )}
                 >
                   <Info className="h-4 w-4" />
@@ -200,8 +204,8 @@ const Index = () => {
                 <DropdownMenuItem
                   onSelect={() => setActiveMode("feedback")}
                   className={cn(
-                    "gap-2 text-slate-200 focus:bg-slate-800/60 focus:text-slate-100",
-                    activeMode === "feedback" && "bg-slate-800/60 text-slate-100",
+                    "gap-2 focus:bg-accent/15 focus:text-foreground",
+                    activeMode === "feedback" && "bg-accent/15 text-foreground",
                   )}
                 >
                   <Send className="h-4 w-4" />

@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LearningPacer — ELEC3120 Computer Networks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:#030816;color:#e8eeff;font-family:'Inter Tight',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+.reveal{opacity:0;transform:translateY(16px);transition:opacity .55s ease-out,transform .55s ease-out}
+.reveal.visible{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}.d4{transition-delay:.32s}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.word-reveal{opacity:1!important;transform:none!important;transition:none!important}}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:#030816}
+::-webkit-scrollbar-thumb{background:rgba(34,211,238,.12);border-radius:2px}
+
+/* Film grain */
+.grain::after{content:'';position:absolute;inset:0;z-index:5;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity:.03;mix-blend-mode:overlay}
+
+/* Word reveal */
+.word-reveal{opacity:0;transform:translateY(10px);display:inline;transition:opacity .4s ease-out,transform .4s ease-out}
+
+/* Pulse glow keyframe */
+@keyframes cyanPulse{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,0)}50%{box-shadow:0 0 18px 4px rgba(34,211,238,.35)}}
+@keyframes bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(7px)}}
+@keyframes drift{0%{transform:translate(0,0)}50%{transform:translate(8px,-6px)}100%{transform:translate(0,0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes countUp{from{opacity:0}to{opacity:1}}
+@keyframes ringFill{from{stroke-dashoffset:var(--ring-len)}to{stroke-dashoffset:0}}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes playPing{0%{transform:scale(1);opacity:.6}100%{transform:scale(1.7);opacity:0}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const C = {
+  bg:'#030816', bgAlt:'#060d1f', bgCard:'rgba(255,255,255,0.025)',
+  cyan:'#22d3ee', amber:'#f97316', white:'#f0f4ff',
+  muted:'#6e82a4', border:'rgba(34,211,238,0.1)', borderHover:'rgba(34,211,238,0.3)',
+};
+
+/* ── helpers ── */
+function useReveal(){
+  useEffect(()=>{
+    const els=document.querySelectorAll('.reveal');
+    const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');io.unobserve(e.target);}});},{threshold:.1});
+    els.forEach(el=>io.observe(el));
+    return()=>io.disconnect();
+  },[]);
+}
+
+/* ── Ambient Network Canvas (low opacity) ── */
+const AmbientNetwork=({style={}})=>{
+  const ref=useRef(null);
+  useEffect(()=>{
+    const canvas=ref.current; if(!canvas) return;
+    const ctx=canvas.getContext('2d');
+    let raf,t=0;
+    const nodes=[{x:.15,y:.3},{x:.35,y:.15},{x:.55,y:.4},{x:.75,y:.2},{x:.85,y:.6},{x:.4,y:.7},{x:.65,y:.8},{x:.2,y:.6}];
+    const edges=[[0,1],[1,2],[2,3],[3,4],[2,5],[5,6],[4,6],[0,7],[7,5]];
+    const pkts=[{e:0,t:0,spd:.003,col:'#22d3ee'},{e:2,t:.5,spd:.002,col:'#f97316'},{e:6,t:.2,spd:.0025,col:'#22d3ee'}];
+    const W=()=>canvas.width,H=()=>canvas.height;
+    const p=n=>({x:nodes[n].x*W(),y:nodes[n].y*H()});
+    const resize=()=>{canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;};
+    resize();window.addEventListener('resize',resize);
+    const draw=()=>{
+      ctx.clearRect(0,0,W(),H());
+      edges.forEach(([a,b])=>{const pa=p(a),pb=p(b);ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);ctx.strokeStyle='rgba(34,211,238,0.06)';ctx.lineWidth=.8;ctx.stroke();});
+      pkts.forEach(pk=>{
+        const prog=((t*pk.spd+pk.t)%1);
+        const [a,b]=edges[pk.e];
+        const pa=p(a),pb=p(b);
+        const px=pa.x+(pb.x-pa.x)*prog,py=pa.y+(pb.y-pa.y)*prog;
+        ctx.beginPath();ctx.arc(px,py,2.5,0,Math.PI*2);
+        ctx.fillStyle=pk.col+'55';ctx.fill();
+      });
+      t++;raf=requestAnimationFrame(draw);
+    };
+    draw();
+    return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',resize);};
+  },[]);
+  return <canvas ref={ref} style={{position:'absolute',inset:0,width:'100%',height:'100%',opacity:.55,pointerEvents:'none',...style}}/>;
+};
+
+/* ── Navbar ── */
+const Navbar=()=>{
+  const [s,setS]=useState(false);
+  useEffect(()=>{const f=()=>setS(window.scrollY>40);window.addEventListener('scroll',f);return()=>window.removeEventListener('scroll',f);},[]);
+  const lk={fontSize:'13px',fontWeight:500,color:C.muted,textDecoration:'none',whiteSpace:'nowrap',transition:'color .2s'};
+  return(
+    <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:100,padding:'0 2.5rem',height:'58px',display:'flex',alignItems:'center',justifyContent:'space-between',
+      background:s?'rgba(3,8,22,.92)':'transparent',backdropFilter:s?'blur(16px)':'none',
+      borderBottom:s?`1px solid ${C.border}`:'none',transition:'background .35s,border-color .35s'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'9px',flexShrink:0}}>
+        <div style={{width:26,height:26,borderRadius:5,background:`linear-gradient(135deg,${C.cyan},#0e7490)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'10px',fontWeight:800,color:'#030816',fontFamily:"'JetBrains Mono',monospace",flexShrink:0}}>LP</div>
+        <span style={{fontWeight:800,fontSize:'15px',letterSpacing:'-0.03em',color:C.white,whiteSpace:'nowrap'}}>LearningPacer</span>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:'1.75rem'}}>
+        {['Modes','How It Works','Sign In'].map(l=>(
+          <a key={l} href="#" style={lk} onMouseOver={e=>e.target.style.color=C.white} onMouseOut={e=>e.target.style.color=C.muted}>{l}</a>
+        ))}
+        <a href="/auth" style={{padding:'7px 16px',background:C.cyan,color:'#030816',borderRadius:'6px',fontWeight:800,fontSize:'13px',textDecoration:'none',whiteSpace:'nowrap',flexShrink:0,transition:'opacity .2s'}}
+          onMouseOver={e=>e.currentTarget.style.opacity='.82'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>Start Learning</a>
+      </div>
+    </nav>
+  );
+};
+
+/* ── Hero ── */
+const HEADLINE_WHITE = ['Every','click','travels','12,000','miles','—','and','you\'re','about','to'];
+const HEADLINE_CYAN  = ['understand','all','of','it.'];
+
+const Hero=()=>{
+  const [wordsIn,setWordsIn]=useState(false);
+  const [chevron,setChevron]=useState(true);
+  const videoRef=useRef(null);
+
+  useEffect(()=>{
+    const fallback=setTimeout(()=>setWordsIn(true),800);
+    const v=videoRef.current; if(!v) return ()=>clearTimeout(fallback);
+    const fn=()=>{clearTimeout(fallback);setTimeout(()=>setWordsIn(true),300);};
+    v.addEventListener('canplay',fn,{once:true});
+    return()=>clearTimeout(fallback);
+  },[]);
+
+  useEffect(()=>{const f=()=>setChevron(window.scrollY<60);window.addEventListener('scroll',f);return()=>window.removeEventListener('scroll',f);},[]);
+
+  const allWords=[...HEADLINE_WHITE,...HEADLINE_CYAN];
+  const whiteCount=HEADLINE_WHITE.length;
+
+  return(
+    <section className="grain" style={{position:'relative',width:'100%',height:'100vh',minHeight:'560px',overflow:'hidden',display:'flex',flexDirection:'column',justifyContent:'center'}}>
+      {/* Video */}
+      <video ref={videoRef} src="uploads/jimeng-2026-04-24-5729-COMPUTER NETWORKS hero video for a landi....mp4"
+        poster="hero-poster.jpg" autoPlay muted playsInline
+        style={{position:'absolute',inset:0,width:'100%',height:'100%',objectFit:'cover',zIndex:0}}/>
+
+      {/* Letterbox bands */}
+      <div style={{position:'absolute',top:0,left:0,right:0,height:'3.5vh',background:'#000',zIndex:2}}/>
+      <div style={{position:'absolute',bottom:0,left:0,right:0,height:'3.5vh',background:'#000',zIndex:2}}/>
+
+      {/* Radial vignette */}
+      <div style={{position:'absolute',inset:0,zIndex:1,background:'radial-gradient(ellipse 110% 100% at 60% 50%,transparent 30%,rgba(3,8,22,.75) 80%,rgba(3,8,22,.95) 100%)'}}/>
+      {/* L-R gradient */}
+      <div style={{position:'absolute',inset:0,zIndex:1,background:'linear-gradient(to right,rgba(3,8,22,.92) 0%,rgba(3,8,22,.6) 45%,rgba(3,8,22,.05) 100%)'}}/>
+      {/* Bottom fade */}
+      <div style={{position:'absolute',bottom:0,left:0,right:0,height:'180px',zIndex:3,background:'linear-gradient(to bottom,transparent,#030816)'}}/>
+
+      {/* Content */}
+      <div style={{position:'relative',zIndex:4,padding:'0 2.5rem 0',maxWidth:'780px',paddingTop:'3.5vh'}}>
+        <p style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',fontWeight:500,letterSpacing:'.16em',textTransform:'uppercase',color:C.amber,marginBottom:'1rem',
+          opacity:wordsIn?1:0,transform:wordsIn?'none':'translateY(8px)',transition:'opacity .5s ease-out,transform .5s ease-out'}}>
+          ELEC3120 · COMPUTER NETWORKS · HKUST
+        </p>
+
+        {/* Animated headline */}
+        <h1 style={{fontFamily:"'Inter Tight',sans-serif",fontSize:'clamp(1.9rem,3.2vw,3.25rem)',fontWeight:900,lineHeight:1.1,letterSpacing:'-0.04em',marginBottom:'.875rem',maxWidth:'680px'}}>
+          {allWords.map((w,i)=>{
+            const isCyan=i>=whiteCount;
+            const delay=wordsIn?`${i*60}ms`:'0ms';
+            return(
+              <span key={i} className="word-reveal" style={{
+                color:isCyan?C.cyan:C.white,
+                opacity:wordsIn?1:0,
+                transform:wordsIn?'none':'translateY(10px)',
+                transitionDelay:delay,
+              }}>{w}{' '}</span>
+            );
+          })}
+        </h1>
+
+        <p style={{fontSize:'clamp(.9rem,1.2vw,1.05rem)',fontWeight:400,lineHeight:1.6,color:C.muted,marginBottom:'1.75rem',maxWidth:'440px',
+          opacity:wordsIn?1:0,transform:wordsIn?'none':'translateY(8px)',transition:'opacity .5s .7s ease-out,transform .5s .7s ease-out'}}>
+          Four AI-guided learning modes built on your actual syllabus. Pass the exam by understanding what's really happening.
+        </p>
+
+        <div style={{display:'flex',gap:'.875rem',flexWrap:'wrap',alignItems:'center',
+          opacity:wordsIn?1:0,transform:wordsIn?'none':'translateY(8px)',transition:'opacity .5s .85s ease-out,transform .5s .85s ease-out'}}>
+          {/* Primary CTA */}
+          <a href="/auth" style={{padding:'13px 28px',background:C.cyan,color:'#030816',borderRadius:'8px',fontWeight:800,fontSize:'15px',textDecoration:'none',letterSpacing:'-0.02em',whiteSpace:'nowrap',animation:'cyanPulse 2.5s ease-in-out infinite',transition:'opacity .2s,transform .2s'}}
+            onMouseOver={e=>{e.currentTarget.style.opacity='.87';e.currentTarget.style.transform='translateY(-2px)';}}
+            onMouseOut={e=>{e.currentTarget.style.opacity='1';e.currentTarget.style.transform='none';}}>Start Learning</a>
+
+          {/* Ghost CTA with animated play */}
+          <button style={{padding:'12px 22px',background:'transparent',color:C.white,border:'1px solid rgba(240,244,255,.2)',borderRadius:'8px',fontWeight:600,fontSize:'14px',cursor:'pointer',letterSpacing:'-0.01em',display:'flex',alignItems:'center',gap:'10px',fontFamily:"'Inter Tight',sans-serif",whiteSpace:'nowrap',transition:'border-color .2s,transform .2s'}}
+            onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(240,244,255,.4)';e.currentTarget.style.transform='translateY(-2px)';}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(240,244,255,.2)';e.currentTarget.style.transform='none';}}>
+            <span style={{position:'relative',width:22,height:22,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+              <span style={{position:'absolute',inset:0,borderRadius:'50%',border:`1px solid ${C.cyan}`,animation:'playPing 2s ease-out infinite'}}/>
+              <span style={{position:'relative',width:22,height:22,borderRadius:'50%',border:`1px solid rgba(34,211,238,.5)`,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <svg width="8" height="8" viewBox="0 0 24 24" fill={C.cyan}><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </span>
+            </span>
+            Watch the Walkthrough
+          </button>
+        </div>
+      </div>
+
+      {/* Scroll cue */}
+      <div style={{position:'absolute',bottom:'5vh',left:'50%',zIndex:4,color:'rgba(240,244,255,.28)',opacity:chevron?1:0,transition:'opacity .4s',animation:'bob 2.2s ease-in-out infinite'}}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+    </section>
+  );
+};
+
+/* ── Credibility Strip ── */
+const CredStrip=()=>(
+  <div style={{borderBottom:`1px solid ${C.border}`,background:'rgba(255,255,255,.01)',padding:'.875rem 2.5rem',display:'flex',alignItems:'center',gap:'1.25rem'}}>
+    {/* HKUST crest placeholder */}
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+      <rect width="28" height="28" rx="4" fill="rgba(34,211,238,0.08)" stroke="rgba(34,211,238,0.2)" strokeWidth="1"/>
+      <text x="14" y="19" textAnchor="middle" fontSize="10" fontWeight="700" fontFamily="'JetBrains Mono',monospace" fill="#22d3ee">HK</text>
+    </svg>
+    <div style={{width:1,height:20,background:C.border}}/>
+    <p style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',letterSpacing:'.14em',textTransform:'uppercase',color:'rgba(138,154,184,.5)'}}>
+      Built for ELEC3120 · Computer Networks · Spring 2026 cohort
+    </p>
+  </div>
+);
+
+/* ── Mode card mini UIs ── */
+
+/* Icon components */
+const IconChat=()=>(
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.cyan} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+);
+const IconBook=()=>(
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+  </svg>
+);
+const IconLightning=()=>(
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.amber} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>
+);
+const IconClipboard=()=>(
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+  </svg>
+);
+
+/* Card 1 — AI Chat Tutor */
+const ChatCard=({hovered})=>{
+  const [blink,setBlink]=useState(true);
+  useEffect(()=>{const id=setInterval(()=>setBlink(b=>!b),530);return()=>clearInterval(id);},[]);
+  return(
+    <div style={{flex:1,display:'flex',flexDirection:'column',padding:'20px',gap:'12px',overflow:'hidden'}}>
+      {/* Student bubble */}
+      <div style={{display:'flex',gap:'9px',alignItems:'flex-start'}}>
+        <div style={{width:24,height:24,borderRadius:'50%',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'10px',fontWeight:700,color:'rgba(240,244,255,.5)'}}>Y</div>
+        <div style={{background:'rgba(255,255,255,.05)',border:'1px solid rgba(255,255,255,.07)',borderRadius:'4px 12px 12px 12px',padding:'9px 12px',fontSize:'12px',color:'rgba(240,244,255,.75)',lineHeight:1.5,maxWidth:'90%'}}>
+          Why does TCP use sliding window for reliability?
+        </div>
+      </div>
+      {/* AI bubble */}
+      <div style={{display:'flex',gap:'9px',alignItems:'flex-start'}}>
+        <div style={{width:24,height:24,borderRadius:'50%',background:'rgba(34,211,238,.15)',border:`1px solid rgba(34,211,238,.25)`,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'8px',fontWeight:700,color:C.cyan,fontFamily:"'JetBrains Mono',monospace"}}>AI</div>
+        <div style={{background:'rgba(34,211,238,.05)',border:`1px solid rgba(34,211,238,.12)`,borderRadius:'4px 12px 12px 12px',padding:'9px 12px',flex:1}}>
+          <p style={{fontSize:'12px',color:'rgba(240,244,255,.8)',lineHeight:1.6,marginBottom:'8px'}}>
+            LearningPacer AI: TCP uses a sliding window to efficiently utilize the network while ensuring reliable delivery. Multiple packets can be in-flight simultaneously without waiting for individual ACKs{hovered?<span style={{opacity:blink?1:0,color:C.cyan}}>▋</span>:' — up to the window size.'}
+          </p>
+          <div style={{display:'inline-flex',alignItems:'center',gap:'5px',background:'rgba(34,211,238,.08)',border:`1px solid rgba(34,211,238,.15)`,borderRadius:'4px',padding:'3px 8px'}}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={C.cyan} strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            <span style={{fontSize:'10px',color:C.cyan,fontFamily:"'JetBrains Mono',monospace"}}>Cited: Kurose & Ross, Ch. 3.7</span>
+          </div>
+        </div>
+      </div>
+      {/* Input */}
+      <div style={{marginTop:'auto',display:'flex',alignItems:'center',gap:'8px',background:'rgba(255,255,255,.03)',border:'1px solid rgba(255,255,255,.08)',borderRadius:'8px',padding:'9px 12px'}}>
+        <span style={{fontSize:'12px',color:'rgba(240,244,255,.2)',flex:1,fontFamily:"'Inter Tight',sans-serif"}}>Ask anything…</span>
+        <div style={{width:22,height:22,borderRadius:'50%',background:C.cyan,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#030816" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Card 2 — Guided Lessons */
+const CourseCard=({hovered})=>{
+  const [pct,setPct]=useState(20);
+  useEffect(()=>{
+    if(!hovered) return;
+    let v=20;const id=setInterval(()=>{v=Math.min(62,v+2);setPct(v);if(v>=62)clearInterval(id);},25);
+    return()=>clearInterval(id);
+  },[hovered]);
+  const rows=[
+    {id:'3.1a',label:'3.1 TCP Reliability',pct:87,done:true},
+    {id:'3.1b',label:'3.1 Sliding Window',pct:pct,active:true},
+    {id:'3.2',label:'3.2 Sequence Numbers',pct:0},
+    {id:'3.3',label:'3.3 ACK Strategies',pct:0},
+    {id:'3.4',label:'3.4 Retransmission (RTO)',pct:0,locked:true},
+    {id:'3.5',label:'3.5 Congestion Control',pct:0},
+  ];
+  return(
+    <div style={{flex:1,padding:'20px',overflow:'hidden',display:'flex',flexDirection:'column'}}>
+      <div style={{fontSize:'10px',fontFamily:"'JetBrains Mono',monospace",color:'#4ade80',letterSpacing:'.12em',textTransform:'uppercase',marginBottom:'12px'}}>Transport Layer</div>
+      <div style={{flex:1}}>
+        {rows.map(r=>(
+          <div key={r.id} style={{display:'flex',alignItems:'center',gap:'10px',padding:'7px 0',borderBottom:'1px solid rgba(255,255,255,.04)'}}>
+            <span style={{fontSize:'11px',fontFamily:"'JetBrains Mono',monospace",color:r.done?C.cyan:r.active?'#4ade80':r.locked?'rgba(240,244,255,.18)':'rgba(240,244,255,.25)',flexShrink:0,width:'28px'}}>{r.done?'✓':r.locked?'🔒':r.active?'▶':''}</span>
+            <span style={{fontSize:'12px',color:r.pct>0&&!r.locked?'rgba(240,244,255,.85)':'rgba(240,244,255,.3)',flex:1,fontWeight:r.active?600:400}}>{r.label}</span>
+            {r.pct>0&&!r.locked&&(
+              <div style={{display:'flex',alignItems:'center',gap:'5px',flexShrink:0}}>
+                <div style={{width:'44px',height:'3px',background:'rgba(255,255,255,.07)',borderRadius:'2px'}}>
+                  <div style={{width:`${r.active?pct:r.pct}%`,height:'100%',background:r.done?C.cyan:'#4ade80',borderRadius:'2px',transition:'width .25s ease-out'}}/>
+                </div>
+                <span style={{fontSize:'10px',fontFamily:"'JetBrains Mono',monospace",color:r.done?C.cyan:'#4ade80',width:'26px',textAlign:'right'}}>{r.active?pct:r.pct}%</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {/* Progress */}
+      <div style={{marginTop:'14px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:'5px'}}>
+          <span style={{fontSize:'11px',color:'rgba(240,244,255,.3)',fontFamily:"'JetBrains Mono',monospace"}}>Course progress</span>
+          <span style={{fontSize:'11px',color:C.amber,fontFamily:"'JetBrains Mono',monospace"}}>62%</span>
+        </div>
+        <div style={{height:'3px',background:'rgba(255,255,255,.06)',borderRadius:'2px'}}>
+          <div style={{width:'62%',height:'100%',background:`linear-gradient(to right,${C.cyan},${C.amber})`,borderRadius:'2px'}}/>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Card 3 — Simulations */
+const SimCard=({hovered})=>{
+  const [step,setStep]=useState(0);
+  const arrows=[
+    {from:'Sender',to:'Receiver',label:'SYN',col:C.cyan,dir:'→'},
+    {from:'Receiver',to:'Sender',label:'SYN-ACK',col:'#4ade80',dir:'←'},
+    {from:'Sender',to:'Receiver',label:'ACK',col:C.cyan,dir:'→'},
+    {from:'Sender',to:'Receiver',label:'DATA (1–4)',col:C.amber,dir:'→'},
+    {from:'Receiver',to:'Sender',label:'ACK (5)',col:'#4ade80',dir:'←'},
+    {from:'Sender',to:'Receiver',label:'DATA (5–8)',col:C.amber,dir:'→'},
+  ];
+  useEffect(()=>{
+    if(!hovered){setStep(0);return;}
+    const id=setInterval(()=>setStep(s=>(s+1)%arrows.length),700);
+    return()=>clearInterval(id);
+  },[hovered]);
+  return(
+    <div style={{flex:1,padding:'20px',overflow:'hidden',display:'flex',flexDirection:'column'}}>
+      {/* Column headers */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 32px 1fr',gap:'4px',marginBottom:'10px'}}>
+        <div style={{fontSize:'11px',fontWeight:700,color:'rgba(240,244,255,.5)',textAlign:'center',padding:'4px 0',background:'rgba(255,255,255,.04)',borderRadius:'5px'}}>Sender</div>
+        <div/>
+        <div style={{fontSize:'11px',fontWeight:700,color:'rgba(240,244,255,.5)',textAlign:'center',padding:'4px 0',background:'rgba(255,255,255,.04)',borderRadius:'5px'}}>Receiver</div>
+      </div>
+      {/* Arrows */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',gap:'4px'}}>
+        {arrows.map((a,i)=>{
+          const active=hovered&&i===step;
+          const past=!hovered||i<step;
+          return(
+            <div key={i} style={{display:'grid',gridTemplateColumns:'1fr auto 1fr',alignItems:'center',gap:'4px',
+              opacity:past||active?1:.25,transition:'opacity .35s'}}>
+              {a.dir==='→'
+                ? <><div style={{height:'1px',background:active?a.col:'rgba(255,255,255,.12)',transition:'background .35s',position:'relative'}}>
+                    {active&&<div style={{position:'absolute',right:0,top:'50%',transform:'translateY(-50%)',width:6,height:6,borderRadius:'50%',background:a.col,boxShadow:`0 0 6px ${a.col}`}}/>}
+                  </div>
+                  <span style={{fontSize:'10px',fontWeight:600,color:active?a.col:'rgba(240,244,255,.4)',fontFamily:"'JetBrains Mono',monospace",whiteSpace:'nowrap',textAlign:'center',padding:'0 4px',transition:'color .35s'}}>{a.label} {a.dir}</span>
+                  <div/></>
+                : <><div/>
+                  <span style={{fontSize:'10px',fontWeight:600,color:active?a.col:'rgba(240,244,255,.4)',fontFamily:"'JetBrains Mono',monospace",whiteSpace:'nowrap',textAlign:'center',padding:'0 4px',transition:'color .35s'}}>{a.dir} {a.label}</span>
+                  <div style={{height:'1px',background:active?a.col:'rgba(255,255,255,.12)',transition:'background .35s',position:'relative'}}>
+                    {active&&<div style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',width:6,height:6,borderRadius:'50%',background:a.col,boxShadow:`0 0 6px ${a.col}`}}/>}
+                  </div></>
+              }
+            </div>
+          );
+        })}
+      </div>
+      {/* Controls */}
+      <div style={{marginTop:'14px',display:'flex',alignItems:'center',gap:'8px',paddingTop:'12px',borderTop:'1px solid rgba(255,255,255,.05)'}}>
+        <span style={{fontSize:'11px',color:'rgba(240,244,255,.3)',fontFamily:"'JetBrains Mono',monospace",flex:1}}>Speed 1.0x</span>
+        <button style={{padding:'4px 12px',background:'rgba(249,115,22,.08)',border:`1px solid rgba(249,115,22,.2)`,borderRadius:'5px',color:C.amber,fontSize:'11px',fontFamily:"'JetBrains Mono',monospace",cursor:'pointer'}}>{hovered?'⏸ Pause':'▶ Play'}</button>
+        <button style={{padding:'4px 10px',background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.07)',borderRadius:'5px',color:'rgba(240,244,255,.3)',fontSize:'11px',fontFamily:"'JetBrains Mono',monospace",cursor:'pointer'}}>↺</button>
+      </div>
+    </div>
+  );
+};
+
+/* Card 4 — Mock Exams */
+const ExamCard=({hovered})=>{
+  const [sel,setSel]=useState(1); // B pre-selected
+  const [pulse,setPulse]=useState(false);
+  useEffect(()=>{
+    if(!hovered) return;
+    const id=setInterval(()=>setPulse(p=>!p),900);
+    return()=>{clearInterval(id);setPulse(false);};
+  },[hovered]);
+  const opts=[
+    {letter:'A',text:'Ensure reliable delivery of packets in order'},
+    {letter:'B',text:'Control the sender\'s rate based on network congestion',correct:true},
+    {letter:'C',text:'Handle out-of-order packet reassembly'},
+    {letter:'D',text:'Manage source and destination port numbers'},
+  ];
+  const circumference=2*Math.PI*20;
+  return(
+    <div style={{flex:1,padding:'20px',overflow:'hidden',display:'flex',flexDirection:'column'}}>
+      <div style={{fontSize:'10px',fontFamily:"'JetBrains Mono',monospace",color:'#a78bfa',letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'10px'}}>Q12 of 20</div>
+      <p style={{fontSize:'12px',color:'rgba(240,244,255,.85)',lineHeight:1.55,marginBottom:'12px',fontWeight:500}}>
+        In TCP, which of the following best describes the purpose of the congestion window (cwnd)?
+      </p>
+      <div style={{flex:1,display:'flex',flexDirection:'column',gap:'5px'}}>
+        {opts.map((o,i)=>{
+          const isSelected=sel===i;
+          const isCorrect=o.correct;
+          const highlight=isSelected&&isCorrect&&hovered&&pulse;
+          return(
+            <div key={i} onClick={()=>setSel(i)} style={{display:'flex',alignItems:'flex-start',gap:'8px',padding:'7px 10px',borderRadius:'6px',cursor:'pointer',
+              border:`1px solid ${isSelected?(isCorrect?`rgba(34,211,238,${highlight?.4:.25})`:'rgba(249,115,22,.25)'):'rgba(255,255,255,.06)'}`,
+              background:isSelected?(isCorrect?`rgba(34,211,238,${highlight?.1:.05})`:'rgba(249,115,22,.05)'):'transparent',
+              transition:'all .24s ease-out',boxShadow:highlight?`0 0 12px rgba(34,211,238,.15)`:isSelected?'none':'none'}}>
+              <div style={{width:18,height:18,borderRadius:'50%',border:`1.5px solid ${isSelected?(isCorrect?C.cyan:C.amber):'rgba(255,255,255,.18)'}`,flexShrink:0,marginTop:'1px',display:'flex',alignItems:'center',justifyContent:'center',transition:'border-color .24s'}}>
+                {isSelected&&<div style={{width:7,height:7,borderRadius:'50%',background:isCorrect?C.cyan:C.amber,transition:'background .24s'}}/>}
+              </div>
+              <div style={{flex:1}}>
+                <span style={{fontSize:'10px',fontFamily:"'JetBrains Mono',monospace",color:isSelected?(isCorrect?C.cyan:C.amber):'rgba(240,244,255,.3)',marginRight:'5px'}}>{o.letter}.</span>
+                <span style={{fontSize:'12px',color:isSelected?'rgba(240,244,255,.9)':'rgba(240,244,255,.45)',lineHeight:1.4}}>{o.text}</span>
+              </div>
+              {isSelected&&isCorrect&&<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={C.cyan} strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
+            </div>
+          );
+        })}
+      </div>
+      {/* Score ring */}
+      <div style={{marginTop:'12px',display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'10px',paddingTop:'10px',borderTop:'1px solid rgba(255,255,255,.05)'}}>
+        <span style={{fontSize:'11px',color:sel===1?C.cyan:C.amber,fontFamily:"'JetBrains Mono',monospace"}}>{sel===1?'✓ Correct':'✗ Try again'}</span>
+        <div style={{position:'relative',width:44,height:44}}>
+          <svg width="44" height="44" viewBox="0 0 44 44" style={{transform:'rotate(-90deg)'}}>
+            <circle cx="22" cy="22" r="20" fill="none" stroke="rgba(255,255,255,.05)" strokeWidth="2.5"/>
+            <circle cx="22" cy="22" r="20" fill="none" stroke={sel===1?C.cyan:'rgba(249,115,22,.5)'} strokeWidth="2.5"
+              strokeDasharray={circumference} strokeDashoffset={circumference*(1-(sel===1?.92:.3))} strokeLinecap="round" style={{transition:'stroke-dashoffset .4s ease-out,stroke .3s'}}/>
+          </svg>
+          <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'11px',fontWeight:800,color:sel===1?C.cyan:C.amber,fontFamily:"'Inter Tight',sans-serif"}}>{sel===1?'92%':'30%'}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ── Mode cards ── */
+const cardDefs=[
+  {Icon:IconChat,accentColor:C.cyan,title:'AI Chat Tutor',desc:'Ask anything about networks. Grounded in your actual lecture slides.',Body:ChatCard},
+  {Icon:IconBook,accentColor:'#4ade80',title:'Guided Lessons',desc:'Lecture-by-lecture explanations synced to ELEC3120\'s schedule.',Body:CourseCard},
+  {Icon:IconLightning,accentColor:C.amber,title:'Simulations',desc:'Interactive network simulators for TCP, routing, and OSI layers.',Body:SimCard},
+  {Icon:IconClipboard,accentColor:'#a78bfa',title:'Mock Exams',desc:'Past-paper-trained exams with instant marking and explanations.',Body:ExamCard},
+];
+
+const ModeCard=({Icon,accentColor,title,desc,Body,delay})=>{
+  const [hov,setHov]=useState(false);
+  return(
+    <div className={`reveal d${delay}`}
+      onMouseOver={()=>setHov(true)} onMouseOut={()=>setHov(false)}
+      style={{borderRadius:'16px',border:`1px solid ${hov?accentColor+'66':C.border}`,
+        background:'#0f1720',
+        transform:hov?'translateY(-2px)':'none',
+        transition:'border-color .24s ease-out,transform .24s ease-out,box-shadow .24s ease-out',
+        boxShadow:hov?`0 20px 60px -20px ${accentColor}4d`:'none',
+        overflow:'hidden',display:'flex',flexDirection:'column',minHeight:'420px',position:'relative'}}>
+      {/* Card header */}
+      <div style={{padding:'20px 20px 14px',display:'flex',alignItems:'center',gap:'9px',flexShrink:0}}>
+        <div style={{width:32,height:32,borderRadius:'8px',background:`${accentColor}14`,border:`1px solid ${accentColor}22`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+          <Icon/>
+        </div>
+        <span style={{fontSize:'13px',fontWeight:700,letterSpacing:'-0.02em',color:C.white,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{title}</span>
+        <div style={{marginLeft:'auto',display:'flex',gap:'4px'}}>{[0,1,2].map(i=><div key={i} style={{width:4,height:4,borderRadius:'50%',background:'rgba(240,244,255,.1)'}}/>)}</div>
+      </div>
+      {/* Divider */}
+      <div style={{height:'1px',background:`linear-gradient(to right,${accentColor}22,rgba(255,255,255,.04),transparent)`,marginBottom:'0',flexShrink:0}}/>
+      {/* Body */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',minHeight:0,overflow:'hidden'}}>
+        <Body hovered={hov}/>
+      </div>
+      {/* Footer desc */}
+      <div style={{padding:'12px 20px 16px',borderTop:'1px solid rgba(255,255,255,.04)',flexShrink:0,background:'rgba(255,255,255,.01)'}}>
+        <p style={{fontSize:'12px',color:C.muted,lineHeight:1.5}}>{desc}</p>
+      </div>
+    </div>
+  );
+};
+
+const ModesShowcase=()=>(
+  <section id="modes" style={{padding:'7rem 2.5rem',position:'relative',overflow:'hidden'}}>
+    {/* Ambient glow behind grid */}
+    <div style={{position:'absolute',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:'800px',height:'400px',background:'radial-gradient(ellipse,rgba(34,211,238,.04) 0%,transparent 70%)',pointerEvents:'none'}}/>
+    <div style={{maxWidth:'1400px',margin:'0 auto',position:'relative'}}>
+      <p className="reveal" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',letterSpacing:'.15em',textTransform:'uppercase',color:C.amber,marginBottom:'.875rem'}}>THE LEARNINGPACER PLATFORM</p>
+      <h2 className="reveal d1" style={{fontFamily:"'Inter Tight',sans-serif",fontSize:'clamp(2rem,4.5vw,4.5rem)',fontWeight:600,letterSpacing:'-0.04em',color:C.white,marginBottom:'.625rem',lineHeight:1.0}}>Everything you need<br/>to ace ELEC3120.</h2>
+      <p className="reveal d2" style={{fontSize:'1rem',color:C.muted,marginBottom:'3.5rem',maxWidth:'420px',lineHeight:1.6}}>AI Chat Tutor, Guided Lessons, Simulations, and Mock Exams — unified in one intelligent platform.</p>
+      <style>{`
+        .modes-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+        @media(max-width:1279px){.modes-grid{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:639px){.modes-grid{grid-template-columns:1fr}}
+      `}</style>
+      <div className="modes-grid">
+        {cardDefs.map((m,i)=><ModeCard key={m.title} {...m} delay={i+1}/>)}
+      </div>
+    </div>
+  </section>
+);
+
+/* ── Count-up stat ── */
+const Stat=({value,label,sub,color,ring,delay})=>{
+  const [count,setCount]=useState(0);
+  const ref=useRef(null);
+  const numericVal=parseInt(value.replace(/[^0-9]/g,''));
+  const suffix=value.replace(/[0-9,]/g,'');
+  useEffect(()=>{
+    const el=ref.current; if(!el) return;
+    const io=new IntersectionObserver(([e])=>{
+      if(e.isIntersecting){
+        io.unobserve(el);
+        let start=0;const dur=1200;const startTime=performance.now();
+        const step=ts=>{const p=Math.min((ts-startTime)/dur,1);setCount(Math.round(p*numericVal));if(p<1)requestAnimationFrame(step);};
+        requestAnimationFrame(step);
+      }
+    },{threshold:.3});
+    io.observe(el);
+    return()=>io.disconnect();
+  },[numericVal]);
+  const circumference=2*Math.PI*22;
+  const pct=ring||0;
+  return(
+    <div ref={ref} className={`reveal d${delay}`} style={{padding:'1.5rem 1.75rem',background:C.bg,textAlign:'center',position:'relative',overflow:'hidden'}}>
+      {ring&&(
+        <svg style={{position:'absolute',top:8,right:8,opacity:.18}} width="52" height="52" viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="22" fill="none" stroke={color} strokeWidth="2" strokeDasharray={circumference} strokeDashoffset={circumference*(1-pct/100)} strokeLinecap="round" transform="rotate(-90 26 26)"
+            style={{transition:'stroke-dashoffset 1.2s ease-out'}}/>
+        </svg>
+      )}
+      <div style={{fontSize:'2.25rem',fontWeight:900,letterSpacing:'-0.04em',color,marginBottom:'.25rem',fontFamily:"'Inter Tight',sans-serif"}}>
+        {count.toLocaleString()}{suffix}
+      </div>
+      <div style={{fontSize:'13px',fontWeight:600,color:C.white,marginBottom:'.2rem'}}>{label}</div>
+      <div style={{fontSize:'10px',color:C.muted,fontFamily:"'JetBrains Mono',monospace"}}>{sub}</div>
+    </div>
+  );
+};
+
+const ProofSection=()=>(
+  <section style={{padding:'5rem 2.5rem',borderTop:`1px solid ${C.border}`,borderBottom:`1px solid ${C.border}`,background:'rgba(255,255,255,.01)',position:'relative',overflow:'hidden'}}>
+    <AmbientNetwork style={{opacity:.06}}/>
+    <div style={{maxWidth:'1100px',margin:'0 auto',position:'relative',zIndex:1}}>
+      <p className="reveal" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',letterSpacing:'.15em',textTransform:'uppercase',color:C.amber,marginBottom:'.8rem',textAlign:'center'}}>PROVEN RESULTS</p>
+      <h2 className="reveal d1" style={{fontFamily:"'Inter Tight',sans-serif",fontSize:'clamp(1.75rem,3vw,2.75rem)',fontWeight:900,letterSpacing:'-0.04em',color:C.white,marginBottom:'.5rem',textAlign:'center'}}>Built to help you actually understand.</h2>
+      <p className="reveal d2" style={{fontSize:'.95rem',color:C.muted,textAlign:'center',marginBottom:'3rem'}}>Real results from real ELEC3120 students.</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'1px',background:C.border,borderRadius:'12px',overflow:'hidden',border:`1px solid ${C.border}`}}>
+        <Stat value="87%" label="Practice Score" sub="avg. improvement" color={C.cyan} ring={87} delay={1}/>
+        <Stat value="92%" label="Concepts Mastered" sub="of syllabus" color={C.amber} ring={92} delay={2}/>
+        <Stat value="4812" label="Students Helped" sub="ELEC3120 learners" color={C.cyan} delay={3}/>
+        <Stat value="50000" label="Questions Answered" sub="by AI Tutor" color={C.amber} delay={4}/>
+      </div>
+      <p className="reveal" style={{textAlign:'center',marginTop:'1.25rem',fontSize:'10px',color:'rgba(138,154,184,.35)',fontFamily:"'JetBrains Mono',monospace",letterSpacing:'.05em'}}>ELEC3120 Spring 2026 · Week 9 of 13 · Data updated daily</p>
+    </div>
+  </section>
+);
+
+/* ── Simulation Showcase ── */
+const SimulationShowcase=()=>{
+  const canvasRef=useRef(null);
+  const [speed,setSpeed]=useState(1);
+  const [paused,setPaused]=useState(false);
+  const pausedRef=useRef(false);
+  const speedRef=useRef(1);
+  useEffect(()=>{pausedRef.current=paused;},[paused]);
+  useEffect(()=>{speedRef.current=speed;},[speed]);
+  const [stats,setStats]=useState({sent:0,acks:0,throughput:'0.0',rtt:42});
+
+  useEffect(()=>{
+    const canvas=canvasRef.current; if(!canvas) return;
+    const ctx=canvas.getContext('2d');
+    let raf,t=0;
+    const nodes=[{id:'src',x:.1,y:.5,label:'Client'},{id:'r1',x:.3,y:.25,label:'Router A'},{id:'r2',x:.3,y:.75,label:'Router B'},{id:'r3',x:.55,y:.15,label:'Router C'},{id:'r4',x:.55,y:.5,label:'Switch'},{id:'r5',x:.55,y:.85,label:'Router D'},{id:'dst',x:.85,y:.5,label:'Server'}];
+    const edges=[['src','r1'],['src','r2'],['r1','r3'],['r1','r4'],['r2','r4'],['r2','r5'],['r3','dst'],['r4','dst'],['r5','dst']];
+    const pktDefs=[{path:['src','r1','r3','dst'],col:'#22d3ee',off:0,spd:.003},{path:['src','r2','r4','dst'],col:'#f97316',off:.33,spd:.0025},{path:['src','r1','r4','dst'],col:'#818cf8',off:.66,spd:.0035}];
+    const nb=id=>nodes.find(n=>n.id===id);
+    const W=()=>canvas.width,H=()=>canvas.height;
+    const p=n=>({x:n.x*W(),y:n.y*H()});
+    let sc=0;
+    const draw=()=>{
+      ctx.clearRect(0,0,W(),H());
+      ctx.strokeStyle='rgba(34,211,238,.03)';ctx.lineWidth=.8;
+      for(let i=0;i<W();i+=28){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H());ctx.stroke();}
+      for(let i=0;i<H();i+=28){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W(),i);ctx.stroke();}
+      edges.forEach(([a,b])=>{const pa=p(nb(a)),pb=p(nb(b));ctx.beginPath();ctx.moveTo(pa.x,pa.y);ctx.lineTo(pb.x,pb.y);ctx.strokeStyle='rgba(34,211,238,.11)';ctx.lineWidth=1;ctx.stroke();});
+      pktDefs.forEach(pk=>{
+        const prog=((t*pk.spd*speedRef.current+pk.off)%1);
+        const segs=pk.path.length-1;
+        const tot=prog*segs;const seg=Math.min(Math.floor(tot),segs-1);const sT=tot-seg;
+        const a=p(nb(pk.path[seg])),b=p(nb(pk.path[seg+1]));
+        const px=a.x+(b.x-a.x)*sT,py=a.y+(b.y-a.y)*sT;
+        const grd=ctx.createRadialGradient(px,py,0,px,py,13);
+        grd.addColorStop(0,pk.col+'77');grd.addColorStop(1,'transparent');
+        ctx.fillStyle=grd;ctx.beginPath();ctx.arc(px,py,13,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(px,py,3.5,0,Math.PI*2);ctx.fillStyle=pk.col;ctx.fill();
+      });
+      nodes.forEach(n=>{
+        const {x,y}=p(n);const ep=n.id==='src'||n.id==='dst';
+        ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.strokeStyle=ep?'rgba(34,211,238,.42)':'rgba(34,211,238,.16)';ctx.lineWidth=1.5;ctx.stroke();
+        ctx.fillStyle=ep?'rgba(34,211,238,.1)':'rgba(34,211,238,.04)';ctx.fill();
+        ctx.font="9px 'JetBrains Mono',monospace";ctx.fillStyle='rgba(34,211,238,.5)';ctx.textAlign='center';ctx.fillText(n.label,x,y+26);
+      });
+      if(!pausedRef.current){t++;if(t%55===0){sc++;setStats({sent:sc*3,acks:sc*3-1,throughput:(1.1+Math.random()*.4).toFixed(1),rtt:36+Math.round(Math.random()*14)});}}
+      raf=requestAnimationFrame(draw);
+    };
+    const resize=()=>{canvas.width=canvas.offsetWidth;canvas.height=canvas.offsetHeight;};
+    resize();window.addEventListener('resize',resize);draw();
+    return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',resize);};
+  },[]);
+
+  return(
+    <section style={{padding:'6rem 2.5rem',background:C.bgAlt,borderTop:`1px solid ${C.border}`,position:'relative',overflow:'hidden'}}>
+      <AmbientNetwork style={{opacity:.05}}/>
+      <div style={{maxWidth:'1200px',margin:'0 auto',position:'relative',zIndex:1}}>
+        <p className="reveal" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',letterSpacing:'.15em',textTransform:'uppercase',color:C.amber,marginBottom:'.8rem'}}>LEARN BY DOING</p>
+        <h2 className="reveal d1" style={{fontFamily:"'Inter Tight',sans-serif",fontSize:'clamp(1.9rem,3.5vw,3rem)',fontWeight:900,letterSpacing:'-0.04em',color:C.white,marginBottom:'2.75rem',lineHeight:1.05}}>Simulations that make concepts click.</h2>
+        <div style={{display:'grid',gridTemplateColumns:'260px 1fr',gap:'2.75rem',alignItems:'start'}}>
+          <div>
+            <p className="reveal" style={{fontSize:'.95rem',color:C.muted,lineHeight:1.65,marginBottom:'1.5rem'}}>Hands-on network labs that let you see, tweak, and truly understand.</p>
+            {[['Visualize real protocol behavior','See packets, ACKs, and timers in action.'],['Experiment safely','Change parameters and watch results instantly.'],['Bridge theory to intuition','Go beyond slides — build understanding that sticks.']].map(([t,d])=>(
+              <div key={t} className="reveal" style={{display:'flex',gap:'9px',marginBottom:'1.1rem'}}>
+                <div style={{width:5,height:5,borderRadius:'50%',background:C.cyan,flexShrink:0,marginTop:'7px'}}/>
+                <div><div style={{fontSize:'13px',fontWeight:700,color:C.white,marginBottom:'1px'}}>{t}</div><div style={{fontSize:'12px',color:C.muted,lineHeight:1.5}}>{d}</div></div>
+              </div>
+            ))}
+            <a href="#" className="reveal d2" style={{display:'inline-flex',alignItems:'center',gap:'7px',marginTop:'.5rem',padding:'9px 18px',background:'rgba(34,211,238,.07)',border:`1px solid rgba(34,211,238,.18)`,borderRadius:'7px',color:C.cyan,fontWeight:700,fontSize:'13px',textDecoration:'none',whiteSpace:'nowrap',transition:'background .2s,gap .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.background='rgba(34,211,238,.13)';e.currentTarget.style.gap='11px';}}
+              onMouseOut={e=>{e.currentTarget.style.background='rgba(34,211,238,.07)';e.currentTarget.style.gap='7px';}}>
+              Explore all simulations
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+          <div className="reveal d2">
+            <div style={{border:`1px solid ${C.border}`,borderRadius:'11px',overflow:'hidden',background:'rgba(6,13,31,.85)'}}>
+              {/* Panel header */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'.65rem .9rem',borderBottom:`1px solid ${C.border}`,background:'rgba(255,255,255,.015)'}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <div style={{display:'flex',gap:'4px'}}>{['#ff5f57','#febc2e','#28c840'].map(c=><div key={c} style={{width:9,height:9,borderRadius:'50%',background:c,opacity:.65}}/>)}</div>
+                  <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',color:'rgba(240,244,255,.4)'}}>TCP Sliding Window Simulation</span>
+                  <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'9px',color:'rgba(34,211,238,.4)',background:'rgba(34,211,238,.07)',padding:'1px 6px',borderRadius:'3px'}}>Lab 2.2</span>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                  <select value={speed} onChange={e=>setSpeed(Number(e.target.value))} style={{background:'rgba(255,255,255,.05)',border:`1px solid ${C.border}`,color:C.white,borderRadius:'3px',padding:'2px 4px',fontSize:'10px',fontFamily:"'JetBrains Mono',monospace",cursor:'pointer'}}>
+                    {[0.5,1,1.5,2].map(v=><option key={v} value={v}>{v}x</option>)}
+                  </select>
+                  <button onClick={()=>setPaused(p=>!p)} style={{padding:'3px 9px',background:'rgba(34,211,238,.07)',border:`1px solid rgba(34,211,238,.18)`,borderRadius:'3px',color:C.cyan,fontSize:'10px',fontFamily:"'JetBrains Mono',monospace",cursor:'pointer'}}>{paused?'▶ Play':'⏸ Pause'}</button>
+                  <button style={{padding:'3px 9px',background:'rgba(255,255,255,.03)',border:`1px solid rgba(255,255,255,.07)`,borderRadius:'3px',color:'rgba(240,244,255,.35)',fontSize:'10px',fontFamily:"'JetBrains Mono',monospace",cursor:'pointer'}}>↺ Reset</button>
+                </div>
+              </div>
+              {/* Canvas + stats */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 130px'}}>
+                <div style={{position:'relative',aspectRatio:'16/9'}}>
+                  <canvas ref={canvasRef} style={{width:'100%',height:'100%',display:'block'}}/>
+                  <div style={{position:'absolute',top:'8px',left:'8px',display:'flex',alignItems:'center',gap:'5px',background:'rgba(3,8,22,.75)',padding:'3px 7px',borderRadius:'4px'}}>
+                    <div style={{width:5,height:5,borderRadius:'50%',background:'#22c55e',animation:'pulse 2s infinite'}}/>
+                    <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'8px',color:'rgba(240,244,255,.5)',textTransform:'uppercase',letterSpacing:'.07em'}}>Live</span>
+                  </div>
+                  <div style={{position:'absolute',bottom:'8px',left:'8px',display:'flex',gap:'8px'}}>
+                    {[['#22d3ee','Path A'],['#f97316','Path B'],['#818cf8','Path C']].map(([col,lbl])=>(
+                      <div key={lbl} style={{display:'flex',alignItems:'center',gap:'3px'}}>
+                        <div style={{width:5,height:5,borderRadius:'50%',background:col}}/>
+                        <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'8px',color:'rgba(240,244,255,.3)'}}>{lbl}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{padding:'.875rem',borderLeft:`1px solid ${C.border}`,display:'flex',flexDirection:'column',gap:'11px',justifyContent:'center'}}>
+                  {[['Packets Sent',stats.sent],['ACKs Received',stats.acks],['Throughput',`${stats.throughput} Mbps`],['RTT (avg)',`${stats.rtt} ms`]].map(([lbl,val])=>(
+                    <div key={lbl}><div style={{fontSize:'8px',fontFamily:"'JetBrains Mono',monospace",color:C.muted,marginBottom:'1px',letterSpacing:'.03em'}}>{lbl}</div><div style={{fontSize:'15px',fontWeight:800,letterSpacing:'-0.03em',color:C.white}}>{val}</div></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {/* Sim strip */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:'7px',marginTop:'8px'}}>
+              {['Routing & Shortest Path','UDP vs TCP','Congestion Control','DNS Resolution'].map((t,i)=>(
+                <div key={t} style={{border:`1px solid ${i===0?'rgba(34,211,238,.22)':C.border}`,borderRadius:'7px',padding:'.6rem .75rem',background:i===0?'rgba(34,211,238,.04)':C.bgCard,cursor:'pointer',transition:'border-color .2s,background .2s'}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(34,211,238,.22)';e.currentTarget.style.background='rgba(34,211,238,.04)';}}
+                  onMouseOut={e=>{if(i!==0){e.currentTarget.style.borderColor=C.border;e.currentTarget.style.background=C.bgCard;}}}>
+                  <div style={{fontSize:'8px',fontFamily:"'JetBrains Mono',monospace",color:C.amber,marginBottom:'2px',letterSpacing:'.05em'}}>Lab {i+1}.{i+1}</div>
+                  <div style={{fontSize:'10px',fontWeight:600,color:i===0?C.white:'rgba(240,244,255,.45)',lineHeight:1.3}}>{t}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+/* ── Testimonial ── */
+const Testimonial=()=>(
+  <div style={{padding:'4rem 2.5rem',borderTop:`1px solid ${C.border}`,textAlign:'center'}}>
+    <div style={{maxWidth:'560px',margin:'0 auto'}}>
+      <div className="reveal" style={{fontSize:'1.2rem',fontWeight:500,color:'rgba(240,244,255,.8)',lineHeight:1.6,fontStyle:'italic',marginBottom:'1.25rem',letterSpacing:'-0.01em'}}>
+        "The TCP simulation made everything click in 10 minutes that three weeks of lectures couldn't."
+      </div>
+      <div className="reveal d1" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px'}}>
+        <div style={{width:34,height:34,borderRadius:'50%',background:'rgba(34,211,238,.12)',border:`1px solid rgba(34,211,238,.2)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'12px',fontWeight:700,color:C.cyan}}>K</div>
+        <div style={{textAlign:'left'}}>
+          <div style={{fontSize:'13px',fontWeight:700,color:C.white}}>Kai L.</div>
+          <div style={{fontSize:'11px',fontFamily:"'JetBrains Mono',monospace",color:C.muted}}>ELEC3120, HKUST · Spring 2026</div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/* ── Final CTA ── */
+const CTA=()=>(
+  <section style={{padding:'8rem 2.5rem',textAlign:'center',position:'relative',overflow:'hidden'}}>
+    <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 60% 50% at 50% 50%,rgba(34,211,238,.055),transparent 70%)',animation:'drift 8s ease-in-out infinite'}}/>
+    <div style={{position:'absolute',inset:0,background:'radial-gradient(ellipse 30% 30% at 30% 70%,rgba(249,115,22,.025),transparent 60%)'}}/>
+    <div style={{position:'relative',maxWidth:'620px',margin:'0 auto'}}>
+      <p className="reveal" style={{fontFamily:"'JetBrains Mono',monospace",fontSize:'10px',letterSpacing:'.2em',textTransform:'uppercase',color:C.amber,marginBottom:'1rem'}}>READY?</p>
+      <h2 className="reveal d1" style={{fontFamily:"'Inter Tight',sans-serif",fontSize:'clamp(2rem,4.5vw,3.75rem)',fontWeight:900,letterSpacing:'-0.045em',color:C.white,lineHeight:1.0,marginBottom:'1rem'}}>From packets to mastery.</h2>
+      <p className="reveal d2" style={{fontSize:'1rem',color:C.muted,marginBottom:'2.25rem',lineHeight:1.6}}>Join thousands of HKUST ELEC3120 students learning smarter with AI, simulations, and exams.</p>
+      <div className="reveal d3" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:'10px'}}>
+        <a href="/auth" style={{display:'inline-flex',alignItems:'center',gap:'9px',padding:'14px 30px',background:C.cyan,color:'#030816',borderRadius:'8px',fontWeight:800,fontSize:'15px',textDecoration:'none',letterSpacing:'-0.02em',whiteSpace:'nowrap',animation:'cyanPulse 2.5s ease-in-out infinite',transition:'opacity .2s,transform .2s'}}
+          onMouseOver={e=>{e.currentTarget.style.opacity='.87';e.currentTarget.style.transform='translateY(-2px)';}}
+          onMouseOut={e=>{e.currentTarget.style.opacity='1';e.currentTarget.style.transform='none';}}>
+          Start learning now
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#030816" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+        <div style={{display:'flex',gap:'1.5rem'}}>
+          {['✓ Free for HKUST students','✓ No credit card required'].map(t=>(
+            <span key={t} style={{fontSize:'11px',color:C.muted,fontFamily:"'JetBrains Mono',monospace"}}>{t}</span>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+);
+
+/* ── Footer ── */
+const Footer=()=>(
+  <footer style={{borderTop:`1px solid ${C.border}`,padding:'1.75rem 2.5rem',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'1rem'}}>
+    <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+      <div style={{width:20,height:20,borderRadius:4,background:`linear-gradient(135deg,${C.cyan},#0e7490)`,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'9px',fontWeight:800,color:'#030816',fontFamily:"'JetBrains Mono',monospace"}}>LP</div>
+      <span style={{fontWeight:800,fontSize:'13px',letterSpacing:'-0.03em',color:'rgba(240,244,255,.45)'}}>LearningPacer</span>
+    </div>
+    <div style={{display:'flex',gap:'1.5rem'}}>
+      {['Privacy','Contact','GitHub'].map(l=>(
+        <a key={l} href="#" style={{fontSize:'12px',color:C.muted,textDecoration:'none',transition:'color .2s'}}
+          onMouseOver={e=>e.target.style.color=C.white} onMouseOut={e=>e.target.style.color=C.muted}>{l}</a>
+      ))}
+    </div>
+    <p style={{fontSize:'11px',color:'rgba(138,154,184,.35)',fontFamily:"'JetBrains Mono',monospace"}}>© 2026 LearningPacer · HKUST ELEC3120</p>
+  </footer>
+);
+
+/* ── App ── */
+const App=()=>{
+  useReveal();
+  return(
+    <>
+      <Navbar/>
+      <main>
+        <Hero/>
+        <CredStrip/>
+        <ModesShowcase/>
+        <ProofSection/>
+        <SimulationShowcase/>
+        <Testimonial/>
+        <CTA/>
+      </main>
+      <Footer/>
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

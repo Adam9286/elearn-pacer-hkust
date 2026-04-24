@@ -1,0 +1,45 @@
+{
+  "question_type": "comparison",
+  "title": "Go-Back-N vs Selective Repeat ARQ",
+  "summary": null,
+  "main_explanation": "Both are pipelined ARQ schemes for reliable delivery.\n\n- **Go-Back-N (GBN):** receiver only accepts the next in-order packet; out-of-order packets are discarded. ACKs are typically **cumulative**. If one packet is lost, sender retransmits that lost packet **and all later unACKed packets**.\n- **Selective Repeat (SR):** receiver accepts and buffers out-of-order packets, and ACKs packets **individually**. Sender retransmits **only the missing packets**.\n\nSo, **SR is more efficient after loss**, especially on long-delay links, but it is more complex because both sender and receiver need more buffering and bookkeeping.\n\nCommon mistake: saying SR always moves the window after any ACK. Actually, the window advances only when the lowest unACKed packet is covered.",
+  "table": {
+    "headers": [
+      "Aspect",
+      "Go-Back-N",
+      "Selective Repeat"
+    ],
+    "rows": [
+      [
+        "Receiver behavior",
+        "Discard out-of-order packets",
+        "Buffer out-of-order packets"
+      ],
+      [
+        "ACK style",
+        "Cumulative ACK",
+        "Per-packet ACK"
+      ],
+      [
+        "Retransmission",
+        "Lost packet + all later unACKed packets",
+        "Only lost/unACKed packets"
+      ],
+      [
+        "Complexity",
+        "Lower",
+        "Higher"
+      ],
+      [
+        "Efficiency under loss",
+        "Worse",
+        "Better"
+      ]
+    ]
+  },
+  "diagram": null,
+  "elec3120_context": "ELEC3120 Transport Layer lectures cover GBN and SR under pipelined reliable data transfer and loss recovery; this is a common short comparison question.",
+  "exam_tip": "Remember: GBN retransmits from the loss onward; SR retransmits only the specific missing packets.",
+  "check_understanding": "If packet 3 is lost but 4 and 5 arrive, which protocol discards 4 and 5, and which one buffers them?",
+  "calculation_steps": null
+}

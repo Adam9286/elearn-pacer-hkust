@@ -1,115 +1,75 @@
-# LearningPacer — ELEC3120 Computer Networks
+# LearningPacer - Repo Brief
 
-## Project Overview
-Interactive learning platform for HKUST ELEC3120 (Computer Networks). Features AI chat with RAG, 18 interactive network simulators, course slide viewer, and mock exam generation. Built as a Final Year Project.
-
-## Tech Stack
-- **Frontend:** React 18 + TypeScript + Vite (port 8080) + Tailwind CSS 3 + shadcn/ui
-- **AI Orchestration:** n8n (webhooks in `src/constants/api.ts`)
-- **Auth & User Data:** Supabase (`externalSupabase` in `src/lib/externalSupabase.ts`)
-- **Knowledge Base & Exams:** Supabase (`examSupabase` in `src/lib/examSupabase.ts`)
-- **Diagrams:** Mermaid.js 11 (rendered via `src/components/chat/MermaidDiagram.tsx`)
-- **Math:** KaTeX
-- **Charts:** Recharts
-- **Animations:** Framer Motion
+## What This Repo Is
+Frontend for HKUST ELEC3120 (Computer Networks). Main product areas:
+- Chat Mode
+- Course Mode
+- Mock Exam
+- Simulations
 
 ## Commands
 ```bash
-npm run dev          # Start dev server (port 8080)
-npm run build        # Production build
-npm run build:dev    # Development build
-npm run lint         # ESLint check
-npm run preview      # Preview production build
+npm run dev
+npm run build
+npm run build:dev
+npm run lint
+npm run preview
 ```
 
-## Project Structure
-```
-src/
-├── pages/              # Route-level components (Platform, Landing, Auth, Lesson)
-├── components/         # Feature components
-│   ├── chat/           # Chat UI: ChatConversation, RenderMarkdown, MermaidDiagram, Citations
-│   ├── simulations/    # 18 simulators + SimulationShell + SimulationCanvas
-│   ├── lesson/         # Course viewer: PdfViewer, SlideChat, GuidedLearning
-│   ├── landing/        # Landing page sections
-│   ├── admin/          # Slide management
-│   └── ui/             # shadcn/ui primitives used by the app
-├── hooks/              # useChatHistory, useLessonMastery, use-toast
-├── services/           # attachmentService, courseApi, adminApi
-├── lib/                # Supabase clients, utils
-├── constants/          # api.ts (webhooks + timeouts), upload.ts
-├── types/              # chatTypes.ts, courseTypes.ts
-├── data/               # courseContent.ts, examTopics.ts
-├── contexts/           # UserProgressContext
-└── utils/              # citationParser, fileHash, fileValidation
-```
+## Core Stack
+- React 18 + TypeScript + Vite
+- Tailwind CSS 3 + shadcn/ui
+- Hosted n8n for AI orchestration
+- Two Supabase projects
+- Mermaid.js, KaTeX, Recharts, Framer Motion
 
-## Platform Tabs (in order)
-1. **Chat Mode** — AI chat with RAG, citations, file attachments, Mermaid diagrams
-2. **Course Mode** — Slide viewer with per-slide AI explanations
-3. **Mock Exam** — Configurable exam generation via n8n → Google Drive PDF
-4. **Simulations** — 18 interactive network concept simulators
-5. **Feedback** — User feedback form
-6. **How It Works** — Platform guide
+## Architecture
+- Hosted n8n base defaults to `https://n8n.learningpacer.org`
+- Current n8n workflow editor link: `https://n8n.learningpacer.org/workflow/MznVBhIC4sbFquyy`
+- Webhook URLs and timeouts live in `src/constants/api.ts`
+- `externalSupabase` in `src/lib/externalSupabase.ts` handles auth, sessions, chat history, and user progress
+- `examSupabase` in `src/lib/examSupabase.ts` handles lecture embeddings, textbook content, past papers, and exam-related data
 
-## Dual Supabase Architecture
-- `externalSupabase` → Auth, user sessions, chat history, user progress
-- `examSupabase` → Knowledge base (lecture embeddings, textbook content, past papers)
-- Never mix these up. Auth always uses `externalSupabase`. RAG/exam data uses `examSupabase`.
+## High-Value Files
+- `src/constants/api.ts` - n8n endpoints and timeout settings
+- `src/components/ChatMode.tsx` - main chat send flow
+- `src/components/chat/ChatConversation.tsx` - chat rendering and follow-up flow
+- `src/components/chat/RenderMarkdown.tsx` - markdown, Mermaid, and KaTeX rendering
+- `src/services/mockExamApi.ts` - mock exam requests
+- `src/services/courseApi.ts` - Course Mode retrieval and n8n fallback
+- `src/utils/citationParser.ts` - citation normalization/parsing
 
-## n8n Webhooks
-| Name | Purpose | Timeout |
-|------|---------|---------|
-| `CHAT_RESEARCH` | AI chat with RAG retrieval | 120s |
-| `EXAM_GENERATOR` | Mock exam PDF generation | 180s |
-| `COURSE_SLIDE_CHAT` | Per-slide AI explanations | 60s |
+## Webhooks
+- `CHAT_RESEARCH` - chat with RAG, 120s timeout
+- `EXAM_GENERATOR` - mock exam generation, 180s timeout
+- `COURSE_SLIDE_CHAT` - per-slide AI explanation, 60s timeout
 
-## UI Conventions
+## Rules That Matter
+- Never mix the two Supabase clients. Auth/user data always uses `externalSupabase`. Knowledge base and exam data use `examSupabase`.
+- TypeScript strict mode is intentionally off. Do not enable it as part of unrelated work.
+- Production calls should use `webhook/`; `webhook-test/` is for development-only workflow testing.
+- Mock exam still primarily returns hosted PDF links from n8n. Do not assume structured exam payloads are always available.
+- Use `@/` imports.
+- Use `lucide-react` for icons, `sonner` for toasts, and `react-hook-form` + `zod` for forms.
 
-### Simulator Components
-- All simulators wrap content in `<SimulationShell>` (mission briefing) + `<SimulationCanvas>` (visualization area)
-- **Primary action buttons** (Play/Auto-play): `className="bg-cyan-600 hover:bg-cyan-500 text-white"`
-- **Secondary buttons** (Step/Back/Next): `variant="outline" className="border-slate-600 text-slate-300"`
-- **Destructive buttons** (Reset): `variant="ghost" className="text-slate-500 hover:text-red-400"`
-- **Canvas border:** `border-slate-700/80` not `border-border/50`
-- **Section backgrounds:** `bg-slate-800/60` not `bg-muted/20` or `bg-muted/30`
-- **Card backgrounds:** `bg-slate-900/80` not `bg-card/50`
-- **Theory/narration text:** `text-sm text-slate-300` never `text-xs text-muted-foreground`
-- **Color-coded status indicators** (packets, nodes, layers): Keep their semantic `/20` opacity — only structural elements get the stronger opacity treatment
-
-### Dark Mode
-- Support both light and dark via `dark:` prefix where needed
-- SimulationCanvas uses `dark:bg-zinc-900/95 bg-zinc-50` pattern
-- SimulationShell uses `dark:text-zinc-200 text-zinc-900` for headings
-
-### General
-- Use `@/` path alias for all imports
-- Icons from `lucide-react` only
-- Toast notifications via `sonner`
-- Forms via `react-hook-form` + `zod`
-
-## Chat System Architecture
-- User message → `ChatMode.handleSendMessage()` → n8n webhook
-- Response parsed → `RenderMarkdown.tsx` handles all rendering
-- Mermaid blocks detected by ` ```mermaid ` fence → `<MermaidDiagram>` component (lazy loaded)
-- LaTeX blocks: `$$...$$` or `\[...\]` → KaTeX `BlockMath`
-- Citations parsed via `src/utils/citationParser.ts` → matched to `retrieved_materials`
-
-## TypeScript Notes
-- Strict mode is **off** (`strictNullChecks: false`, `noImplicitAny: false`)
-- This is intentional — don't enable strict checks
-- Path alias: `@/*` maps to `./src/*`
+## Simulator UI Rules
+- Wrap simulator content in `SimulationShell` and `SimulationCanvas`
+- Preserve the existing simulator button styling conventions instead of introducing new variants
+- Keep simulator visuals compatible with both light and dark mode
 
 ## Environment Variables
-```
-VITE_N8N_BASE_URL          # n8n instance URL (default: http://localhost:5678)
-VITE_SUPABASE_URL          # External Supabase URL
-VITE_SUPABASE_ANON_KEY     # External Supabase anon key
-VITE_KNOWLEDGE_BASE_URL    # Exam Supabase URL
-VITE_KNOWLEDGE_BASE_ANON_KEY # Exam Supabase anon key
+```bash
+VITE_N8N_BASE_URL            # Optional override; default is https://n8n.learningpacer.org
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+VITE_SUPABASE_PUBLISHABLE_KEY
+VITE_KNOWLEDGE_BASE_URL
+VITE_KNOWLEDGE_BASE_ANON_KEY
+VITE_APP_ENV
+VITE_TIMEOUT_AGENT
 ```
 
 ## Common Pitfalls
-- Don't use `-uall` flag with `git status` — causes memory issues
-- The `examSupabase` MCP server (project ref: `oqgotlmztpvchkipslnc`) is configured in `.mcp.json`
-- Mock exam currently returns Google Drive PDF links only — structured question data is NOT returned from n8n
-- `webhook-test/` endpoints are development-only; production uses `webhook/`
+- `examSupabase` MCP project ref is `oqgotlmztpvchkipslnc`
+- n8n may return empty bodies if the workflow is active but the response node is misconfigured
+- Citation cards expect normalized extracted content, not just raw tool output

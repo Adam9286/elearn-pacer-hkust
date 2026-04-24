@@ -1,0 +1,62 @@
+{
+  "question_type": "comparison",
+  "title": "Go-Back-N vs Selective Repeat ARQ",
+  "summary": "Both are pipelined ARQ protocols, but Selective Repeat retransmits less and needs more buffering.",
+  "main_explanation": "Worked example with window size 4: sender transmits packets 1, 2, 3, 4, and packet 2 is lost. In **Go-Back-N**, the receiver discards out-of-order packets 3 and 4, so the sender must resend 2, 3, and 4. In **Selective Repeat**, the receiver keeps 3 and 4, ACKs them individually, and the sender resends only packet 2. So SR is more efficient after loss, but it needs more complex sender/receiver logic and buffering.",
+  "table": {
+    "headers": [
+      "Aspect",
+      "Go-Back-N (GBN)",
+      "Selective Repeat (SR)"
+    ],
+    "rows": [
+      [
+        "Receiver behavior on out-of-order packet",
+        "Discards it",
+        "Buffers it"
+      ],
+      [
+        "ACK style",
+        "Usually cumulative ACK",
+        "Individual ACKs for packets"
+      ],
+      [
+        "After packet 2 is lost",
+        "Resend 2, 3, 4, ... from the missing one onward",
+        "Resend only packet 2"
+      ],
+      [
+        "Buffer requirement",
+        "Small receiver buffer",
+        "Larger receiver buffer"
+      ],
+      [
+        "Complexity",
+        "Simpler",
+        "More complex"
+      ],
+      [
+        "Efficiency under loss",
+        "Lower",
+        "Higher"
+      ]
+    ]
+  },
+  "diagram": null,
+  "elec3120_context": "In the transport-layer reliability discussion, the course emphasizes that both protocols allow many packets in flight, but Selective Repeat is more efficient at recovering from loss.",
+  "exam_tip": "If asked for the key difference, state: GBN discards out-of-order packets and retransmits a whole suffix; SR buffers out-of-order packets and retransmits only the missing ones.",
+  "check_understanding": "If packets 5, 6, 7 arrive after packet 4 is lost, what does the receiver do in GBN and in SR?",
+  "calculation_steps": {
+    "setup": "Assume window size $4$. Sender sends packets $1,2,3,4$, packet $2$ is lost, and packets $3$ and $4$ still reach the receiver. Find how many packets must be retransmitted in GBN and SR.",
+    "steps": [
+      "Initial transmission: sender sends $4$ packets: $1,2,3,4$.",
+      "Loss event: packet $2$ is missing at the receiver.",
+      "GBN receiver action: packets $3$ and $4$ are out of order, so they are discarded.",
+      "GBN retransmission: sender must resend from the missing packet onward, so it resends $2,3,4$ -> $3$ packets.",
+      "SR receiver action: packets $3$ and $4$ are buffered and ACKed individually.",
+      "SR retransmission: sender resends only the missing packet $2$ -> $1$ packet."
+    ],
+    "answer": "For this example, Go-Back-N retransmits 3 packets ($2,3,4$), while Selective Repeat retransmits only 1 packet ($2$).",
+    "common_mistakes": "A common mistake is thinking SR also discards out-of-order packets; actually SR keeps them and waits only for the missing one."
+  }
+}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn, GripHorizontal } from 'lucide-react';
+import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn, Database } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,12 @@ import { externalSupabase } from '@/lib/externalSupabase';
 import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMarkdown } from './RenderMarkdown';
 import { StructuredResponse } from './StructuredResponse';
-import { ChatMessage, RetrievedMaterial, StructuredAnswer } from '@/types/chatTypes';
+import {
+  ChatMessage,
+  ChatResponseStyle,
+  RetrievedMaterial,
+  StructuredAnswer,
+} from '@/types/chatTypes';
 import { parseWebhookAnswer } from '@/utils/parseWebhookAnswer';
 import { LectureReferences, RetrievedMaterial as LegacyRetrievedMaterial } from './LectureReferences';
 import { CitationSection } from './CitationSection';
@@ -35,6 +40,7 @@ interface LocalMessage {
   citations?: string[]; // Raw citation strings
   retrieved_materials?: RetrievedMaterial[]; // Full material data
   responseTime?: string;
+  responseStyle?: ChatResponseStyle;
   attachments?: Array<{
     name: string;
     url: string;
@@ -49,7 +55,8 @@ interface ChatConversationProps {
   isWaitingForAI?: boolean;
   onSendMessage: (
     content: string,
-    attachments: File[]
+    attachments: File[],
+    responseStyle: ChatResponseStyle,
   ) => Promise<void>;
 }
 
@@ -59,6 +66,28 @@ const WELCOME_MESSAGE: LocalMessage = {
   content:
     "Hello! I'm LearningPacer, your AI teaching assistant for ELEC3120. I can answer questions about Computer Networks based on your course materials. What would you like to learn today?",
 };
+
+const RESPONSE_STYLE_OPTIONS: Array<{
+  value: ChatResponseStyle;
+  label: string;
+  hint: string;
+}> = [
+  {
+    value: 'explain',
+    label: 'Explain',
+    hint: 'Teach clearly for understanding.',
+  },
+  {
+    value: 'exam_focus',
+    label: 'Exam Focus',
+    hint: 'Keep the answer concise and revision-oriented.',
+  },
+  {
+    value: 'worked_example',
+    label: 'Worked Example',
+    hint: 'Prefer a concrete step-by-step example.',
+  },
+];
 
 export const ChatConversation = ({
   messages,
@@ -71,6 +100,7 @@ export const ChatConversation = ({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [responseStyle, setResponseStyle] = useState<ChatResponseStyle>('explain');
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [localLoadingProgress, setLocalLoadingProgress] = useState(0);
   const [localLoadingStage, setLocalLoadingStage] = useState('');
@@ -80,7 +110,7 @@ export const ChatConversation = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const { handleResizeDragStart, resetHeight } = useAutosizeTextarea(inputRef, input, {
+  const { resetHeight } = useAutosizeTextarea(inputRef, input, {
     minHeight: 80,
     maxHeight: 260,
   });
@@ -102,6 +132,7 @@ export const ChatConversation = ({
         citations: m.citations,
         retrieved_materials: m.retrieved_materials,
         responseTime: m.responseTime,
+        responseStyle: m.responseStyle,
         attachments: m.attachments,
       }))
     : localMessages;
@@ -330,6 +361,7 @@ export const ChatConversation = ({
             sessionId: `session_${Date.now()}`,
             attachments: uploadedUrls,
             mode: 'auto',
+            responseStyle,
           }),
         });
 
@@ -379,6 +411,7 @@ export const ChatConversation = ({
             retrieved_materials: retrievedMaterials.length > 0 ? retrievedMaterials : undefined,
             source: retrievedMaterials.length === 0 && citations.length === 0 ? source : undefined,
             responseTime: responseTime,
+            responseStyle,
           };
           setNewMessageId(aiMessage.id);
           setTimeout(() => setNewMessageId(null), 400);
@@ -429,7 +462,7 @@ export const ChatConversation = ({
       setIsLoading(true);
       
       try {
-        await onSendMessage(userInput, currentAttachments);
+        await onSendMessage(userInput, currentAttachments, responseStyle);
       } finally {
         setIsLoading(false);
       }
@@ -514,13 +547,47 @@ export const ChatConversation = ({
                       {message.content === "I received your question and I'm processing it…" ? (
                         <AIThinkingIndicator isActive={true} />
                       ) : (
-                        <div className="text-sm leading-relaxed">
-                          {message.structured_answer ? (
-                            <StructuredResponse answer={message.structured_answer} />
-                          ) : (
-                            <RenderMarkdown content={message.content} />
+                        <>
+                          {message.role === 'assistant' && (message.retrieved_materials?.length > 0 || message.responseTime || message.responseStyle) && (
+                            <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-white/8">
+                              {message.responseStyle && (
+                                <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                                  message.responseStyle === 'exam_focus'
+                                    ? 'bg-amber-500/15 text-amber-400/80'
+                                    : message.responseStyle === 'worked_example'
+                                    ? 'bg-cyan-500/15 text-cyan-400/80'
+                                    : 'bg-muted/20 text-muted-foreground/60'
+                                }`}>
+                                  {message.responseStyle === 'exam_focus' ? 'Exam Focus'
+                                    : message.responseStyle === 'worked_example' ? 'Worked Example'
+                                    : 'Explain'}
+                                </span>
+                              )}
+                              {message.responseStyle && (message.retrieved_materials?.length > 0 || message.responseTime) && (
+                                <span className="text-[10px] text-muted-foreground/30">·</span>
+                              )}
+                              {message.retrieved_materials && message.retrieved_materials.length > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground/60 bg-muted/20 px-1.5 py-0.5 rounded">
+                                  <Database className="w-2.5 h-2.5" />
+                                  Sources {message.retrieved_materials.length}
+                                </span>
+                              )}
+                              {message.retrieved_materials && message.retrieved_materials.length > 0 && message.responseTime && (
+                                <span className="text-[10px] text-muted-foreground/30">·</span>
+                              )}
+                              {message.responseTime && (
+                                <span className="text-[10px] text-muted-foreground/50 font-mono">{message.responseTime}s</span>
+                              )}
+                            </div>
                           )}
-                        </div>
+                          <div className="text-sm leading-relaxed">
+                            {message.structured_answer ? (
+                              <StructuredResponse answer={message.structured_answer} />
+                            ) : (
+                              <RenderMarkdown content={message.content} />
+                            )}
+                          </div>
+                        </>
                       )}
                       {message.attachments && message.attachments.length > 0 && (
                         <div className="mt-2 space-y-1.5">
@@ -580,11 +647,6 @@ export const ChatConversation = ({
                           </div>
                         </div>
                       )}
-                      {message.role === 'assistant' && message.responseTime && (
-                        <div className="mt-2 text-[10px] text-muted-foreground/70 font-mono">
-                          ⏱ {message.responseTime}s
-                        </div>
-                      )}
                     </div>
                   </div>
                 ))}
@@ -594,17 +656,32 @@ export const ChatConversation = ({
 
           {/* Input Area */}
           <div className="sticky bottom-0 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 space-y-3">
-            <div className="hidden sm:flex justify-center">
-              <button
-                type="button"
-                aria-label="Composer resize handle"
-                onMouseDown={handleResizeDragStart}
-                className="group -mt-1 flex h-6 w-16 cursor-ns-resize items-center justify-center rounded-full text-cyan-200/25 transition-colors hover:text-cyan-200/55"
-                tabIndex={-1}
-              >
-                <span className="sr-only">Resize composer</span>
-                <GripHorizontal className="h-4 w-4 transition-transform group-hover:scale-105" />
-              </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Response style
+              </span>
+              <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+                {RESPONSE_STYLE_OPTIONS.map((option) => {
+                  const isActive = responseStyle === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      title={option.hint}
+                      aria-pressed={isActive}
+                      onClick={() => setResponseStyle(option.value)}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                        isActive
+                          ? 'bg-primary text-primary-foreground shadow-sm'
+                          : 'text-muted-foreground hover:bg-white/[0.05] hover:text-foreground'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2">

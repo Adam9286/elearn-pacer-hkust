@@ -49,6 +49,14 @@ All colors MUST be HSL.
     --destructive: 0 65% 45%;
     --destructive-foreground: 0 0% 98%;
 
+    /* Semantic status tokens — cascade applies to every theme unless explicitly overridden */
+    --success: 142 65% 38%;
+    --success-foreground: 0 0% 98%;
+    --warning: 32 95% 44%;
+    --warning-foreground: 30 45% 10%;
+    --info: 200 80% 42%;
+    --info-foreground: 0 0% 98%;
+
     --border: 0 0% 83%;
     --input: 0 0% 85%;
     --ring: 220 60% 50%;
@@ -101,13 +109,21 @@ All colors MUST be HSL.
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
+    /* Brighter status tokens for dark surfaces — override the light defaults */
+    --success: 142 60% 48%;
+    --success-foreground: 0 0% 98%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 30 45% 10%;
+    --info: 200 85% 58%;
+    --info-foreground: 220 40% 10%;
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
-    
+
     --glass-bg: hsla(220, 20%, 12%, 0.7);
     --glass-border: hsla(221.2, 83.2%, 53.3%, 0.2);
-    
+
     --shadow-glow: 0 0 20px hsla(221.2, 83.2%, 53.3%, 0.4);
   }
 
@@ -317,6 +333,10 @@ All colors MUST be HSL.
 
     --destructive: 0 55% 40%;
     --destructive-foreground: 210 20% 95%;
+
+    /* Midnight matches its cyan accent for information */
+    --info: 186 100% 55%;
+    --info-foreground: 215 40% 7%;
 
     --border: 215 25% 16%;
     --input: 215 25% 16%;
@@ -722,6 +742,70 @@ All colors MUST be HSL.
     0%, 100% { transform: scaleY(0.5); opacity: 0.5; }
     50% { transform: scaleY(1.5); opacity: 1; }
   }
+
+  /* ───── Landing page — design handoff keyframes ───── */
+  @keyframes lp-cyan-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+    50%      { box-shadow: 0 0 18px 4px rgba(34, 211, 238, 0.35); }
+  }
+  @keyframes lp-bob {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%      { transform: translateX(-50%) translateY(7px); }
+  }
+  @keyframes lp-drift {
+    0%   { transform: translate(0, 0); }
+    50%  { transform: translate(8px, -6px); }
+    100% { transform: translate(0, 0); }
+  }
+  @keyframes lp-play-ping {
+    0%   { transform: scale(1);   opacity: 0.6; }
+    100% { transform: scale(1.7); opacity: 0; }
+  }
+  @keyframes lp-soft-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.3; }
+  }
+  @keyframes lp-cursor-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  .animate-lp-cyan-pulse { animation: lp-cyan-pulse 2.5s ease-in-out infinite; }
+  .animate-lp-bob        { animation: lp-bob 2.2s ease-in-out infinite; }
+  .animate-lp-drift      { animation: lp-drift 8s ease-in-out infinite; }
+  .animate-lp-play-ping  { animation: lp-play-ping 2s ease-out infinite; }
+  .animate-lp-soft-pulse { animation: lp-soft-pulse 2s ease-in-out infinite; }
+  .animate-lp-cursor     { animation: lp-cursor-blink 1.06s steps(1, end) infinite; }
+
+  /* Film grain overlay for hero */
+  .lp-grain::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    mix-blend-mode: overlay;
+  }
+
+  /* Modes grid responsive */
+  .lp-modes-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+  @media (max-width: 1279px) { .lp-modes-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 639px)  { .lp-modes-grid { grid-template-columns: 1fr; } }
+
+  /* Sim showcase responsive */
+  .lp-sim-grid { display: grid; grid-template-columns: 260px 1fr; gap: 2.75rem; align-items: start; }
+  @media (max-width: 899px) { .lp-sim-grid { grid-template-columns: 1fr; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-lp-cyan-pulse,
+    .animate-lp-bob,
+    .animate-lp-drift,
+    .animate-lp-play-ping,
+    .animate-lp-soft-pulse,
+    .animate-lp-cursor { animation: none !important; }
+  }
 }
 
 /* ========== CHAT MARKDOWN STYLES ========== */
@@ -765,34 +849,34 @@ All colors MUST be HSL.
   color: hsl(var(--foreground));
 }
 
-/* Correct answer styling - semantic success */
+/* Correct-answer styling routed through semantic --success token */
 .chat-markdown .bg-emerald-500\/10 {
-  background-color: hsl(160 84% 39% / 0.1);
+  background-color: hsl(var(--success) / 0.1);
 }
 
 .chat-markdown .border-emerald-500\/20 {
-  border-color: hsl(160 84% 39% / 0.2);
+  border-color: hsl(var(--success) / 0.25);
 }
 
 .chat-markdown .text-emerald-500 {
-  color: hsl(160 84% 39%);
+  color: hsl(var(--success));
 }
 
-/* Warning styling - semantic warning */
+/* Warning styling routed through semantic --warning token */
 .chat-markdown .bg-amber-500\/10 {
-  background-color: hsl(38 92% 50% / 0.1);
+  background-color: hsl(var(--warning) / 0.1);
 }
 
 .chat-markdown .border-amber-500\/20 {
-  border-color: hsl(38 92% 50% / 0.2);
+  border-color: hsl(var(--warning) / 0.25);
 }
 
 .chat-markdown .text-amber-600 {
-  color: hsl(32 95% 44%);
+  color: hsl(var(--warning));
 }
 
 .dark .chat-markdown .text-amber-400 {
-  color: hsl(38 92% 50%);
+  color: hsl(var(--warning));
 }
 
 /* Math equation styling */

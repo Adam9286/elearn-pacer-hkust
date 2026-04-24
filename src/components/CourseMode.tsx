@@ -13,17 +13,13 @@ import { AnimatedParticles } from "@/components/ui/AnimatedParticles";
 
 const CourseMode = () => {
   const navigate = useNavigate();
-  const { 
-    user, 
-    loading, 
-    isChapterUnlocked, 
+  const {
+    user,
+    loading,
     isSectionComplete,
     getLessonsCompleted,
     getTotalLessons,
-    devMode, 
-    setDevMode,
-    isAdmin,
-    refetch
+    refetch,
   } = useUserProgress();
 
   // Refetch progress when component mounts and user is available
@@ -31,7 +27,7 @@ const CourseMode = () => {
     if (user) {
       refetch();
     }
-  }, [user]);
+  }, [refetch, user]);
 
   const handleUnitClick = (unitId: number) => {
     navigate(`/platform/lesson/${unitId}-1`);
@@ -45,15 +41,15 @@ const CourseMode = () => {
     return (
       <Card className="glass-card">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Sign In Required</CardTitle>
+          <CardTitle className="text-2xl">Sign In to Continue</CardTitle>
           <CardDescription>
-            Create an account to track your learning progress and unlock sections
+            Sign in to save your course progress and return to it across sessions.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex justify-center">
           <Button onClick={() => navigate("/auth")} size="lg">
             <LogIn className="mr-2 h-4 w-4" />
-            Sign In to Continue
+            Sign In
           </Button>
         </CardContent>
       </Card>

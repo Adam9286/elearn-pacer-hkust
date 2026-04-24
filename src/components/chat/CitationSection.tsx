@@ -71,14 +71,14 @@ export const CitationSection = ({ citations, retrievedMaterials = [] }: Citation
   }
 
   return (
-    <div className="mt-4 pt-3 border-t border-border/30">
+    <div className="mt-3 pt-2 border-t border-border/20">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full group">
-          <BookOpen className="w-3.5 h-3.5" />
-          <span className="font-medium uppercase tracking-wide">Sources</span>
-          <Badge 
-            variant="secondary" 
-            className="text-[10px] px-1.5 py-0 bg-primary/10 text-primary border-0"
+        <CollapsibleTrigger className="flex items-center gap-2 text-xs text-muted-foreground/60 hover:text-muted-foreground transition-colors w-full group">
+          <BookOpen className="w-3 h-3" />
+          <span className="font-medium uppercase tracking-wide text-[10px]">Sources</span>
+          <Badge
+            variant="secondary"
+            className="text-[10px] px-1.5 py-0 bg-muted/30 text-muted-foreground/60 border-0"
           >
             {allCards.length}
           </Badge>

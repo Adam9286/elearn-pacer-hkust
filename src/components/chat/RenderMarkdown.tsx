@@ -432,7 +432,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       elements.push(
         <h2
           key={`h2-${i}`}
-          className="text-lg font-semibold text-primary mt-6 mb-3 pb-2 border-b border-primary/20"
+          className="text-base font-semibold text-primary mt-5 mb-2"
         >
           {parseInline(trimmed.slice(2).trim(), `h2-${i}`)}
         </h2>
@@ -460,7 +460,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       elements.push(
         <blockquote
           key={`quote-${i}`}
-          className="border-l-4 border-primary/40 pl-4 py-2 my-4 bg-muted/30 rounded-r-lg italic text-muted-foreground"
+          className="border-l-2 border-muted-foreground/30 pl-4 py-1.5 my-3 italic text-muted-foreground/80"
         >
           {quoteLines.map((ql, qi) => (
             <p key={qi} className="my-1">
@@ -602,5 +602,5 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
     i++;
   }
   
-  return <div className="chat-markdown space-y-3">{elements}</div>;
+  return <div className="chat-markdown space-y-2 leading-relaxed">{elements}</div>;
 };

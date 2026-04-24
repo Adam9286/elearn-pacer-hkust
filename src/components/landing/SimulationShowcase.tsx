@@ -1,201 +1,443 @@
 import { motion } from "framer-motion";
-import { ArrowRight, Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowRight } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
-/* ——— Static simulation preview (right side) ——— */
-const SimulationPreview = () => (
-  <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[linear-gradient(180deg,rgba(10,18,36,0.97),rgba(8,14,28,0.96))] shadow-[0_20px_60px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.02)]">
-    {/* Top highlight */}
-    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.1] to-transparent" />
+import { LANDING_SECTION_SCROLL_MARGIN } from "@/constants/landing";
+import {
+  simulationCatalog,
+  simulationModuleDescriptions,
+  simulationModuleOrder,
+  totalSimulationCount,
+  type SimulationDifficulty,
+} from "@/data/platformContent";
 
-    {/* Window top bar */}
-    <div className="flex items-center justify-between border-b border-white/[0.06] bg-white/[0.01] px-5 py-3">
-      <div className="flex items-center gap-2.5">
-        <div className="flex items-center gap-[6px]">
-          <span className="h-2 w-2 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/[0.05]" />
-          <span className="h-2 w-2 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/[0.05]" />
-          <span className="h-2 w-2 rounded-full bg-white/[0.07] ring-1 ring-inset ring-white/[0.05]" />
-        </div>
-        <div className="h-3.5 w-px bg-white/[0.05]" />
-        <span className="text-[10px] font-semibold text-white/35">
-          TCP 3-Way Handshake
-        </span>
-      </div>
-      <div className="flex items-center gap-1.5 rounded-full border border-white/[0.05] bg-white/[0.02] px-2 py-0.5">
-        <span className="h-[4px] w-[4px] rounded-full bg-emerald-400/60 shadow-[0_0_4px_rgba(52,211,153,0.4)]" />
-        <span className="text-[8px] font-medium uppercase tracking-[0.12em] text-white/25">
-          Interactive
-        </span>
-      </div>
-    </div>
+import AmbientNetwork from "./AmbientNetwork";
 
-    {/* SVG Visualization */}
-    <div className="px-6 py-8">
-      <svg
-        viewBox="0 0 520 280"
-        className="w-full"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        {/* Subtle grid background */}
-        <defs>
-          <pattern id="sim-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width="520" height="280" fill="url(#sim-grid)" />
+const subtleReveal = {
+  initial: { opacity: 0.88, y: 12 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, amount: 0.12 },
+  transition: { duration: 0.45, ease: "easeOut" as const },
+};
 
-        {/* Timeline columns */}
-        <line x1="100" y1="50" x2="100" y2="240" stroke="rgba(34,211,238,0.08)" strokeWidth="1" strokeDasharray="4 4" />
-        <line x1="420" y1="50" x2="420" y2="240" stroke="rgba(34,211,238,0.08)" strokeWidth="1" strokeDasharray="4 4" />
+const difficultyAccent: Record<SimulationDifficulty, string> = {
+  Introductory: "#22d3ee",
+  Intermediate: "#f97316",
+  Advanced: "#a78bfa",
+};
 
-        {/* Column headers */}
-        <text x="100" y="36" textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.35)" fontFamily="monospace" letterSpacing="1.5">CLIENT</text>
-        <text x="420" y="36" textAnchor="middle" fontSize="10" fill="rgba(255,255,255,0.35)" fontFamily="monospace" letterSpacing="1.5">SERVER</text>
-
-        {/* Client node */}
-        <circle cx="100" cy="50" r="6" fill="rgba(34,211,238,0.08)" stroke="rgba(34,211,238,0.3)" strokeWidth="1" />
-        <circle cx="100" cy="50" r="2.5" fill="rgba(34,211,238,0.4)" />
-
-        {/* Server node */}
-        <circle cx="420" cy="50" r="6" fill="rgba(34,211,238,0.08)" stroke="rgba(34,211,238,0.3)" strokeWidth="1" />
-        <circle cx="420" cy="50" r="2.5" fill="rgba(34,211,238,0.4)" />
-
-        {/* SYN arrow: Client → Server */}
-        <line x1="108" y1="85" x2="412" y2="115" stroke="rgba(103,232,249,0.35)" strokeWidth="1.5" />
-        {/* Arrowhead */}
-        <polygon points="412,115 402,110 404,118" fill="rgba(103,232,249,0.35)" />
-        {/* SYN label */}
-        <rect x="220" y="82" width="80" height="22" rx="6" fill="rgba(34,211,238,0.06)" stroke="rgba(34,211,238,0.12)" strokeWidth="0.8" />
-        <text x="260" y="97" textAnchor="middle" fontSize="9" fill="rgba(103,232,249,0.7)" fontFamily="monospace" letterSpacing="1">SYN</text>
-
-        {/* SYN-ACK arrow: Server → Client */}
-        <line x1="412" y1="140" x2="108" y2="170" stroke="rgba(147,197,253,0.3)" strokeWidth="1.5" />
-        {/* Arrowhead */}
-        <polygon points="108,170 118,165 116,173" fill="rgba(147,197,253,0.3)" />
-        {/* SYN-ACK label */}
-        <rect x="218" y="138" width="84" height="22" rx="6" fill="rgba(59,130,246,0.06)" stroke="rgba(59,130,246,0.12)" strokeWidth="0.8" />
-        <text x="260" y="153" textAnchor="middle" fontSize="9" fill="rgba(147,197,253,0.65)" fontFamily="monospace" letterSpacing="1">SYN-ACK</text>
-
-        {/* ACK arrow: Client → Server */}
-        <line x1="108" y1="195" x2="412" y2="225" stroke="rgba(34,211,238,0.3)" strokeWidth="1.5" />
-        {/* Arrowhead */}
-        <polygon points="412,225 402,220 404,228" fill="rgba(34,211,238,0.3)" />
-        {/* ACK label */}
-        <rect x="220" y="192" width="80" height="22" rx="6" fill="rgba(34,211,238,0.06)" stroke="rgba(34,211,238,0.12)" strokeWidth="0.8" />
-        <text x="260" y="207" textAnchor="middle" fontSize="9" fill="rgba(103,232,249,0.65)" fontFamily="monospace" letterSpacing="1">ACK</text>
-
-        {/* Connection established indicator */}
-        <line x1="80" y1="248" x2="440" y2="248" stroke="rgba(52,211,153,0.15)" strokeWidth="1" strokeDasharray="3 6" />
-        <text x="260" y="268" textAnchor="middle" fontSize="8" fill="rgba(52,211,153,0.4)" fontFamily="monospace" letterSpacing="1.5">CONNECTION ESTABLISHED</text>
-      </svg>
-    </div>
-
-    {/* Bottom info bar */}
-    <div className="flex items-center justify-between border-t border-white/[0.05] px-5 py-3">
-      <div className="flex items-center gap-3">
-        {["SYN", "SYN-ACK", "ACK"].map((step, i) => (
-          <span
-            key={step}
-            className="rounded-md border border-white/[0.06] bg-white/[0.025] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.08em] text-white/30"
-          >
-            {step}
-          </span>
-        ))}
-      </div>
-      <span className="text-[9px] tabular-nums text-white/20">
-        Step 3 / 3
-      </span>
-    </div>
-  </div>
-);
-
-/* ——— Main component ——— */
 const SimulationShowcase = () => {
-  const navigate = useNavigate();
+  const [activeModuleIndex, setActiveModuleIndex] = useState(1);
+
+  const modules = useMemo(
+    () =>
+      simulationModuleOrder.map((moduleName) => {
+        const labs = simulationCatalog.filter((entry) => entry.module === moduleName);
+        const counts = labs.reduce<Record<SimulationDifficulty, number>>(
+          (acc, lab) => {
+            acc[lab.difficulty] += 1;
+            return acc;
+          },
+          { Introductory: 0, Intermediate: 0, Advanced: 0 },
+        );
+
+        return {
+          moduleName,
+          description: simulationModuleDescriptions[moduleName],
+          labs,
+          counts,
+        };
+      }),
+    [],
+  );
+
+  const activeModule = modules[activeModuleIndex];
 
   return (
-    <section id="simulations" className="px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
-      <div className="mx-auto max-w-7xl">
-        <div className="grid gap-14 lg:grid-cols-[minmax(0,420px)_minmax(0,1fr)] lg:items-center lg:gap-20">
-          {/* ——— Left side: text ——— */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.2 }}
-            transition={{ duration: 0.5, ease: "easeOut" }}
-          >
-            <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-cyan-300/60">
-              Interactive Simulations
-            </p>
-            <h2 className="mt-3 font-display text-[2rem] font-bold tracking-[-0.03em] text-white sm:text-[2.5rem]">
-              See protocols move,
-              <br />
-              not just read about them
-            </h2>
-            <p className="mt-4 text-[15px] leading-[1.75] text-white/45">
-              LearningPacer's 18 simulators turn abstract protocol behavior
-              into visual systems you can step through, replay, and reason
-              about.
-            </p>
+    <section
+      id="simulations"
+      style={{
+        padding: "6rem clamp(1rem, 3vw, 2.5rem)",
+        background: "#060d1f",
+        borderTop: "1px solid rgba(34,211,238,0.1)",
+        position: "relative",
+        overflow: "hidden",
+        scrollMarginTop: LANDING_SECTION_SCROLL_MARGIN,
+      }}
+    >
+      <AmbientNetwork style={{ opacity: 0.05 }} />
 
-            {/* Key points */}
-            <div className="mt-8 space-y-4">
-              {[
-                {
-                  title: "Step-by-step packet flow",
-                  desc: "Watch SYN, ACK, and data segments move between nodes with real timing.",
-                },
-                {
-                  title: "Visual intuition",
-                  desc: "Sliding windows, congestion control, and routing become spatial rather than abstract.",
-                },
-                {
-                  title: "Exam-aligned topics",
-                  desc: "Every simulator maps to a concept that appears in ELEC3120 assessments.",
-                },
-              ].map((point) => (
-                <div key={point.title} className="flex items-start gap-3">
-                  <div className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-cyan-400/[0.06] ring-1 ring-cyan-400/[0.08]">
-                    <Eye className="h-2.5 w-2.5 text-cyan-400/50" />
+      <div style={{ maxWidth: 1200, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <motion.p
+          {...subtleReveal}
+          style={{
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 10,
+            letterSpacing: "0.15em",
+            textTransform: "uppercase",
+            color: "#f97316",
+            marginBottom: "0.8rem",
+          }}
+        >
+          SIMULATIONS HUB
+        </motion.p>
+        <motion.h2
+          {...subtleReveal}
+          transition={{ ...subtleReveal.transition, delay: 0.06 }}
+          style={{
+            fontFamily: "'Inter Tight', sans-serif",
+            fontSize: "clamp(1.9rem, 3.5vw, 3rem)",
+            fontWeight: 900,
+            letterSpacing: "-0.04em",
+            color: "#f0f4ff",
+            marginBottom: "1rem",
+            lineHeight: 1.05,
+            maxWidth: 760,
+          }}
+        >
+          Simulations that match the real platform hub.
+        </motion.h2>
+
+        <div className="lp-sim-grid">
+          <div>
+            <motion.p
+              {...subtleReveal}
+              transition={{ ...subtleReveal.transition, delay: 0.12 }}
+              style={{
+                fontFamily: "'Inter Tight', sans-serif",
+                fontSize: "0.98rem",
+                color: "#6e82a4",
+                lineHeight: 1.65,
+                marginBottom: "1.5rem",
+              }}
+            >
+              LearningPacer groups {totalSimulationCount} interactive ELEC3120 labs into four real modules: Foundations, Transport Layer, Network Layer, and Link Layer. This preview mirrors the actual simulations tab instead of inventing a separate landing-page style.
+            </motion.p>
+
+            {[
+              ["Real module structure", "The same four-group layout you open inside the platform."],
+              ["Real lab names", "DNS Resolution, Sliding Window, Dijkstra, STP, Queue Management, and more."],
+              ["Real destination", "The CTA below jumps straight into the actual simulations mode."],
+            ].map(([title, description], index) => (
+              <motion.div
+                key={title}
+                {...subtleReveal}
+                transition={{ ...subtleReveal.transition, delay: 0.16 + index * 0.05 }}
+                style={{ display: "flex", gap: 10, marginBottom: "1.1rem" }}
+              >
+                <div
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    background: "#22d3ee",
+                    flexShrink: 0,
+                    marginTop: 8,
+                  }}
+                />
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "'Inter Tight', sans-serif",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#f0f4ff",
+                      marginBottom: 2,
+                    }}
+                  >
+                    {title}
                   </div>
-                  <div>
-                    <p className="text-[13px] font-medium text-white/65">
-                      {point.title}
-                    </p>
-                    <p className="mt-0.5 text-[12px] leading-[1.6] text-white/35">
-                      {point.desc}
-                    </p>
+                  <div
+                    style={{
+                      fontFamily: "'Inter Tight', sans-serif",
+                      fontSize: 12,
+                      color: "#6e82a4",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {description}
                   </div>
                 </div>
-              ))}
-            </div>
+              </motion.div>
+            ))}
 
-            <button
-              type="button"
-              onClick={() =>
-                navigate("/platform", { state: { mode: "simulations" } })
-              }
-              className="group/btn mt-10 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.02] px-5 py-2.5 text-[13px] font-medium text-white/55 transition-all duration-200 hover:-translate-y-px hover:border-cyan-400/[0.15] hover:bg-white/[0.04] hover:text-white/80"
+            <motion.div
+              {...subtleReveal}
+              transition={{ ...subtleReveal.transition, delay: 0.3 }}
+              style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "1.6rem 0" }}
             >
-              Open Simulations
-              <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover/btn:translate-x-0.5" />
-            </button>
-          </motion.div>
+              {[`${totalSimulationCount} labs`, `${simulationModuleOrder.length} modules`, "Intro to advanced"].map((chip) => (
+                <span
+                  key={chip}
+                  style={{
+                    padding: "6px 10px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(34,211,238,0.18)",
+                    background: "rgba(34,211,238,0.06)",
+                    color: "#d9e7ff",
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 10,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {chip}
+                </span>
+              ))}
+            </motion.div>
 
-          {/* ——— Right side: visual ——— */}
+            <motion.div {...subtleReveal} transition={{ ...subtleReveal.transition, delay: 0.34 }}>
+              <Link
+                to="/platform"
+                state={{ mode: "simulations" }}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 7,
+                  marginTop: "0.25rem",
+                  padding: "10px 18px",
+                  background: "rgba(34,211,238,0.07)",
+                  border: "1px solid rgba(34,211,238,0.18)",
+                  borderRadius: 7,
+                  color: "#22d3ee",
+                  fontFamily: "'Inter Tight', sans-serif",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: "none",
+                  whiteSpace: "nowrap",
+                  transition: "background .2s ease, gap .2s ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "rgba(34,211,238,0.13)";
+                  e.currentTarget.style.gap = "11px";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "rgba(34,211,238,0.07)";
+                  e.currentTarget.style.gap = "7px";
+                }}
+              >
+                Explore all simulations
+                <ArrowRight size={13} strokeWidth={2.5} />
+              </Link>
+            </motion.div>
+          </div>
+
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.15 }}
-            transition={{ duration: 0.55, delay: 0.08, ease: "easeOut" }}
-            className="relative"
+            {...subtleReveal}
+            transition={{ ...subtleReveal.transition, delay: 0.2 }}
+            style={{
+              border: "1px solid rgba(34,211,238,0.1)",
+              borderRadius: 14,
+              overflow: "hidden",
+              background: "rgba(6,13,31,0.88)",
+              boxShadow: "0 30px 80px -40px rgba(34,211,238,0.22)",
+            }}
           >
-            {/* Faint glow behind */}
-            <div className="pointer-events-none absolute -inset-10 hidden lg:block">
-              <div className="absolute left-1/2 top-1/2 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-500/[0.04] blur-[80px]" />
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "0.8rem 0.95rem",
+                borderBottom: "1px solid rgba(34,211,238,0.1)",
+                background: "rgba(255,255,255,0.015)",
+                flexWrap: "wrap",
+                gap: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", gap: 4 }}>
+                  {["#ff5f57", "#febc2e", "#28c840"].map((color) => (
+                    <div key={color} style={{ width: 9, height: 9, borderRadius: "50%", background: color, opacity: 0.65 }} />
+                  ))}
+                </div>
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: 10,
+                    color: "rgba(240,244,255,0.48)",
+                  }}
+                >
+                  Simulation Hub Preview
+                </span>
+              </div>
+              <span
+                style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: 9,
+                  color: "rgba(34,211,238,0.7)",
+                  background: "rgba(34,211,238,0.07)",
+                  padding: "2px 7px",
+                  borderRadius: 999,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {totalSimulationCount} live labs
+              </span>
             </div>
 
-            <SimulationPreview />
+            <div style={{ padding: "1rem" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 8, marginBottom: "1rem" }}>
+                {modules.map((module, index) => {
+                  const active = index === activeModuleIndex;
+                  return (
+                    <button
+                      key={module.moduleName}
+                      type="button"
+                      onClick={() => setActiveModuleIndex(index)}
+                      style={{
+                        textAlign: "left",
+                        borderRadius: 10,
+                        border: `1px solid ${active ? "rgba(34,211,238,0.28)" : "rgba(255,255,255,0.08)"}`,
+                        background: active ? "rgba(34,211,238,0.07)" : "rgba(255,255,255,0.02)",
+                        padding: "0.8rem 0.85rem",
+                        cursor: "pointer",
+                        transition: "border-color .2s ease, background .2s ease, transform .2s ease",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "rgba(34,211,238,0.28)";
+                        e.currentTarget.style.transform = "translateY(-1px)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = active ? "rgba(34,211,238,0.28)" : "rgba(255,255,255,0.08)";
+                        e.currentTarget.style.transform = "none";
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 10,
+                          fontFamily: "'JetBrains Mono', monospace",
+                          color: active ? "#22d3ee" : "rgba(240,244,255,0.45)",
+                          marginBottom: 4,
+                          letterSpacing: "0.05em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Module {index + 1}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "'Inter Tight', sans-serif",
+                          fontSize: 14,
+                          fontWeight: 700,
+                          color: "#f0f4ff",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {module.moduleName}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "'Inter Tight', sans-serif",
+                          fontSize: 11,
+                          lineHeight: 1.45,
+                          color: "#6e82a4",
+                        }}
+                      >
+                        {module.description}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.06)",
+                  background: "rgba(255,255,255,0.02)",
+                  padding: "1rem",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: "0.8rem" }}>
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        fontFamily: "'JetBrains Mono', monospace",
+                        color: "#22d3ee",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        marginBottom: 4,
+                      }}
+                    >
+                      {activeModule.moduleName}
+                    </div>
+                    <div
+                      style={{
+                        fontFamily: "'Inter Tight', sans-serif",
+                        fontSize: 13,
+                        color: "#6e82a4",
+                        lineHeight: 1.55,
+                        maxWidth: 420,
+                      }}
+                    >
+                      {activeModule.description}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {(Object.keys(activeModule.counts) as SimulationDifficulty[]).map((difficulty) =>
+                      activeModule.counts[difficulty] > 0 ? (
+                        <span
+                          key={difficulty}
+                          style={{
+                            padding: "5px 8px",
+                            borderRadius: 999,
+                            background: `${difficultyAccent[difficulty]}14`,
+                            border: `1px solid ${difficultyAccent[difficulty]}33`,
+                            color: "#d9e7ff",
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: 10,
+                            letterSpacing: "0.05em",
+                            textTransform: "uppercase",
+                          }}
+                        >
+                          {difficulty} {activeModule.counts[difficulty]}
+                        </span>
+                      ) : null,
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 8 }}>
+                  {activeModule.labs.map((lab) => (
+                    <div
+                      key={lab.id}
+                      style={{
+                        borderRadius: 10,
+                        border: "1px solid rgba(255,255,255,0.06)",
+                        background: "rgba(3,8,22,0.55)",
+                        padding: "0.75rem 0.8rem",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontFamily: "'Inter Tight', sans-serif",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: "#f0f4ff",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {lab.label}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: "'Inter Tight', sans-serif",
+                          fontSize: 11,
+                          lineHeight: 1.45,
+                          color: "#6e82a4",
+                        }}
+                      >
+                        {lab.summary}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>

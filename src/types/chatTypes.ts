@@ -12,6 +12,11 @@ export type QuestionType =
   | 'factual'
   | 'casual';
 
+export type ChatResponseStyle =
+  | 'explain'
+  | 'exam_focus'
+  | 'worked_example';
+
 export interface StructuredTable {
   headers: string[];
   rows: string[][];
@@ -95,6 +100,7 @@ export interface ChatMessage {
   citations?: string[];                       // Raw citation strings from backend
   retrieved_materials?: RetrievedMaterial[];  // Full material data from backend
   responseTime?: string;                      // Debug timer - local only, not persisted
+  responseStyle?: ChatResponseStyle;          // Local only, not persisted to DB
   attachments?: ChatMessageAttachment[];
   created_at: string;
 }
