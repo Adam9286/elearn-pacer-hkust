@@ -39,5 +39,6 @@
   "elec3120_context": "In ELEC3120 transport-layer material, both protocols are presented as sliding-window methods for handling loss, with Selective Repeat emphasized as more efficient because it avoids unnecessary retransmissions.",
   "exam_tip": "If asked to compare them, mention all four of these: receiver handling of out-of-order packets, ACK type, retransmission rule, and complexity vs efficiency. That usually earns full comparison marks.",
   "check_understanding": "If packets 7, 8, 9 are sent and packet 8 is lost but 9 arrives, what does the receiver do in GBN, and what does it do in SR?",
-  "calculation_steps": null
+  "calculation_steps": null,
+  "response_style": "full_explanation"
 }

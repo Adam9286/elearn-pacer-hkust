@@ -57,6 +57,13 @@ All colors MUST be HSL.
     --info: 200 80% 42%;
     --info-foreground: 0 0% 98%;
 
+    /* Categorical chart palette — for tags, badges, and data viz that need distinct hues */
+    --chart-1: 200 80% 45%;   /* blue */
+    --chart-2: 142 60% 38%;   /* green */
+    --chart-3: 32 90% 48%;    /* amber */
+    --chart-4: 0 70% 50%;     /* red */
+    --chart-5: 270 55% 50%;   /* violet */
+
     --border: 0 0% 83%;
     --input: 0 0% 85%;
     --ring: 220 60% 50%;
@@ -116,6 +123,13 @@ All colors MUST be HSL.
     --warning-foreground: 30 45% 10%;
     --info: 200 85% 58%;
     --info-foreground: 220 40% 10%;
+
+    /* Categorical chart palette — lifted for dark surfaces */
+    --chart-1: 200 85% 60%;
+    --chart-2: 142 60% 55%;
+    --chart-3: 38 92% 60%;
+    --chart-4: 0 70% 62%;
+    --chart-5: 270 70% 70%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;

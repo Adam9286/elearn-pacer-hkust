@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom';
 
 import CompareInput from '@/components/compare/CompareInput';
 import ComparePaneLearningPacer from '@/components/compare/ComparePaneLearningPacer';
+import OpenRouterKeyDialog from '@/components/compare/OpenRouterKeyDialog';
 import ComparePaneOpenRouter from '@/components/compare/ComparePaneOpenRouter';
 import {
+  clearCachedModels,
   getModels,
   streamOpenRouterResponse,
 } from '@/components/compare/openrouter';
@@ -21,8 +23,14 @@ import { parseWebhookAnswer } from '@/utils/parseWebhookAnswer';
 
 const DEFAULT_MODEL = 'openai/gpt-4o';
 const MODEL_STORAGE_KEY = 'compare.selectedModel';
+const COMPARE_OPENROUTER_KEY_STORAGE_KEY = 'compare.openRouterApiKey';
+const DEV_OPENROUTER_API_KEY = import.meta.env.DEV
+  ? import.meta.env.VITE_OPENROUTER_API_KEY?.trim() || ''
+  : '';
 const OPENROUTER_SYSTEM_PROMPT =
   'You are answering an undergraduate Computer Networks exam question. Be concise and precise. If you are not certain, say so.';
+const OPENROUTER_DISABLED_MESSAGE =
+  'Enter your OpenRouter API key to enable the comparison pane for this demo.';
 
 function createCompareSessionId() {
   return `compare-${crypto.randomUUID()}`;
@@ -47,6 +55,16 @@ const createOpenRouterPane = (disabledMessage?: string): ComparePaneState => ({
   emptyDescription:
     'The same prompt goes to a general model through OpenRouter. The missing citation strip is intentional.',
 });
+
+function readStoredOpenRouterApiKey() {
+  if (typeof window === 'undefined') return '';
+
+  try {
+    return window.sessionStorage.getItem(COMPARE_OPENROUTER_KEY_STORAGE_KEY)?.trim() || '';
+  } catch {
+    return '';
+  }
+}
 
 function createMessageId(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
@@ -276,12 +294,14 @@ async function fakeStreamContent({
 }
 
 async function streamOpenRouterTypewriter({
+  apiKey,
   model,
   messages,
   signal,
   onUpdate,
   charDelayMs = 18,
 }: {
+  apiKey: string;
   model: string;
   messages: OpenRouterChatMessage[];
   signal?: AbortSignal;
@@ -295,6 +315,7 @@ async function streamOpenRouterTypewriter({
 
   const producer = (async () => {
     for await (const chunk of streamOpenRouterResponse({
+      apiKey,
       model,
       messages,
       signal,
@@ -378,7 +399,7 @@ function formatOpenRouterError(error: unknown) {
     const statusCode = statusMatch ? statusMatch[1] : 'unknown';
 
     if (statusCode === '401' || statusCode === '403') {
-      return 'OpenRouter rejected the request. Check VITE_OPENROUTER_API_KEY and referrer settings.';
+      return 'OpenRouter rejected this key. Enter a valid API key and try again.';
     }
 
     if (statusCode === '429') {
@@ -396,6 +417,10 @@ function formatOpenRouterError(error: unknown) {
     return 'Could not connect to OpenRouter. Check the network or browser request policy.';
   }
 
+  if (error instanceof Error && error.message === 'Missing OpenRouter API key') {
+    return OPENROUTER_DISABLED_MESSAGE;
+  }
+
   return 'OpenRouter failed to generate a response.';
 }
 
@@ -409,20 +434,20 @@ function setMessageContent(
 
 const CompareMode = () => {
   const navigate = useNavigate();
-  const openRouterDisabledMessage = import.meta.env.VITE_OPENROUTER_API_KEY?.trim()
-    ? undefined
-    : 'Set VITE_OPENROUTER_API_KEY in .env to enable comparison.';
 
   const [input, setInput] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isApiKeyDialogOpen, setIsApiKeyDialogOpen] = useState(false);
+  const [sessionOpenRouterApiKey, setSessionOpenRouterApiKey] = useState(() => readStoredOpenRouterApiKey());
   const [learningPacerPane, setLearningPacerPane] = useState<ComparePaneState>(
     () => createLearningPacerPane(),
   );
-  const [openRouterPane, setOpenRouterPane] = useState<ComparePaneState>(() =>
-    createOpenRouterPane(openRouterDisabledMessage),
-  );
+  const [openRouterPane, setOpenRouterPane] = useState<ComparePaneState>(() => {
+    const apiKey = readStoredOpenRouterApiKey() || DEV_OPENROUTER_API_KEY;
+    return createOpenRouterPane(apiKey ? undefined : OPENROUTER_DISABLED_MESSAGE);
+  });
   const [models, setModels] = useState<OpenRouterModelOption[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [selectedModel, setSelectedModel] = useState(() => {
@@ -434,6 +459,11 @@ const CompareMode = () => {
   const openRouterControllerRef = useRef<AbortController | null>(null);
   const activeRequestIdRef = useRef(0);
   const learningPacerSessionIdRef = useRef(createCompareSessionId());
+  const effectiveOpenRouterApiKey = sessionOpenRouterApiKey || DEV_OPENROUTER_API_KEY;
+  const hasOpenRouterApiKey = Boolean(effectiveOpenRouterApiKey);
+  const hasSessionOpenRouterApiKey = Boolean(sessionOpenRouterApiKey);
+  const isUsingDevOpenRouterApiKey = !hasSessionOpenRouterApiKey && Boolean(DEV_OPENROUTER_API_KEY);
+  const openRouterDisabledMessage = hasOpenRouterApiKey ? undefined : OPENROUTER_DISABLED_MESSAGE;
 
   useEffect(() => {
     window.localStorage.setItem(MODEL_STORAGE_KEY, selectedModel);
@@ -473,16 +503,28 @@ const CompareMode = () => {
     const controller = new AbortController();
 
     const loadModels = async () => {
+      if (!effectiveOpenRouterApiKey) {
+        setModels([]);
+        setIsLoadingModels(false);
+        return;
+      }
+
       setIsLoadingModels(true);
 
       try {
-        const response = await getModels(controller.signal);
+        const response = await getModels({
+          apiKey: effectiveOpenRouterApiKey,
+          signal: controller.signal,
+        });
         if (isMounted) {
           setModels(response);
         }
       } catch (error) {
         if (!controller.signal.aborted) {
           console.error('Failed to load OpenRouter models:', error);
+          if (isMounted) {
+            setModels([]);
+          }
         }
       } finally {
         if (isMounted) {
@@ -497,7 +539,7 @@ const CompareMode = () => {
       isMounted = false;
       controller.abort();
     };
-  }, []);
+  }, [effectiveOpenRouterApiKey]);
 
   useEffect(() => {
     setOpenRouterPane((current) => ({
@@ -506,6 +548,42 @@ const CompareMode = () => {
       disabledMessage: openRouterDisabledMessage,
     }));
   }, [openRouterDisabledMessage]);
+
+  const resetOpenRouterPane = (disabledMessage?: string) => {
+    openRouterControllerRef.current?.abort();
+    openRouterControllerRef.current = null;
+    setOpenRouterPane(createOpenRouterPane(disabledMessage));
+    setModels([]);
+  };
+
+  const persistOpenRouterApiKey = (apiKey: string) => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      if (apiKey) {
+        window.sessionStorage.setItem(COMPARE_OPENROUTER_KEY_STORAGE_KEY, apiKey);
+      } else {
+        window.sessionStorage.removeItem(COMPARE_OPENROUTER_KEY_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore storage errors.
+    }
+  };
+
+  const handleSaveOpenRouterApiKey = (apiKey: string) => {
+    const trimmedKey = apiKey.trim();
+    clearCachedModels();
+    persistOpenRouterApiKey(trimmedKey);
+    setSessionOpenRouterApiKey(trimmedKey);
+    resetOpenRouterPane(undefined);
+  };
+
+  const handleClearOpenRouterApiKey = () => {
+    clearCachedModels();
+    persistOpenRouterApiKey('');
+    setSessionOpenRouterApiKey('');
+    resetOpenRouterPane(DEV_OPENROUTER_API_KEY ? undefined : OPENROUTER_DISABLED_MESSAGE);
+  };
 
   const abortAll = () => {
     learningPacerControllerRef.current?.abort();
@@ -639,12 +717,14 @@ const CompareMode = () => {
   };
 
   const runOpenRouter = async ({
+    apiKey,
     prompt,
     model,
     requestId,
     assistantMessageId,
     history,
   }: {
+    apiKey: string;
     prompt: string;
     model: string;
     requestId: number;
@@ -675,6 +755,7 @@ const CompareMode = () => {
       let didReceiveContent = false;
 
       await streamOpenRouterTypewriter({
+        apiKey,
         model,
         messages,
         signal: controller.signal,
@@ -820,6 +901,7 @@ const CompareMode = () => {
 
       tasks.push(
         runOpenRouter({
+          apiKey: effectiveOpenRouterApiKey,
           prompt,
           model: modelSnapshot,
           requestId,
@@ -869,27 +951,40 @@ const CompareMode = () => {
   }
 
   return (
-    <div className="sticky top-24 flex h-[calc(100vh-10rem)] min-h-[560px] max-h-[calc(100vh-10rem)] flex-col overflow-hidden">
-      <CompareInput
-        value={input}
-        onChange={setInput}
-        onSubmit={handleSubmit}
-        onClear={handleClear}
-        canSend={Boolean(input.trim()) && !isSubmitting}
-      />
-
-      <div className="grid min-h-0 flex-1 gap-4 overflow-hidden py-4 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
-        <ComparePaneLearningPacer pane={learningPacerPane} />
-        <div className="hidden bg-slate-700/60 lg:block" />
-        <ComparePaneOpenRouter
-          pane={openRouterPane}
-          selectedModel={selectedModel}
-          models={models}
-          isLoadingModels={isLoadingModels}
-          onModelChange={setSelectedModel}
+    <>
+      <div className="sticky top-24 flex h-[calc(100vh-10rem)] min-h-[560px] max-h-[calc(100vh-10rem)] flex-col overflow-hidden">
+        <CompareInput
+          value={input}
+          onChange={setInput}
+          onSubmit={handleSubmit}
+          onClear={handleClear}
+          canSend={Boolean(input.trim()) && !isSubmitting}
         />
+
+        <div className="grid min-h-0 flex-1 gap-4 overflow-hidden py-4 lg:grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)]">
+          <ComparePaneLearningPacer pane={learningPacerPane} />
+          <div className="hidden bg-slate-700/60 lg:block" />
+          <ComparePaneOpenRouter
+            pane={openRouterPane}
+            hasApiKey={hasOpenRouterApiKey}
+            selectedModel={selectedModel}
+            models={models}
+            isLoadingModels={isLoadingModels}
+            onModelChange={setSelectedModel}
+            onOpenApiKeyDialog={() => setIsApiKeyDialogOpen(true)}
+          />
+        </div>
       </div>
-    </div>
+
+      <OpenRouterKeyDialog
+        open={isApiKeyDialogOpen}
+        hasSavedKey={hasSessionOpenRouterApiKey}
+        isUsingDevKey={isUsingDevOpenRouterApiKey}
+        onOpenChange={setIsApiKeyDialogOpen}
+        onSave={handleSaveOpenRouterApiKey}
+        onClear={handleClearOpenRouterApiKey}
+      />
+    </>
   );
 };
 

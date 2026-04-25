@@ -65,11 +65,32 @@ function writeCachedModels(models: OpenRouterModelOption[]) {
   }
 }
 
-export async function getModels(signal?: AbortSignal): Promise<OpenRouterModelOption[]> {
+export function clearCachedModels() {
+  if (typeof window === 'undefined') return;
+
+  try {
+    window.sessionStorage.removeItem(MODELS_CACHE_KEY);
+  } catch {
+    // Ignore storage errors.
+  }
+}
+
+export async function getModels({
+  apiKey,
+  signal,
+}: {
+  apiKey: string;
+  signal?: AbortSignal;
+}): Promise<OpenRouterModelOption[]> {
   const cached = readCachedModels();
   if (cached) return cached;
 
-  const response = await fetch(MODELS_URL, { signal });
+  const response = await fetch(MODELS_URL, {
+    signal,
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+  });
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}: Failed to load OpenRouter models`);
   }
@@ -96,17 +117,18 @@ function extractSseDataBlocks(chunk: string) {
 }
 
 export async function* streamOpenRouterResponse({
+  apiKey,
   model,
   messages,
   signal,
 }: {
+  apiKey: string;
   model: string;
   messages: OpenRouterChatMessage[];
   signal?: AbortSignal;
 }): AsyncGenerator<string, void, unknown> {
-  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY?.trim();
   if (!apiKey) {
-    throw new Error('Missing VITE_OPENROUTER_API_KEY');
+    throw new Error('Missing OpenRouter API key');
   }
 
   const response = await fetch(CHAT_URL, {

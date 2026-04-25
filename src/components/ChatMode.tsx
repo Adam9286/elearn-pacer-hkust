@@ -1,24 +1,19 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { externalSupabase } from '@/lib/externalSupabase';
 import { useChatHistory } from '@/hooks/useChatHistory';
-import type { ChatResponseStyle } from '@/types/chatTypes';
+import type { ChatResponseStyle, RetrievedMaterial } from '@/types/chatTypes';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { ChatConversation } from '@/components/chat/ChatConversation';
 import { WEBHOOKS, TIMEOUTS } from '@/constants/api';
 import { uploadAttachments } from '@/services/attachmentService';
-import { parseWebhookAnswer } from '@/utils/parseWebhookAnswer';
+import { parseWebhookAnswer, parseWebhookTrace } from '@/utils/parseWebhookAnswer';
 
 const ChatMode = () => {
   const { toast } = useToast();
   const [userId, setUserId] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  const sessionId = useMemo(
-    () => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    []
-  );
 
   // Check authentication status from external Supabase
   useEffect(() => {
@@ -167,7 +162,7 @@ const ChatMode = () => {
         },
         body: JSON.stringify({
           query: content,
-          sessionId,
+          sessionId: conversationId,
           attachments: uploadedUrls,
           mode: 'auto',
           responseStyle,
@@ -186,7 +181,7 @@ const ChatMode = () => {
       if (!text || text.trim().length === 0) {
         throw new Error('Empty response from AI server. Check that your n8n webhook is configured to return a JSON response body.');
       }
-      let data: any;
+      let data: unknown;
       try {
         data = JSON.parse(text);
       } catch {
@@ -194,12 +189,18 @@ const ChatMode = () => {
       }
       const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
       
-      const payload = data.body ?? data;
-      const { rawContent, structured } = parseWebhookAnswer(payload);
-      const citations = payload.citations ?? [];
-      const retrievedMaterials = payload.retrieved_materials ?? [];
+      const payload = getWebhookPayload(data);
+      const payloadRecord = isRecord(payload) ? payload : {};
+      const { rawContent, structured } = parseWebhookAnswer(payload, responseStyle);
+      const citations = getStringArray(payloadRecord.citations);
+      const retrievedMaterials = getRetrievedMaterials(payloadRecord.retrieved_materials);
+      const trace = parseWebhookTrace(payloadRecord);
       // Legacy fallback
-      const source = payload.source_document ?? payload.source;
+      const source = getString(payloadRecord.source_document ?? payloadRecord.source);
+
+      if (trace && import.meta.env.DEV) {
+        console.info('[chat trace]', trace);
+      }
 
       // Save AI response — always a string in the DB (rawContent is JSON or markdown)
       const aiMessage = await saveMessage(conversationId, {
@@ -218,6 +219,7 @@ const ChatMode = () => {
           structured_answer: structured ?? undefined,
           responseTime,
           responseStyle,
+          trace: trace ?? undefined,
         });
       }
     } catch (error) {
@@ -309,3 +311,26 @@ const ChatMode = () => {
 };
 
 export default ChatMode;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getWebhookPayload(data: unknown): unknown {
+  if (isRecord(data) && isRecord(data.body)) {
+    return data.body;
+  }
+  return data;
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function getStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function getRetrievedMaterials(value: unknown): RetrievedMaterial[] {
+  return Array.isArray(value) ? (value as RetrievedMaterial[]) : [];
+}

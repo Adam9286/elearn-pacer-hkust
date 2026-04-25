@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BookOpen, ClipboardList, MessageSquare, Zap } from "lucide-react";
+import { BookOpen, ClipboardList, MessageSquare, Zap, type LucideIcon } from "lucide-react";
 import { useState, type ComponentType } from "react";
 
 import { LANDING_SECTION_SCROLL_MARGIN } from "@/constants/landing";
@@ -13,7 +13,7 @@ import SimCard from "./modes/SimCard";
 type CardBody = ComponentType<{ hovered: boolean }>;
 type CardDef = {
   key: PlatformModeId;
-  Icon: ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
+  Icon: LucideIcon;
   Body: CardBody;
 };
 
@@ -25,7 +25,7 @@ const cardBodies: Record<PlatformModeId, CardBody | undefined> = {
   simulations: SimCard,
 };
 
-const cardIcons: Record<PlatformModeId, ComponentType<{ size?: number; color?: string; strokeWidth?: number }>> = {
+const cardIcons: Record<PlatformModeId, LucideIcon> = {
   chat: MessageSquare,
   compare: MessageSquare,
   course: BookOpen,

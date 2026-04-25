@@ -1,15 +1,59 @@
 # AI Project Sync & Memory
 **Project:** LearningPacer (ELEC3120)
-**Last Updated:** 2026-04-08
-**Current Stage:** Simulations tab hub/focused-view redesign is implemented. n8n exam quality sprint complete (Steps 1-5) and the critical Mermaid/JSON handoff is fixed. The exam branch returns sanitized Mermaid in structured exam JSON, while remote diagram/PDF rendering stays best-effort. Remaining exam work: per-question retrieval (Step 6), verifier agent (Step 7).
+**Last Updated:** 2026-04-25
+**Current Stage:** Chat Phase 3 Mermaid reliability is now frozen behind a bounded smoke gate. Phase 2 deterministic retrieval and Phase 3 Mermaid hardening are both in a stable, bounded state, and the chat fallback path is restored to true textbook retrieval through `elec3120_textbook`. Next major chat work should be exception-driven only. Exam branch notes below still apply.
 
 ---
 
 ## Active Goal
+- [x] **Chat Phase 2 hardening** (bounded gate passed; freeze unless real production misses appear)
+- [x] **Chat Phase 3 Mermaid reliability** (bounded Mermaid gate passed; freeze unless real production misses appear)
 - [x] **Simulator UI declutter/refactor** (global shell/sidebar, shared toolbar, anti-nesting pass, docs sync)
 - [ ] **n8n Exam Quality Upgrade Sprint** (see detailed plan below)
 - [x] **Mock Exam diagram/PDF reliability hardening** (inline assets, HTTP Request renderer, structured exam always returned) ✅ DONE
 - [ ] Fix Gemini Vision API call in n8n (Code node -> HTTP Request node swap)
+
+## Chat Phase 2 Deterministic Retrieval (2026-04-25)
+- Live workflow: `MznVBhIC4sbFquyy` at `https://n8n.learningpacer.org/workflow/MznVBhIC4sbFquyy`.
+- Chat flow is deterministic now: `Parse Incoming -> Classify Intent -> lecture retrieval -> optional secondary fallback -> grounded Auto Agent`.
+- Lecture sufficiency keeps `0.75` as the preferred bar, then allows a soft floor (`0.70`) when there are enough usable lecture chunks. This is the intended anti-tuning-loop guardrail.
+- Confirmed on 2026-04-25: `elec3120_textbook` is retrievable through the n8n Supabase Vector Store node using `queryName = match_textbook`.
+- Chat fallback is now restored to the actual textbook vector table:
+  - table: `elec3120_textbook`
+  - node: `Supabase (Retrieve Textbook)`
+  - query function: `match_textbook`
+  - topK: `3`
+- The temporary `Chat Secondary Retrieval Service` webhook exists but is no longer on the active chat path.
+- `used_textbook_rag` is now literal again: it means textbook fallback was used.
+- Regression gate: run `python scripts/evaluate_chat_retrieval.py`. This is the fixed go/no-go check for Chat Phase 2; do not resume ad hoc threshold tuning once it passes.
+- Gate update on 2026-04-25: textbook fallback is now explicitly covered by the fixed probe `Explain HTTP cookies.` and should return `used_textbook_rag = true`.
+- Current expert recommendation: once the gate passes, move on. Only extend classifier keywords or retrieval rules in response to real missed user queries, not speculative edge cases.
+
+## Chat Phase 3 Mermaid Reliability (2026-04-25)
+- Live workflow: `MznVBhIC4sbFquyy` still powers chat mode; Phase 3 was layered onto the Phase 2 deterministic path rather than introducing another agent.
+- Deployment script: `scripts/apply_phase3_workflow_patch.py`. It applies Phase 2 first, then adds the Mermaid-specific hardening.
+- Auto Agent system prompt now includes a dedicated Mermaid reliability section plus concrete few-shot examples for:
+  - TCP state machine (`stateDiagram-v2`)
+  - HTTP request / response (`sequenceDiagram`)
+  - Sliding-window intuition (`flowchart LR`)
+- New n8n node: `Validate Mermaid Diagram`, inserted between `Polish Answer Structure` and `Normalize Agent Output`.
+- Validator behavior:
+  - strips accidental ```mermaid fences
+  - accepts only structurally plausible Mermaid for supported families
+  - nulls `answer.diagram` when the Mermaid shape is malformed instead of passing broken code to the frontend
+  - stamps `trace.error_stage = "diagram_validation"` only when diagram removal was necessary and no earlier error stage already exists
+- Frontend chat rendering now uses `src/components/chat/SafeMermaidDiagram.tsx`, a reusable error boundary + suspense wrapper around `MermaidDiagram`.
+- Chat-mode impact:
+  - structured answers with bad `diagram.code` degrade to no diagram instead of a broken render
+  - markdown fenced ```mermaid blocks degrade to source code if the renderer throws at runtime or lazy import fails
+- Existing toolbar work was already present before this pass: copy source, source toggle, fullscreen, and SVG download. Phase 3 focused on reliability, not more controls.
+- Operating rule: do not add a second repair agent for Mermaid by default. A second agent adds another probabilistic branch, more latency, and harder-to-debug failures. Prefer bounded validation plus null fallback unless real production evidence justifies a narrowly scoped repair loop.
+- Regression gate: run `python scripts/evaluate_chat_mermaid.py`. This is the fixed go/no-go check for Chat Phase 3.
+- Gate status on 2026-04-25: PASS.
+  - Diagram-request prompts returned valid Mermaid with `trace.error_stage = null`
+  - A concise non-diagram prompt did not force a diagram
+  - Local validator fixtures passed for valid and invalid Mermaid shapes
+- Current expert recommendation: freeze chat work here. Only revisit Mermaid prompting or validation if real production traces show repeat failures or obvious diagram quality misses.
 
 ## Simulator UI Refactor (2026-04-08)
 - **Scope:** UI-only refactor. No simulator state machines, calculations, Supabase/database calls, n8n workflow triggers, or LLM integrations were changed.

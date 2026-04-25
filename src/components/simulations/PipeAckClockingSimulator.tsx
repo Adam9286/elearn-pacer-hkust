@@ -115,6 +115,14 @@ const PRESETS: ScenarioPreset[] = [
 
 const DEFAULT_PRESET = PRESETS[0];
 
+const CHART_COLORS = {
+  pipe: 'hsl(var(--chart-5))',
+  queue: 'hsl(var(--chart-3))',
+  send: 'hsl(var(--chart-2))',
+  ack: 'hsl(var(--chart-1))',
+  offered: 'hsl(var(--muted-foreground))',
+} as const;
+
 const PIPE_CLOCKING_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
   intro: 'This simulator teaches how a sender fills the bandwidth-delay product, how ACKs pace future sends, and how excess data turns into a queue.',
   focus: 'Use the selected tick to ask: is the sender filling the pipe, staying stable, or creating extra queue?',
@@ -540,10 +548,10 @@ export const PipeAckClockingSimulator = ({ onStepChange }: SimulatorStepProps) =
                 }}
               />
               <Legend />
-              <ReferenceLine y={bdpPackets} stroke="#6366f1" strokeDasharray="5 3" ifOverflow="extendDomain" />
-              <ReferenceLine y={bufferCapacityPackets} stroke="#f59e0b" strokeDasharray="5 3" ifOverflow="extendDomain" />
-              <Line type="monotone" dataKey="pipeOccupancy" stroke="#6366f1" strokeWidth={2.2} dot={false} name="Pipe" />
-              <Line type="monotone" dataKey="queueOccupancy" stroke="#f59e0b" strokeWidth={2.2} dot={false} name="Buffer Queue" />
+              <ReferenceLine y={bdpPackets} stroke={CHART_COLORS.pipe} strokeDasharray="5 3" ifOverflow="extendDomain" />
+              <ReferenceLine y={bufferCapacityPackets} stroke={CHART_COLORS.queue} strokeDasharray="5 3" ifOverflow="extendDomain" />
+              <Line type="monotone" dataKey="pipeOccupancy" stroke={CHART_COLORS.pipe} strokeWidth={2.2} dot={false} name="Pipe" />
+              <Line type="monotone" dataKey="queueOccupancy" stroke={CHART_COLORS.queue} strokeWidth={2.2} dot={false} name="Buffer Queue" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -564,9 +572,9 @@ export const PipeAckClockingSimulator = ({ onStepChange }: SimulatorStepProps) =
                 }}
               />
               <Legend />
-              <Line type="monotone" dataKey="offeredRate" stroke="#94a3b8" strokeWidth={1.8} dot={false} name="Offered Rate" />
-              <Line type="monotone" dataKey="sendRate" stroke="#10b981" strokeWidth={2.2} dot={false} name="Send Rate" />
-              <Line type="monotone" dataKey="ackRate" stroke="#38bdf8" strokeWidth={2.2} dot={false} name="ACK Rate" />
+              <Line type="monotone" dataKey="offeredRate" stroke={CHART_COLORS.offered} strokeWidth={1.8} dot={false} name="Offered Rate" />
+              <Line type="monotone" dataKey="sendRate" stroke={CHART_COLORS.send} strokeWidth={2.2} dot={false} name="Send Rate" />
+              <Line type="monotone" dataKey="ackRate" stroke={CHART_COLORS.ack} strokeWidth={2.2} dot={false} name="ACK Rate" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -626,15 +634,15 @@ export const PipeAckClockingSimulator = ({ onStepChange }: SimulatorStepProps) =
 
         <div className="flex flex-wrap items-center gap-3 text-sm text-zinc-600 dark:text-zinc-400">
           <div className="flex items-center gap-2">
-            <Network className="h-4 w-4 text-indigo-400" />
+            <Network className="h-4 w-4 text-chart-5" />
             BDP target: {bdpPackets.toFixed(1)} packets
           </div>
           <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-emerald-400" />
+            <Gauge className="h-4 w-4 text-chart-2" />
             Peak in-flight: {maxInFlight.toFixed(1)} packets
           </div>
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <AlertTriangle className="h-4 w-4 text-warning" />
             Blocked by window/buffer: {totalWindowBlocks.toFixed(1)} / {totalBufferBlocks.toFixed(1)} packets
           </div>
         </div>

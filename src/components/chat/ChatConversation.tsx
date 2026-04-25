@@ -1,5 +1,17 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, BookOpen, MessageSquare, Loader2, Paperclip, X, LogIn, Database } from 'lucide-react';
+import {
+  Send,
+  BookOpen,
+  MessageSquare,
+  Loader2,
+  Paperclip,
+  X,
+  LogIn,
+  Database,
+  Calculator,
+  Network,
+  GraduationCap,
+} from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,10 +25,12 @@ import { AIThinkingIndicator } from '@/components/AIThinkingIndicator';
 import { RenderMarkdown } from './RenderMarkdown';
 import { StructuredResponse } from './StructuredResponse';
 import {
+  DEFAULT_CHAT_RESPONSE_STYLE,
   ChatMessage,
   ChatResponseStyle,
   RetrievedMaterial,
   StructuredAnswer,
+  normalizeChatResponseStyle,
 } from '@/types/chatTypes';
 import { parseWebhookAnswer } from '@/utils/parseWebhookAnswer';
 import { LectureReferences, RetrievedMaterial as LegacyRetrievedMaterial } from './LectureReferences';
@@ -67,27 +81,68 @@ const WELCOME_MESSAGE: LocalMessage = {
     "Hello! I'm LearningPacer, your AI teaching assistant for ELEC3120. I can answer questions about Computer Networks based on your course materials. What would you like to learn today?",
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getWebhookPayload(data: unknown): unknown {
+  if (isRecord(data) && isRecord(data.body)) {
+    return data.body;
+  }
+  return data;
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' ? value : undefined;
+}
+
+function getStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+}
+
+function getRetrievedMaterials(value: unknown): RetrievedMaterial[] {
+  return Array.isArray(value) ? (value as RetrievedMaterial[]) : [];
+}
+
 const RESPONSE_STYLE_OPTIONS: Array<{
   value: ChatResponseStyle;
   label: string;
-  hint: string;
+  description: string;
 }> = [
   {
-    value: 'explain',
-    label: 'Explain',
-    hint: 'Teach clearly for understanding.',
+    value: 'quick_answer',
+    label: 'Quick Answer',
+    description: 'Concise recap or direct conceptual answer.',
   },
   {
-    value: 'exam_focus',
-    label: 'Exam Focus',
-    hint: 'Keep the answer concise and revision-oriented.',
-  },
-  {
-    value: 'worked_example',
-    label: 'Worked Example',
-    hint: 'Prefer a concrete step-by-step example.',
+    value: 'full_explanation',
+    label: 'Full Explanation',
+    description: 'Teach from basics with step-by-step depth.',
   },
 ];
+
+const QUICK_ACTIONS = [
+  {
+    label: 'Show worked example',
+    prompt: 'For the topic above, show me a concrete worked example.',
+    Icon: Calculator,
+  },
+  {
+    label: 'Draw diagram',
+    prompt: 'For the topic above, draw a simple diagram and explain it briefly.',
+    Icon: Network,
+  },
+  {
+    label: 'Make exam-focused',
+    prompt: 'For the topic above, summarize the exam-focused wording and common traps.',
+    Icon: GraduationCap,
+  },
+] as const;
+
+const RESPONSE_STYLE_LABELS: Record<ChatResponseStyle, string> = {
+  quick_answer: 'Quick Answer',
+  full_explanation: 'Full Explanation',
+};
 
 export const ChatConversation = ({
   messages,
@@ -100,7 +155,7 @@ export const ChatConversation = ({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [attachments, setAttachments] = useState<File[]>([]);
-  const [responseStyle, setResponseStyle] = useState<ChatResponseStyle>('explain');
+  const [responseStyle, setResponseStyle] = useState<ChatResponseStyle>(DEFAULT_CHAT_RESPONSE_STYLE);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [localLoadingProgress, setLocalLoadingProgress] = useState(0);
   const [localLoadingStage, setLocalLoadingStage] = useState('');
@@ -114,6 +169,7 @@ export const ChatConversation = ({
     minHeight: 80,
     maxHeight: 260,
   });
+  const canAttachFiles = isAuthenticated;
 
   // Determine active loading state based on auth
   const activeIsWaitingForAI = isAuthenticated ? isWaitingForAI : isLoading;
@@ -132,7 +188,11 @@ export const ChatConversation = ({
         citations: m.citations,
         retrieved_materials: m.retrieved_materials,
         responseTime: m.responseTime,
-        responseStyle: m.responseStyle,
+        responseStyle: m.responseStyle ?? (
+          m.structured_answer?.response_style
+            ? normalizeChatResponseStyle(m.structured_answer.response_style)
+            : undefined
+        ),
         attachments: m.attachments,
       }))
     : localMessages;
@@ -167,7 +227,28 @@ export const ChatConversation = ({
     }
   }, [displayMessages, activeIsWaitingForAI, isUserAtBottom]);
 
+  useEffect(() => {
+    if (!canAttachFiles && attachments.length > 0) {
+      setAttachments([]);
+    }
+  }, [attachments.length, canAttachFiles]);
+
+  const showAttachmentSignInToast = () => {
+    toast({
+      title: 'Sign in to upload files',
+      description: 'File and image uploads are available after signing in.',
+    });
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canAttachFiles) {
+      showAttachmentSignInToast();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
     const files = Array.from(e.target.files || []);
     const { validFiles, errors } = validateFiles(files);
 
@@ -192,12 +273,14 @@ export const ChatConversation = ({
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canAttachFiles) return;
     setIsDraggingOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!canAttachFiles) return;
     setIsDraggingOver(false);
   };
 
@@ -207,6 +290,11 @@ export const ChatConversation = ({
     setIsDraggingOver(false);
 
     const files = Array.from(e.dataTransfer.files);
+    if (!canAttachFiles) {
+      if (files.length > 0) showAttachmentSignInToast();
+      return;
+    }
+
     const { validFiles, errors } = validateFiles(files);
 
     errors.forEach((error) => {
@@ -229,6 +317,11 @@ export const ChatConversation = ({
 
     if (imageFiles.length === 0) return;
     e.preventDefault();
+
+    if (!canAttachFiles) {
+      showAttachmentSignInToast();
+      return;
+    }
 
     const validFiles: File[] = [];
     imageFiles.forEach((file) => {
@@ -255,6 +348,10 @@ export const ChatConversation = ({
 
   const handleSend = async () => {
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
+    if (!isAuthenticated && attachments.length > 0) {
+      showAttachmentSignInToast();
+      return;
+    }
 
     const currentAttachments = [...attachments];
     const userInput = input;
@@ -378,7 +475,7 @@ export const ChatConversation = ({
         if (!text || text.trim().length === 0) {
           throw new Error('Empty response from AI server. Check that your n8n webhook is configured to return a JSON response body.');
         }
-        let data: any;
+        let data: unknown;
         try {
           data = JSON.parse(text);
         } catch {
@@ -391,12 +488,13 @@ export const ChatConversation = ({
 
         await new Promise((resolve) => setTimeout(resolve, 500));
 
-        const payload = data.body ?? data;
-        const { rawContent, structured } = parseWebhookAnswer(payload);
-        const citations = payload.citations ?? [];
-        const retrievedMaterials = payload.retrieved_materials ?? [];
+        const payload = getWebhookPayload(data);
+        const payloadRecord = isRecord(payload) ? payload : {};
+        const { rawContent, structured } = parseWebhookAnswer(payload, responseStyle);
+        const citations = getStringArray(payloadRecord.citations);
+        const retrievedMaterials = getRetrievedMaterials(payloadRecord.retrieved_materials);
         // Legacy fallback
-        const source = payload.source_document ?? payload.source;
+        const source = getString(payloadRecord.source_document ?? payloadRecord.source);
 
         const responseTime = ((Date.now() - startTime) / 1000).toFixed(2);
 
@@ -476,6 +574,14 @@ export const ChatConversation = ({
     }
   }, [isAuthenticated, messages.length]);
 
+  const insertQuickActionPrompt = (prompt: string) => {
+    setInput((prev) => {
+      const trimmed = prev.trim();
+      return trimmed ? `${trimmed}\n\n${prompt}` : prompt;
+    });
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
   return (
     <div className="flex h-full min-h-0 flex-col">
 
@@ -549,18 +655,14 @@ export const ChatConversation = ({
                       ) : (
                         <>
                           {message.role === 'assistant' && (message.retrieved_materials?.length > 0 || message.responseTime || message.responseStyle) && (
-                            <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-white/8">
+                            <div className="mb-2 flex items-center gap-2 border-b border-border/40 pb-1.5">
                               {message.responseStyle && (
                                 <span className={`inline-flex items-center text-[10px] font-medium px-1.5 py-0.5 rounded ${
-                                  message.responseStyle === 'exam_focus'
-                                    ? 'bg-amber-500/15 text-amber-400/80'
-                                    : message.responseStyle === 'worked_example'
-                                    ? 'bg-cyan-500/15 text-cyan-400/80'
-                                    : 'bg-muted/20 text-muted-foreground/60'
+                                  message.responseStyle === 'quick_answer'
+                                    ? 'bg-info/15 text-info'
+                                    : 'bg-muted/50 text-muted-foreground'
                                 }`}>
-                                  {message.responseStyle === 'exam_focus' ? 'Exam Focus'
-                                    : message.responseStyle === 'worked_example' ? 'Worked Example'
-                                    : 'Explain'}
+                                  {RESPONSE_STYLE_LABELS[message.responseStyle]}
                                 </span>
                               )}
                               {message.responseStyle && (message.retrieved_materials?.length > 0 || message.responseTime) && (
@@ -594,7 +696,7 @@ export const ChatConversation = ({
                           {message.attachments.map((attachment, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center gap-2 text-xs bg-background/30 rounded-lg px-3 py-2 border border-white/10"
+                              className="flex items-center gap-2 rounded-lg border border-border/40 bg-muted/40 px-3 py-2 text-xs"
                             >
                               <Paperclip className="h-3.5 w-3.5 flex-shrink-0" />
                               <span className="truncate flex-1">{attachment.name}</span>
@@ -656,11 +758,11 @@ export const ChatConversation = ({
 
           {/* Input Area */}
           <div className="sticky bottom-0 border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/80 space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="space-y-2">
               <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
                 Response style
               </span>
-              <div className="inline-flex flex-wrap items-center gap-1 rounded-lg border border-white/10 bg-white/[0.03] p-1">
+              <div className="grid gap-2 sm:grid-cols-2">
                 {RESPONSE_STYLE_OPTIONS.map((option) => {
                   const isActive = responseStyle === option.value;
 
@@ -668,20 +770,39 @@ export const ChatConversation = ({
                     <button
                       key={option.value}
                       type="button"
-                      title={option.hint}
                       aria-pressed={isActive}
                       onClick={() => setResponseStyle(option.value)}
-                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                      className={`rounded-lg border px-3 py-2 text-left transition-colors ${
                         isActive
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-white/[0.05] hover:text-foreground'
+                          ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                          : 'border-border/50 bg-muted/20 text-muted-foreground hover:bg-muted/60 hover:text-foreground'
                       }`}
                     >
-                      {option.label}
+                      <span className="block text-sm font-semibold">{option.label}</span>
+                      <span className="mt-0.5 block text-xs leading-5 opacity-80">{option.description}</span>
                     </button>
                   );
                 })}
               </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Ask for
+              </span>
+              {QUICK_ACTIONS.map(({ label, prompt, Icon }) => (
+                <Button
+                  key={label}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => insertQuickActionPrompt(prompt)}
+                  disabled={isLoading}
+                  className="h-8 gap-1.5 rounded-lg px-2.5 text-xs"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </Button>
+              ))}
             </div>
             {attachments.length > 0 && (
               <div className="flex flex-wrap gap-2">
@@ -713,14 +834,14 @@ export const ChatConversation = ({
                       variant="outline"
                       size="icon"
                       onClick={() => fileInputRef.current?.click()}
-                      disabled={isLoading || !isAuthenticated}
+                      disabled={isLoading || !canAttachFiles}
                       className="shrink-0"
                     >
                       <Paperclip className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {isAuthenticated 
+                    {canAttachFiles 
                       ? "Attach files (PDF, images, text)"
                       : "Sign in to upload files"
                     }
@@ -736,7 +857,9 @@ export const ChatConversation = ({
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      !isLoading && handleSend();
+                      if (!isLoading) {
+                        void handleSend();
+                      }
                     }
                   }}
                   placeholder="Ask about TCP flow control, routing algorithms, or any ELEC3120 topic..."
@@ -745,7 +868,7 @@ export const ChatConversation = ({
                 />
               </div>
               <Button
-                onClick={handleSend}
+                onClick={() => void handleSend()}
                 className="gradient-primary shadow-glow hover:animate-pulse-glow transition-smooth shrink-0"
                 disabled={isLoading}
                 size="icon"

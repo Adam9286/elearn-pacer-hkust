@@ -1,5 +1,8 @@
+import { KeyRound } from 'lucide-react';
+
 import ComparePane from '@/components/compare/ComparePane';
 import ModelSelector from '@/components/compare/ModelSelector';
+import { Button } from '@/components/ui/button';
 import type {
   ComparePaneState,
   OpenRouterModelOption,
@@ -7,18 +10,22 @@ import type {
 
 interface ComparePaneOpenRouterProps {
   pane: ComparePaneState;
+  hasApiKey: boolean;
   selectedModel: string;
   models: OpenRouterModelOption[];
   isLoadingModels: boolean;
   onModelChange: (model: string) => void;
+  onOpenApiKeyDialog: () => void;
 }
 
 const ComparePaneOpenRouter = ({
   pane,
+  hasApiKey,
   selectedModel,
   models,
   isLoadingModels,
   onModelChange,
+  onOpenApiKeyDialog,
 }: ComparePaneOpenRouterProps) => {
   const latestAssistantMessage = [...pane.messages]
     .reverse()
@@ -39,13 +46,27 @@ const ComparePaneOpenRouter = ({
   return (
     <ComparePane
       header={
-        <ModelSelector
-          value={selectedModel}
-          models={models}
-          isLoading={isLoadingModels}
-          onChange={onModelChange}
-          disabled={pane.isDisabled}
-        />
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <ModelSelector
+              value={selectedModel}
+              models={models}
+              isLoading={isLoadingModels}
+              onChange={onModelChange}
+              disabled={pane.isDisabled}
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onOpenApiKeyDialog}
+            className="border-slate-700/80 bg-slate-900/80 text-slate-100 hover:bg-slate-800"
+          >
+            <KeyRound className="h-4 w-4" />
+            {hasApiKey ? 'Replace key' : 'API key'}
+          </Button>
+        </div>
       }
       subtitle="via OpenRouter"
       isStreaming={pane.isStreaming}

@@ -41,5 +41,6 @@
   "elec3120_context": "ELEC3120 Transport Layer lectures cover GBN and SR under pipelined reliable data transfer and loss recovery; this is a common short comparison question.",
   "exam_tip": "Remember: GBN retransmits from the loss onward; SR retransmits only the specific missing packets.",
   "check_understanding": "If packet 3 is lost but 4 and 5 arrive, which protocol discards 4 and 5, and which one buffers them?",
-  "calculation_steps": null
+  "calculation_steps": null,
+  "response_style": "quick_answer"
 }

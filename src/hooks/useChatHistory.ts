@@ -5,7 +5,7 @@ import type {
   ChatMessage,
   RetrievedMaterial
 } from '@/types/chatTypes';
-import { isStructuredAnswer } from '@/types/chatTypes';
+import { isStructuredAnswer, normalizeChatResponseStyle } from '@/types/chatTypes';
 
 // Re-export types for backwards compatibility
 export type { ChatConversation, ChatMessage, RetrievedMaterial };
@@ -59,7 +59,15 @@ export const useChatHistory = (userId: string | null) => {
             try {
               const parsed = JSON.parse(trimmed);
               if (isStructuredAnswer(parsed)) {
-                return { ...msg, structured_answer: parsed };
+                const structured = {
+                  ...parsed,
+                  response_style: normalizeChatResponseStyle(parsed.response_style),
+                };
+                return {
+                  ...msg,
+                  structured_answer: structured,
+                  responseStyle: structured.response_style,
+                };
               }
             } catch {
               // Not JSON — leave as legacy markdown

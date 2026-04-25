@@ -33,6 +33,16 @@ const CourseMode = () => {
     navigate(`/platform/lesson/${unitId}-1`);
   };
 
+  const handleCardKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    unitId: number,
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleUnitClick(unitId);
+    }
+  };
+
   // Calculate overall progress based on completed sections
   const completedChapters = chapters.filter(c => isSectionComplete(c.id)).length;
   const overallProgress = Math.round((completedChapters / chapters.length) * 100);
@@ -233,7 +243,11 @@ const CourseMode = () => {
           return (
             <Card
               key={chapter.id}
-              className="transition-smooth glass-card hover:shadow-glow cursor-pointer"
+              className="transition-smooth glass-card cursor-pointer hover:shadow-glow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              role="button"
+              tabIndex={0}
+              onClick={() => handleUnitClick(chapter.id)}
+              onKeyDown={(event) => handleCardKeyDown(event, chapter.id)}
             >
               <CardHeader>
                 <div className="flex items-start justify-between">
@@ -256,7 +270,14 @@ const CourseMode = () => {
                     </div>
                     <CardDescription>{chapter.description}</CardDescription>
                   </div>
-                  <Button variant="outline" className="ml-4" onClick={() => handleUnitClick(chapter.id)}>
+                  <Button
+                    variant="outline"
+                    className="ml-4"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleUnitClick(chapter.id);
+                    }}
+                  >
                     {complete ? "Review" : lessonsCompleted > 0 ? "Continue" : "Start"}
                   </Button>
                 </div>

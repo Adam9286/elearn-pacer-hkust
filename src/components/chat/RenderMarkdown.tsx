@@ -1,9 +1,8 @@
-import { ReactNode, lazy, Suspense } from 'react';
+import { ReactNode } from 'react';
 import { InlineMath, BlockMath } from 'react-katex';
 import { Check, X, ThumbsUp, AlertCircle, Lightbulb } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-
-const MermaidDiagram = lazy(() => import('./MermaidDiagram').then(m => ({ default: m.MermaidDiagram })));
+import { SafeMermaidDiagram } from './SafeMermaidDiagram';
 
 interface RenderMarkdownProps {
   content: string;
@@ -551,14 +550,7 @@ export const RenderMarkdown = ({ content }: RenderMarkdownProps) => {
       // Mermaid diagram
       if (language === 'mermaid') {
         elements.push(
-          <Suspense key={`mermaid-${i}`} fallback={
-            <div className="my-4 p-4 rounded-lg bg-slate-900/60 border border-slate-700/60 text-center text-slate-400 text-sm">
-              <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-cyan-500 border-t-transparent mr-2 align-middle" />
-              Loading diagram...
-            </div>
-          }>
-            <MermaidDiagram chart={codeLines.join('\n')} />
-          </Suspense>
+          <SafeMermaidDiagram key={`mermaid-${i}`} chart={codeLines.join('\n')} />
         );
         continue;
       }

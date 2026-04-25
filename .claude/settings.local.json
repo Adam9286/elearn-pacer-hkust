@@ -67,7 +67,16 @@
       "Bash(curl -sLi \"https://api.anthropic.com/v1/design/h/8iVWIIIzyDxC4sgiFEGXPw\")",
       "Bash(mkdir -p design-handoff)",
       "Bash(unzip -o \"/c/Users/adamb/Downloads/LearningPacer.zip\" -d design-handoff/)",
-      "Bash(xargs -I {} basename {})"
+      "Bash(xargs -I {} basename {})",
+      "Bash(python3)",
+      "Bash(python -c \"import json; d=json.load\\(open\\('wf_after.json','r',encoding='utf-8'\\)\\); nodes=[n for n in d.get\\('nodes',[]\\) if n.get\\('name'\\)=='Auto Agent']; print\\('nodes found:', len\\(nodes\\)\\); n=nodes[0]; opts=n['parameters']['options']; print\\('maxIterations:', opts.get\\('maxIterations'\\)\\); print\\('returnIntermediateSteps:', opts.get\\('returnIntermediateSteps'\\)\\); print\\('text has old phrase:', 'first call lecture-slide retrieval' in n['parameters']['text']\\); print\\('text has new phrase:', 'Course Materials & Context' in n['parameters']['text']\\); print\\('sys has old phrase:', 'call lecture-slide retrieval first before answering' in opts['systemMessage']\\); print\\('sys has new phrase:', 'You do not have retrieval tools available' in opts['systemMessage']\\)\")",
+      "Bash(python -c 'import json; d=json.load\\(open\\('\\\\''wf.json'\\\\'','\\\\''r'\\\\'',encoding='\\\\''utf-8'\\\\''\\)\\); nodes=[n for n in d.get\\('\\\\''nodes'\\\\'',[]\\) if n.get\\('\\\\''name'\\\\''\\)=='\\\\''Auto Agent'\\\\'']; print\\('\\\\''Auto Agent nodes in wf.json:'\\\\'', len\\(nodes\\)\\); *)",
+      "Bash(python -c ' *)",
+      "Bash(python)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git check-ignore *)",
+      "Bash(git worktree *)"
     ]
   },
   "enableAllProjectMcpServers": true,

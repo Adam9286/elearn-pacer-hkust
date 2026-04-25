@@ -51,7 +51,7 @@ import {
   persistMockExamSession,
   publishMockExamToSharedPool,
   updateSavedMockExamDraft,
-  useSharedMockExam,
+  useSharedMockExam as loadSharedMockExam,
 } from "@/services/mockExamSessionStore";
 import { LECTURE_TOPICS } from "@/data/examTopics";
 import type {
@@ -76,6 +76,7 @@ interface ResultContext {
 }
 
 type SavedExamFilter = ExamMode;
+const SHOW_LEGACY_SAVED_EXAM_TABS: boolean = false;
 const formatTimestamp = (value: string | null | undefined) => {
   if (!value) {
     return "Not submitted yet";
@@ -432,7 +433,7 @@ const MockExamMode = () => {
         includeTopics,
         excludeTopics: [],
         sessionId: `exam-${Date.now()}`,
-      } as const;
+      };
 
       const response = await requestMockExam(requestPayload);
 
@@ -1085,7 +1086,7 @@ const MockExamMode = () => {
     setLoadingSharedExamId(sharedExam.sharedExamId);
 
     try {
-      const sharedResult = await useSharedMockExam(sharedExam.sharedExamId);
+      const sharedResult = await loadSharedMockExam(sharedExam.sharedExamId);
       const nextResponse = sharedResult.normalizedResponse;
 
       if (!nextResponse || !sharedResult.mode || !sharedResult.difficulty || !sharedResult.topic) {
@@ -2323,7 +2324,7 @@ const MockExamMode = () => {
                   );
                 })}
 
-            {false && (["quick_practice", "exam_simulation"] as SavedExamFilter[]).map((filter) => (
+            {SHOW_LEGACY_SAVED_EXAM_TABS && (["quick_practice", "exam_simulation"] as SavedExamFilter[]).map((filter) => (
               <TabsContent key={filter} value={filter} className="space-y-3">
                 {isLoadingSavedExams ? (
                   <div className="rounded-lg border bg-secondary/20 p-4 text-sm text-muted-foreground">

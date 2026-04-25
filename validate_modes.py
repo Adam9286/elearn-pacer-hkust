@@ -1,9 +1,12 @@
 import json, sys, re
 
 MODES = [
-    ("explain",         "resp_explain.json"),
-    ("exam_focus",      "resp_exam_focus.json"),
-    ("worked_example",  "resp_worked_example.json"),
+    ("quick_answer",      "resp_exam_focus.json"),
+    ("full_explanation",  "resp_explain.json"),
+]
+
+CAPABILITIES = [
+    ("worked_example_capability", "resp_worked_example.json"),
 ]
 
 def extract_answer(payload):
@@ -56,6 +59,8 @@ def summarize(name, obj):
 
 def check_explain(obj):
     errs = []
+    if obj.get("response_style") != "full_explanation":
+        errs.append("response_style must be full_explanation")
     if not obj.get("summary"): errs.append("summary must be non-null")
     has_artifact = any([
         obj.get("table") not in (None, "", {}),
@@ -66,18 +71,18 @@ def check_explain(obj):
         errs.append("need at least one of {table, diagram, check_understanding}")
     return errs
 
-def check_exam_focus(obj):
+def check_quick_answer(obj):
     errs = []
+    if obj.get("response_style") != "quick_answer":
+        errs.append("response_style must be quick_answer")
     wc = word_count(obj.get("main_explanation") or "")
-    if wc >= 150: errs.append(f"main_explanation {wc} words >= 150")
-    if not obj.get("exam_tip"): errs.append("exam_tip must be non-null")
-    if not obj.get("elec3120_context"): errs.append("elec3120_context must be non-null")
-    if obj.get("calculation_steps") is not None:
-        errs.append("calculation_steps must be null")
+    if wc >= 160: errs.append(f"main_explanation {wc} words >= 160")
     return errs
 
-def check_worked_example(obj):
+def check_worked_example_capability(obj):
     errs = []
+    if obj.get("response_style") not in ("quick_answer", "full_explanation"):
+        errs.append("response_style must be a supported two-mode style")
     cs = obj.get("calculation_steps")
     if not cs or not isinstance(cs, dict):
         errs.append("calculation_steps must be non-null object")
@@ -94,13 +99,13 @@ def check_worked_example(obj):
     return errs
 
 CHECKERS = {
-    "explain": check_explain,
-    "exam_focus": check_exam_focus,
-    "worked_example": check_worked_example,
+    "quick_answer": check_quick_answer,
+    "full_explanation": check_explain,
+    "worked_example_capability": check_worked_example_capability,
 }
 
 all_pass = True
-for mode, path in MODES:
+for mode, path in MODES + CAPABILITIES:
     print(f"\n============ MODE: {mode} ({path}) ============")
     with open(path, "r", encoding="utf-8") as f:
         raw = f.read()

@@ -73,20 +73,25 @@ const LOSS_META: Record<
   'triple-dup-ack': {
     label: 'Triple Duplicate ACK (easy loss)',
     short: '3D',
-    colorClass: 'bg-amber-500/80 text-black border border-amber-400',
-    mutedTextClass: 'text-amber-300',
-    lineColor: '#f59e0b',
-    dotColor: '#f59e0b',
+    colorClass: 'border border-warning/40 bg-warning/15 text-warning',
+    mutedTextClass: 'text-warning',
+    lineColor: 'hsl(var(--chart-3))',
+    dotColor: 'hsl(var(--chart-3))',
   },
   timeout: {
     label: 'Timeout (severe loss)',
     short: 'TO',
-    colorClass: 'bg-red-500/80 text-white border border-red-400',
-    mutedTextClass: 'text-red-300',
-    lineColor: '#ef4444',
-    dotColor: '#ef4444',
+    colorClass: 'border border-destructive/40 bg-destructive/15 text-destructive',
+    mutedTextClass: 'text-destructive',
+    lineColor: 'hsl(var(--chart-4))',
+    dotColor: 'hsl(var(--chart-4))',
   },
 };
+
+const CHART_COLORS = {
+  cwnd: 'hsl(var(--chart-1))',
+  ssthresh: 'hsl(var(--chart-5))',
+} as const;
 
 const PRESETS: Preset[] = [
   {
@@ -428,7 +433,7 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
 
                 <div className="space-y-2">
                   <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                    <AlertTriangle className="h-4 w-4 text-warning" />
                     Loss Events (None -&gt; Triple Dup ACK -&gt; Timeout)
                   </label>
                   <div className="flex flex-wrap gap-1.5">
@@ -536,7 +541,7 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
               <Line
                 type="stepAfter"
                 dataKey="ssthresh"
-                stroke="#94a3b8"
+                stroke={CHART_COLORS.ssthresh}
                 strokeWidth={2}
                 strokeDasharray="8 4"
                 dot={false}
@@ -546,18 +551,18 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
               <Line
                 type="monotone"
                 dataKey="cwnd"
-                stroke="#22d3ee"
+                stroke={CHART_COLORS.cwnd}
                 strokeWidth={2.5}
                 dot={(props: { cx?: number; cy?: number; payload?: DataPoint }) => {
                   const { cx = 0, cy = 0, payload } = props;
                   const eventType = payload?.eventType as LossType | undefined;
                   if (!eventType) {
-                    return <circle key={`dot-${payload?.rtt ?? 'cwnd'}`} cx={cx} cy={cy} r={3} fill="#22d3ee" stroke="none" />;
+                    return <circle key={`dot-${payload?.rtt ?? 'cwnd'}`} cx={cx} cy={cy} r={3} fill={CHART_COLORS.cwnd} stroke="none" />;
                   }
 
                   return (
                     <svg key={`dot-${payload?.rtt ?? 'event'}`}>
-                      <circle cx={cx} cy={cy} r={6} fill={LOSS_META[eventType].dotColor} stroke="#fff" strokeWidth={2} />
+                      <circle cx={cx} cy={cy} r={6} fill={LOSS_META[eventType].dotColor} stroke="hsl(var(--background))" strokeWidth={2} />
                       <text
                         x={cx}
                         y={cy - 12}
@@ -571,7 +576,7 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
                     </svg>
                   );
                 }}
-                activeDot={{ r: 5, fill: '#22d3ee', stroke: '#fff', strokeWidth: 2 }}
+                activeDot={{ r: 5, fill: CHART_COLORS.cwnd, stroke: 'hsl(var(--background))', strokeWidth: 2 }}
                 name="cwnd"
               />
 
@@ -592,10 +597,10 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
           <h3 className="text-sm font-semibold text-foreground">Reading the Graph</h3>
           <ul className="space-y-1.5 text-sm leading-relaxed text-zinc-900 dark:text-zinc-200">
             <li>
-              <strong className="text-cyan-300">Cyan line (cwnd):</strong> send window size over time.
+              <strong className="text-chart-1">Window line (cwnd):</strong> send window size over time.
             </li>
             <li>
-              <strong className="text-zinc-900 dark:text-zinc-200">Slate dashed line (ssthresh):</strong> switch point between Slow Start and
+              <strong className="text-chart-5">Threshold line (ssthresh):</strong> switch point between Slow Start and
               Congestion Avoidance.
             </li>
             <li>
@@ -611,19 +616,19 @@ export const CwndSimulator = ({ onStepChange }: SimulatorStepProps) => {
 
         <div className="flex flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-cyan-400" />
+            <div className="h-3 w-3 rounded-full bg-chart-1" />
             <span className="text-sm text-zinc-600 dark:text-zinc-400">cwnd</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-0.5 w-6 bg-zinc-400" style={{ borderTop: '2px dashed #94a3b8' }} />
+            <div className="h-0.5 w-6" style={{ borderTop: `2px dashed ${CHART_COLORS.ssthresh}` }} />
             <span className="text-sm text-zinc-600 dark:text-zinc-400">ssthresh</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-amber-500" />
+            <div className="h-3 w-3 rounded-full bg-chart-3" />
             <span className="text-sm text-zinc-600 dark:text-zinc-400">Triple Dup ACK event</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-red-500" />
+            <div className="h-3 w-3 rounded-full bg-chart-4" />
             <span className="text-sm text-zinc-600 dark:text-zinc-400">Timeout event</span>
           </div>
         </div>

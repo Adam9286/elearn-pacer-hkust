@@ -58,5 +58,6 @@
     ],
     "answer": "For this example, Go-Back-N retransmits 3 packets ($2,3,4$), while Selective Repeat retransmits only 1 packet ($2$).",
     "common_mistakes": "A common mistake is thinking SR also discards out-of-order packets; actually SR keeps them and waits only for the missing one."
-  }
+  },
+  "response_style": "full_explanation"
 }

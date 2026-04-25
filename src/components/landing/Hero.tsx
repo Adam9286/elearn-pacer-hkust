@@ -376,6 +376,38 @@ const Hero = () => {
 
         <div
           style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 12px",
+            borderRadius: 999,
+            background: "rgba(34,211,238,0.08)",
+            border: "1px solid rgba(34,211,238,0.18)",
+            color: "#d9f8ff",
+            fontFamily: "'JetBrains Mono', monospace",
+            fontSize: 11,
+            letterSpacing: "0.04em",
+            marginBottom: "1.5rem",
+            opacity: wordsIn ? 1 : 0,
+            transform: wordsIn ? "none" : "translateY(8px)",
+            transition: "opacity .5s .78s ease-out, transform .5s .78s ease-out",
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "#22d3ee",
+              boxShadow: "0 0 12px rgba(34,211,238,0.7)",
+              flexShrink: 0,
+            }}
+          />
+          Grounded in ELEC3120 materials with source citations.
+        </div>
+
+        <div
+          style={{
             display: "flex",
             gap: "0.875rem",
             flexWrap: "wrap",

@@ -135,7 +135,7 @@ export const SimulationHub = ({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h2 className="text-xl font-bold text-white">Explore Simulation Modules</h2>
+        <h2 className="text-xl font-bold text-foreground">Explore Simulation Modules</h2>
         <select
           value={filter}
           onChange={event => setFilter(event.target.value as FilterLevel)}

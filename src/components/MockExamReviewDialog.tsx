@@ -17,7 +17,7 @@ import type {
   MockExamImageAsset,
   MockExamStructuredPayload,
 } from "@/types/mockExam";
-import { MermaidDiagram } from "@/components/chat/MermaidDiagram";
+import { SafeMermaidDiagram } from "@/components/chat/SafeMermaidDiagram";
 
 interface MockExamReviewDialogProps {
   open: boolean;
@@ -301,7 +301,7 @@ const MockExamReviewDialog = ({
                             className="rounded-xl border bg-background/40 p-3"
                           >
                             <div className="max-h-[34rem] overflow-auto rounded-lg">
-                              <MermaidDiagram chart={question.diagram} />
+                              <SafeMermaidDiagram chart={question.diagram} />
                             </div>
                           </ReadOnlyBlock>
                         )}

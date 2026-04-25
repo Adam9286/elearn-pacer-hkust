@@ -53,6 +53,12 @@ const STATIONS: StationConfig[] = [
   { id: 'BS-C', center: 82, phase: 2.0, loadPenalty: 5 },
 ];
 
+const STATION_COLORS: Record<StationId, string> = {
+  'BS-A': 'hsl(var(--chart-1))',
+  'BS-B': 'hsl(var(--chart-2))',
+  'BS-C': 'hsl(var(--chart-3))',
+};
+
 const WIRELESS_ASSOCIATION_BASE_LESSON: Omit<SimulationLesson, 'steps'> = {
   intro: 'This simulator teaches how a mobile device scans nearby base stations and decides whether to stay put or hand over to a better one.',
   focus: 'Watch the scan results over time instead of looking at one signal sample by itself.',
@@ -148,7 +154,7 @@ export const WirelessAssociationSimulator = ({ onStepChange }: SimulatorStepProp
           bsA: snapshot.readings['BS-A'],
           bsB: snapshot.readings['BS-B'],
           bsC: snapshot.readings['BS-C'],
-          associated: nextAssociated ?? 'None',
+          associated: (nextAssociated ?? 'None') as StationId | 'None',
         },
       ].slice(-80)
     );
@@ -290,9 +296,9 @@ export const WirelessAssociationSimulator = ({ onStepChange }: SimulatorStepProp
                 }}
               />
               <Legend />
-              <Line type="monotone" dataKey="bsA" stroke="#60a5fa" strokeWidth={2.1} dot={false} name="BS-A" />
-              <Line type="monotone" dataKey="bsB" stroke="#34d399" strokeWidth={2.1} dot={false} name="BS-B" />
-              <Line type="monotone" dataKey="bsC" stroke="#f59e0b" strokeWidth={2.1} dot={false} name="BS-C" />
+              <Line type="monotone" dataKey="bsA" stroke={STATION_COLORS['BS-A']} strokeWidth={2.1} dot={false} name="BS-A" />
+              <Line type="monotone" dataKey="bsB" stroke={STATION_COLORS['BS-B']} strokeWidth={2.1} dot={false} name="BS-B" />
+              <Line type="monotone" dataKey="bsC" stroke={STATION_COLORS['BS-C']} strokeWidth={2.1} dot={false} name="BS-C" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -333,9 +339,9 @@ export const WirelessAssociationSimulator = ({ onStepChange }: SimulatorStepProp
           )}
         </div>
 
-        <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200/90">
+        <div className="rounded-md border border-info/30 bg-info/10 px-3 py-2 text-sm text-info">
           <div className="flex items-center gap-2">
-            <Wifi className="h-4 w-4 text-emerald-300" />
+            <Wifi className="h-4 w-4 text-info" />
             <span>Association logic is evaluated exactly at 5ms scan intervals to match roadmap timing assumptions.</span>
           </div>
         </div>

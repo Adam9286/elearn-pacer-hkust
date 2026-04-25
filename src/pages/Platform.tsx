@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BookOpen, MessageSquare, FileText, Info, Home, LogIn, LogOut, Send, Lightbulb, Activity, GitCompareArrows, MoreHorizontal } from "lucide-react";
+import { BookOpen, MessageSquare, FileText, Home, LogIn, LogOut, Send, Lightbulb, Activity, GitCompareArrows, MoreHorizontal } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import ChatMode from "@/components/ChatMode";
 import CourseMode from "@/components/CourseMode";
 import MockExamMode from "@/components/MockExamMode";
-import HowItWorks from "@/components/HowItWorks";
 import SimulationsMode from "@/components/SimulationsMode";
 import Feedback from "@/components/Feedback";
 import CompareMode from "@/components/compare/CompareMode";
@@ -20,6 +19,7 @@ import { useUserProgress } from "@/contexts/UserProgressContext";
 import { platformModeSummaries } from "@/data/platformContent";
 import { externalSupabase } from "@/lib/externalSupabase";
 import { cn } from "@/lib/utils";
+import { isPlatformTabId, readLastMode, writeLastMode, type PlatformTabId } from "@/utils/lastModeStorage";
 import { toast } from "sonner";
 
 const studyTips = [
@@ -31,21 +31,32 @@ const studyTips = [
   "When stuck, think in layers: Physical (cables) → Link (WiFi) → Network (routing) → Transport (TCP/UDP) → Application (your app).",
 ];
 
-const overflowModes = ["info", "feedback"];
+const overflowModes = ["feedback"];
 
 const Index = () => {
   const navigate = useNavigate();
   const { user } = useUserProgress();
   const location = useLocation();
-  const initialMode = (location.state as { mode?: string })?.mode || "chat";
-  const [activeMode, setActiveMode] = useState(initialMode);
+  const [activeMode, setActiveMode] = useState<PlatformTabId>(() => {
+    const fromNavigation = (location.state as { mode?: string } | null)?.mode;
+    if (isPlatformTabId(fromNavigation)) {
+      return fromNavigation;
+    }
+
+    return readLastMode() ?? "chat";
+  });
   const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
-    if (location.state?.mode) {
-      setActiveMode(location.state.mode);
+    const nextMode = (location.state as { mode?: string } | null)?.mode;
+    if (isPlatformTabId(nextMode)) {
+      setActiveMode(nextMode);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    writeLastMode(activeMode);
+  }, [activeMode]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -55,7 +66,7 @@ const Index = () => {
   }, []);
 
   return (
-    <ThemeProvider defaultTheme="midnight">
+    <ThemeProvider defaultTheme="slate">
       <div className="min-h-screen bg-background">
       {/* Header with improved contrast */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/85 backdrop-blur-md shadow-sm">
@@ -64,7 +75,7 @@ const Index = () => {
             <div className="flex items-center gap-4">
               <Link
                 to="/"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <Home className="w-4 h-4" />
                 <span className="font-medium">Home</span>
@@ -137,7 +148,15 @@ const Index = () => {
         <StudyToolsStrip />
 
         {/* Mode Selector */}
-        <Tabs value={activeMode} onValueChange={setActiveMode} className="space-y-4">
+        <Tabs
+          value={activeMode}
+          onValueChange={(value) => {
+            if (isPlatformTabId(value)) {
+              setActiveMode(value);
+            }
+          }}
+          className="space-y-4"
+        >
           <TabsList className="flex h-auto w-full items-center gap-2 rounded-xl border border-border bg-muted/40 p-2">
             <TabsTrigger
               value="chat"
@@ -192,16 +211,6 @@ const Index = () => {
                 className="w-56 border-border bg-popover text-popover-foreground"
               >
                 <DropdownMenuItem
-                  onSelect={() => setActiveMode("info")}
-                  className={cn(
-                    "gap-2 focus:bg-accent/15 focus:text-foreground",
-                    activeMode === "info" && "bg-accent/15 text-foreground",
-                  )}
-                >
-                  <Info className="h-4 w-4" />
-                  <span>How It Works</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
                   onSelect={() => setActiveMode("feedback")}
                   className={cn(
                     "gap-2 focus:bg-accent/15 focus:text-foreground",
@@ -237,10 +246,6 @@ const Index = () => {
 
           <TabsContent value="feedback" className="mt-3">
             <Feedback />
-          </TabsContent>
-
-          <TabsContent value="info" className="mt-3">
-            <HowItWorks />
           </TabsContent>
         </Tabs>
       </main>

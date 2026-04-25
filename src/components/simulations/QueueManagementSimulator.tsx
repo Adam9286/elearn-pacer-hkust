@@ -54,10 +54,16 @@ interface QueueSimulationSummary {
 
 const FLOW_IDS: FlowId[] = ['f1', 'f2', 'f3'];
 const FLOW_COLORS: Record<FlowId, string> = {
-  f1: '#60a5fa',
-  f2: '#34d399',
-  f3: '#f59e0b',
+  f1: 'hsl(var(--chart-1))',
+  f2: 'hsl(var(--chart-2))',
+  f3: 'hsl(var(--chart-3))',
 };
+
+const CHART_COLORS = {
+  queue: 'hsl(var(--chart-5))',
+  drops: 'hsl(var(--chart-4))',
+  departures: 'hsl(var(--chart-2))',
+} as const;
 
 const POLICY_LABEL: Record<SchedulerPolicy, string> = {
   fifo: 'FIFO',
@@ -455,9 +461,9 @@ export const QueueManagementSimulator = ({ onStepChange }: SimulatorStepProps) =
                 }}
               />
               <Legend />
-              <Line type="monotone" dataKey="queue" stroke="#6366f1" strokeWidth={2.1} dot={false} name="Queue Occupancy" />
-              <Line type="monotone" dataKey="drops" stroke="#ef4444" strokeWidth={2.1} dot={false} name="Drops/Slot" />
-              <Line type="monotone" dataKey="departures" stroke="#10b981" strokeWidth={2} dot={false} name="Departures/Slot" />
+              <Line type="monotone" dataKey="queue" stroke={CHART_COLORS.queue} strokeWidth={2.1} dot={false} name="Queue Occupancy" />
+              <Line type="monotone" dataKey="drops" stroke={CHART_COLORS.drops} strokeWidth={2.1} dot={false} name="Drops/Slot" />
+              <Line type="monotone" dataKey="departures" stroke={CHART_COLORS.departures} strokeWidth={2} dot={false} name="Departures/Slot" />
             </LineChart>
           </ResponsiveContainer>
           <div className="mt-2 text-xs text-zinc-600 dark:text-zinc-400">
@@ -524,9 +530,9 @@ export const QueueManagementSimulator = ({ onStepChange }: SimulatorStepProps) =
           </div>
         </div>
 
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-200/90">
+        <div className="rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-sm text-warning">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <AlertTriangle className="h-4 w-4 text-warning" />
             <span>
               Burst drops in simple drop-tail queues are harmful for TCP Fast Recovery and can trigger repeated congestion collapse
               behavior.
