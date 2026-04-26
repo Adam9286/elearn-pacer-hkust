@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import RankSummaryCard from "@/components/rank/RankSummaryCard";
+import { useUserProgress } from "@/contexts/UserProgressContext";
 import { Settings, Trash2, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -15,6 +17,7 @@ interface AccountSettingsProps {
 
 const AccountSettings = ({ userEmail }: AccountSettingsProps) => {
   const navigate = useNavigate();
+  const { rankSnapshot } = useUserProgress();
   const [open, setOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
@@ -92,6 +95,15 @@ const AccountSettings = ({ userEmail }: AccountSettingsProps) => {
             <Label className="text-muted-foreground">Email</Label>
             <p className="text-sm font-medium">{userEmail}</p>
           </div>
+
+          {rankSnapshot ? (
+            <div className="space-y-2">
+              <RankSummaryCard snapshot={rankSnapshot} compact />
+              <p className="text-xs leading-5 text-muted-foreground">
+                Level up by completing lessons, finishing sections, completing quick practice, and sharing useful mock exams.
+              </p>
+            </div>
+          ) : null}
           
           <div className="border-t pt-4">
             <h4 className="text-sm font-medium text-destructive mb-2">Danger Zone</h4>

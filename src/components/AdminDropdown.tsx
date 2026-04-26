@@ -1,4 +1,4 @@
-import { Shield, Wrench, FileEdit } from "lucide-react";
+import { Shield, Wrench, FileEdit, Trophy } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   DropdownMenu,
@@ -37,6 +37,15 @@ const AdminDropdown = () => {
             Review Slides
           </Link>
         </DropdownMenuItem>
+
+        {devMode ? (
+          <DropdownMenuItem asChild>
+            <Link to="/admin/ranks" className="flex items-center gap-2 cursor-pointer">
+              <Trophy className="w-4 h-4" />
+              Manage Ranks
+            </Link>
+          </DropdownMenuItem>
+        ) : null}
         
         <DropdownMenuSeparator />
         

@@ -1,4 +1,5 @@
 import { externalSupabase } from "@/lib/externalSupabase";
+import { getDisplayNameFromEmail } from "@/services/rankService";
 import type {
   MockExamAnswerRecord,
   MockExamDifficulty,
@@ -69,6 +70,35 @@ const isMissingRelationError = (error: { code?: string; message?: string } | nul
         (error.message?.includes("schema cache") &&
           error.message?.includes(SHARED_POOL_TABLE))),
   );
+
+const isMissingColumnError = (
+  error: { code?: string; message?: string } | null | undefined,
+  columnName: string,
+) =>
+  Boolean(
+    error &&
+      (error.code === "42703" ||
+        error.code === "PGRST204" ||
+        error.message?.includes(columnName) ||
+        (error.message?.includes("schema cache") && error.message.includes(columnName))),
+  );
+
+const isMissingRpcError = (
+  error: { code?: string; message?: string } | null | undefined,
+  functionName: string,
+) =>
+  Boolean(
+    error &&
+      (error.code === "42883" ||
+        error.code === "PGRST202" ||
+        error.message?.includes(functionName) ||
+        (error.message?.includes("schema cache") && error.message.includes(functionName))),
+  );
+
+const omitOwnerDisplayName = <T extends Record<string, unknown>>(row: T) => {
+  const { owner_display_name: _ownerDisplayName, ...legacyRow } = row;
+  return legacyRow;
+};
 
 const isRecord = (value: unknown): value is Record<string, any> =>
   typeof value === "object" && value !== null;
@@ -811,21 +841,33 @@ export const listSharedMockExams = async (
     return [];
   }
 
-  let query = externalSupabase
-    .from(SHARED_POOL_TABLE)
-    .select(
-      "id, source_session_id, mode, topic, difficulty, selected_topics, config, exam_payload, pdf_drive_link, pdf_download_link, total_questions, total_marks, usage_count, created_at",
-    )
-    .eq("is_active", true)
-    .order("usage_count", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const buildQuery = (selectColumns: string) => {
+    let query = externalSupabase
+      .from(SHARED_POOL_TABLE)
+      .select(selectColumns)
+      .eq("is_active", true)
+      .order("usage_count", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(limit);
 
-  if (mode) {
-    query = query.eq("mode", mode);
+    if (mode) {
+      query = query.eq("mode", mode);
+    }
+
+    return query;
+  };
+
+  let response = await buildQuery(
+    "id, source_session_id, owner_user_id, owner_display_name, mode, topic, difficulty, selected_topics, config, exam_payload, pdf_drive_link, pdf_download_link, total_questions, total_marks, usage_count, created_at",
+  );
+
+  if (response.error && isMissingColumnError(response.error, "owner_display_name")) {
+    response = await buildQuery(
+      "id, source_session_id, owner_user_id, mode, topic, difficulty, selected_topics, config, exam_payload, pdf_drive_link, pdf_download_link, total_questions, total_marks, usage_count, created_at",
+    );
   }
 
-  const { data, error } = await query;
+  const { data, error } = response;
 
   if (error) {
     if (isMissingRelationError(error)) {
@@ -845,6 +887,11 @@ export const listSharedMockExams = async (
       sharedExamId: row.id,
       sourceSessionId:
         typeof row.source_session_id === "string" ? row.source_session_id : null,
+      ownerUserId: typeof row.owner_user_id === "string" ? row.owner_user_id : null,
+      ownerDisplayName:
+        typeof row.owner_display_name === "string" && row.owner_display_name.trim()
+          ? row.owner_display_name.trim()
+          : "Student",
       mode: normalizedMode,
       topic: typeof row.topic === "string" ? row.topic : "Computer Networks",
       difficulty: normalizeDifficulty(row.difficulty),
@@ -931,6 +978,7 @@ export const publishMockExamToSharedPool = async (
 
   const sharedExamRow = {
     owner_user_id: user.id,
+    owner_display_name: getDisplayNameFromEmail(user.email),
     source_session_id: sessionRow.id,
     mode: normalizeMode(sessionRow.mode),
     topic: typeof sessionRow.topic === "string" ? sessionRow.topic : "Computer Networks",
@@ -973,12 +1021,21 @@ export const publishMockExamToSharedPool = async (
   }
 
   if (existingSharedRow?.id) {
-    const { data: updatedSharedRow, error: updateSharedRowError } = await sharedPoolTable
-      .update(sharedExamRow)
-      .eq("id", existingSharedRow.id)
-      .eq("owner_user_id", user.id)
-      .select("id")
-      .single();
+    const updateSharedExamRow = (payload: Record<string, unknown>) =>
+      sharedPoolTable
+        .update(payload)
+        .eq("id", existingSharedRow.id)
+        .eq("owner_user_id", user.id)
+        .select("id")
+        .single();
+
+    let updateResult = await updateSharedExamRow(sharedExamRow);
+
+    if (updateResult.error && isMissingColumnError(updateResult.error, "owner_display_name")) {
+      updateResult = await updateSharedExamRow(omitOwnerDisplayName(sharedExamRow));
+    }
+
+    const { data: updatedSharedRow, error: updateSharedRowError } = updateResult;
 
     if (updateSharedRowError) {
       if (isMissingRelationError(updateSharedRowError)) {
@@ -999,10 +1056,19 @@ export const publishMockExamToSharedPool = async (
 
     sharedRow = updatedSharedRow;
   } else {
-    const { data: insertedSharedRow, error: insertSharedRowError } = await sharedPoolTable
-      .insert(sharedExamRow)
-      .select("id")
-      .single();
+    const insertSharedExamRow = (payload: Record<string, unknown>) =>
+      sharedPoolTable
+        .insert(payload)
+        .select("id")
+        .single();
+
+    let insertResult = await insertSharedExamRow(sharedExamRow);
+
+    if (insertResult.error && isMissingColumnError(insertResult.error, "owner_display_name")) {
+      insertResult = await insertSharedExamRow(omitOwnerDisplayName(sharedExamRow));
+    }
+
+    const { data: insertedSharedRow, error: insertSharedRowError } = insertResult;
 
     if (insertSharedRowError) {
       if (isMissingRelationError(insertSharedRowError)) {
@@ -1097,16 +1163,29 @@ export const useSharedMockExam = async (
   const effectiveSessionId = persistenceResult.sessionId ?? responseForPersistence.sessionId;
 
   if (persistenceResult.status === "saved") {
-    const nextUsageCount = (Number(sharedRow.usage_count ?? 0) || 0) + 1;
-    const { error: usageUpdateError } = await externalSupabase
-      .from(SHARED_POOL_TABLE)
-      .update({
-        usage_count: nextUsageCount,
-      })
-      .eq("id", sharedExamId);
+    const { error: usageRpcError } = await externalSupabase.rpc(
+      "increment_shared_mock_exam_usage",
+      {
+        shared_exam_id_input: sharedExamId,
+      },
+    );
 
-    if (usageUpdateError && !isMissingRelationError(usageUpdateError)) {
-      console.error("[MockExam] Failed to update shared exam usage count:", usageUpdateError);
+    if (usageRpcError) {
+      if (!isMissingRpcError(usageRpcError, "increment_shared_mock_exam_usage")) {
+        console.error("[MockExam] Failed to update shared exam usage count through RPC:", usageRpcError);
+      }
+
+      const nextUsageCount = (Number(sharedRow.usage_count ?? 0) || 0) + 1;
+      const { error: usageUpdateError } = await externalSupabase
+        .from(SHARED_POOL_TABLE)
+        .update({
+          usage_count: nextUsageCount,
+        })
+        .eq("id", sharedExamId);
+
+      if (usageUpdateError && !isMissingRelationError(usageUpdateError)) {
+        console.error("[MockExam] Failed to update shared exam usage count:", usageUpdateError);
+      }
     }
   }
 

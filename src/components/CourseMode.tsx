@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { CheckCircle, Circle, LogIn, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,15 +10,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { chapters } from "@/data/courseContent";
 import { motion } from "framer-motion";
 import { AnimatedParticles } from "@/components/ui/AnimatedParticles";
+import RankSummaryCard from "@/components/rank/RankSummaryCard";
+import RankLadderDialog from "@/components/rank/RankLadderDialog";
 
 const CourseMode = () => {
   const navigate = useNavigate();
+  const [rankLadderOpen, setRankLadderOpen] = useState(false);
   const {
     user,
     loading,
     isSectionComplete,
     getLessonsCompleted,
     getTotalLessons,
+    rankSnapshot,
     refetch,
   } = useUserProgress();
 
@@ -226,6 +230,15 @@ const CourseMode = () => {
                     <div className="text-sm text-muted-foreground">Sections Remaining</div>
                   </motion.div>
                 </div>
+
+                {rankSnapshot ? (
+                  <RankSummaryCard
+                    snapshot={rankSnapshot}
+                    compact
+                    className="mt-4 border-primary/20 bg-background/45"
+                    onClick={() => setRankLadderOpen(true)}
+                  />
+                ) : null}
               </div>
             </div>
           </CardContent>
@@ -311,6 +324,12 @@ const CourseMode = () => {
           );
         })}
       </div>
+
+      <RankLadderDialog
+        open={rankLadderOpen}
+        onOpenChange={setRankLadderOpen}
+        snapshot={rankSnapshot}
+      />
     </div>
   );
 };

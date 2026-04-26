@@ -1,0 +1,16 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="silverStroke" x1="26" y1="28" x2="134" y2="132" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2E8F0" />
+      <stop offset="1" stop-color="#60A5FA" />
+    </linearGradient>
+  </defs>
+  <path d="M80 18L126 44V96L80 142L34 96V44L80 18Z" stroke="url(#silverStroke)" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M80 30L115 50V90L80 126L45 90V50L80 30Z" stroke="url(#silverStroke)" stroke-width="3.5" stroke-linejoin="round" opacity="0.85"/>
+  <circle cx="80" cy="50" r="10" stroke="url(#silverStroke)" stroke-width="5"/>
+  <circle cx="54" cy="96" r="10" stroke="url(#silverStroke)" stroke-width="5"/>
+  <circle cx="106" cy="96" r="10" stroke="url(#silverStroke)" stroke-width="5"/>
+  <path d="M80 60L60 88" stroke="url(#silverStroke)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M80 60L100 88" stroke="url(#silverStroke)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M64 96H96" stroke="url(#silverStroke)" stroke-width="5" stroke-linecap="round"/>
+</svg>

@@ -20,18 +20,14 @@ import {
   type SlideExplanation,
   type LectureSummary,
 } from '@/services/adminApi';
-import { externalSupabase } from '@/lib/externalSupabase';
 import { examSupabase } from '@/lib/examSupabase';
-
-// Admin user ID (from memory: adambaby2004@gmail.com)
-const ADMIN_EMAIL = 'adambaby2004@gmail.com';
+import { useUserProgress } from '@/contexts/UserProgressContext';
 
 export default function AdminReviewSlides() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, authResolved, isAdmin, adminLoading } = useUserProgress();
 
-  // Auth state
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Data state
@@ -44,30 +40,18 @@ export default function AdminReviewSlides() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Check admin access on mount
   useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { user } } = await externalSupabase.auth.getUser();
-      
-      if (!user) {
-        setIsAdmin(false);
-        setIsLoading(false);
-        return;
-      }
+    if (!authResolved || adminLoading) {
+      return;
+    }
 
-      // Check if user email matches admin
-      const isAdminUser = user.email === ADMIN_EMAIL;
-      setIsAdmin(isAdminUser);
+    if (!user || !isAdmin) {
       setIsLoading(false);
+      return;
+    }
 
-      if (isAdminUser) {
-        // Load summaries
-        loadSummaries();
-      }
-    };
-
-    checkAdmin();
-  }, []);
+    void loadSummaries().finally(() => setIsLoading(false));
+  }, [authResolved, adminLoading, isAdmin, user]);
 
   const loadSummaries = async () => {
     try {
@@ -356,7 +340,7 @@ export default function AdminReviewSlides() {
   };
 
   // Loading state
-  if (isLoading && isAdmin === null) {
+  if (!authResolved || adminLoading || isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -365,7 +349,7 @@ export default function AdminReviewSlides() {
   }
 
   // Not authorized
-  if (isAdmin === false) {
+  if (!user || !isAdmin) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4">
         <h1 className="text-2xl font-bold">Access Denied</h1>

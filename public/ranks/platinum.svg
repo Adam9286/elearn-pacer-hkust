@@ -1,0 +1,22 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="platinumStroke" x1="28" y1="24" x2="132" y2="136" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CFFAFE" />
+      <stop offset="1" stop-color="#06B6D4" />
+    </linearGradient>
+  </defs>
+  <path d="M80 18L126 44V96L80 142L34 96V44L80 18Z" stroke="url(#platinumStroke)" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M80 30L115 50V90L80 126L45 90V50L80 30Z" stroke="url(#platinumStroke)" stroke-width="3.5" stroke-linejoin="round" opacity="0.85"/>
+  <circle cx="80" cy="80" r="28" stroke="url(#platinumStroke)" stroke-width="5"/>
+  <path d="M52 80H108" stroke="url(#platinumStroke)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M80 52C91 60 98 69 98 80C98 91 91 100 80 108" stroke="url(#platinumStroke)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M80 52C69 60 62 69 62 80C62 91 69 100 80 108" stroke="url(#platinumStroke)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="80" cy="40" r="6" fill="#A5F3FC"/>
+  <circle cx="120" cy="80" r="6" fill="#A5F3FC"/>
+  <circle cx="80" cy="120" r="6" fill="#A5F3FC"/>
+  <circle cx="40" cy="80" r="6" fill="#A5F3FC"/>
+  <path d="M80 46V52" stroke="url(#platinumStroke)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M114 80H108" stroke="url(#platinumStroke)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M80 114V108" stroke="url(#platinumStroke)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M46 80H52" stroke="url(#platinumStroke)" stroke-width="5" stroke-linecap="round"/>
+</svg>

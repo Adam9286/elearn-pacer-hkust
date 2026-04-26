@@ -40,6 +40,8 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import MockExamDraftEditorDialog from "@/components/MockExamDraftEditorDialog";
 import MockExamReviewDialog from "@/components/MockExamReviewDialog";
+import RankChip from "@/components/rank/RankChip";
+import { useUserProgress } from "@/contexts/UserProgressContext";
 import { requestMockExam } from "@/services/mockExamApi";
 import {
   completeQuickPracticeSession,
@@ -53,6 +55,7 @@ import {
   updateSavedMockExamDraft,
   useSharedMockExam as loadSharedMockExam,
 } from "@/services/mockExamSessionStore";
+import { fetchPublicRankSnapshots } from "@/services/rankService";
 import { LECTURE_TOPICS } from "@/data/examTopics";
 import type {
   MockExamAnswerRecord,
@@ -68,6 +71,7 @@ import type {
   MockExamRunnerQuestion as Question,
 } from "@/types/mockExam";
 import { printStructuredMockExam } from "@/utils/mockExamDraft";
+import type { UserRankSnapshot } from "@/utils/rankSystem";
 
 interface ResultContext {
   source: "current" | "history";
@@ -167,6 +171,7 @@ const MockExamMode = () => {
   const [resultContext, setResultContext] = useState<ResultContext | null>(null);
   const [savedExamSessions, setSavedExamSessions] = useState<MockExamLibrarySummary[]>([]);
   const [sharedExamSessions, setSharedExamSessions] = useState<MockExamSharedExamSummary[]>([]);
+  const [sharedOwnerRanks, setSharedOwnerRanks] = useState<Record<string, UserRankSnapshot>>({});
   const [isLoadingSavedExams, setIsLoadingSavedExams] = useState(false);
   const [isLoadingSharedExams, setIsLoadingSharedExams] = useState(false);
   const [activeSavedExamFilter, setActiveSavedExamFilter] = useState<SavedExamFilter>("quick_practice");
@@ -242,6 +247,7 @@ const MockExamMode = () => {
   ).length;
 
   const { toast } = useToast();
+  const { refreshRank } = useUserProgress();
 
   useEffect(() => {
     if (!isLoadingQuestions) {
@@ -286,6 +292,29 @@ const MockExamMode = () => {
   useEffect(() => {
     void refreshExamLibraries();
   }, []);
+
+  useEffect(() => {
+    const ownerIds = sharedExamSessions
+      .map((session) => session.ownerUserId)
+      .filter((ownerId): ownerId is string => Boolean(ownerId));
+
+    if (ownerIds.length === 0) {
+      setSharedOwnerRanks({});
+      return;
+    }
+
+    let isCurrent = true;
+
+    fetchPublicRankSnapshots(ownerIds).then((snapshots) => {
+      if (isCurrent) {
+        setSharedOwnerRanks(snapshots);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [sharedExamSessions]);
 
   const resetPracticeState = () => {
     setQuestions([]);
@@ -444,6 +473,7 @@ const MockExamMode = () => {
       if (persistenceResult.status === "saved" && persistenceResult.sessionId) {
         setSavedSessionId(persistenceResult.sessionId);
         await refreshExamLibraries();
+        await refreshRank();
 
         if (examMode === "exam_simulation") {
           focusSavedExamsSection("exam_simulation", "personal");
@@ -616,6 +646,7 @@ const MockExamMode = () => {
     if (completionResult.status === "saved") {
       setCompletionSaved(true);
       await refreshExamLibraries();
+      await refreshRank();
       toast({
         title: "Quick Practice Saved",
         description: "Your completed attempt is now available in exam history.",
@@ -884,6 +915,7 @@ const MockExamMode = () => {
 
       if (shareResult.status === "saved") {
         await refreshExamLibraries();
+        await refreshRank();
         toast({
           title: "Shared Pool Updated",
           description: "This exam is now available in the shared pool for other students.",
@@ -937,6 +969,7 @@ const MockExamMode = () => {
       }
 
       await refreshExamLibraries();
+      await refreshRank();
       toast({
         title: "Saved Exam Deleted",
         description: "The exam was removed from your personal history.",
@@ -1158,6 +1191,9 @@ const MockExamMode = () => {
       }
 
       await refreshExamLibraries();
+      if (sharedResult.status === "saved") {
+        await refreshRank();
+      }
     } finally {
       setLoadingSharedExamId(null);
     }
@@ -2230,6 +2266,9 @@ const MockExamMode = () => {
                             sharedSessions.map((session) => {
                               const isLoadingThisSharedExam =
                                 loadingSharedExamId === session.sharedExamId;
+                              const ownerRank = session.ownerUserId
+                                ? sharedOwnerRanks[session.ownerUserId]
+                                : null;
 
                               return (
                                 <div
@@ -2253,6 +2292,15 @@ const MockExamMode = () => {
                                         <p className="text-xs text-muted-foreground">
                                           Shared {formatTimestamp(session.createdAt)}
                                         </p>
+                                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                                          <span>Shared by {session.ownerDisplayName}</span>
+                                          <RankChip
+                                            snapshot={ownerRank}
+                                            size="sm"
+                                            showRankName
+                                            className="bg-background/60"
+                                          />
+                                        </div>
                                       </div>
                                       {session.selectedTopics.length > 0 && (
                                         <p className="text-xs text-muted-foreground">

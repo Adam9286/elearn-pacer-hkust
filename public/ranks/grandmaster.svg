@@ -1,0 +1,17 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grandmasterStroke" x1="26" y1="24" x2="134" y2="136" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDBA74" />
+      <stop offset="1" stop-color="#DC2626" />
+    </linearGradient>
+  </defs>
+  <path d="M80 18L126 44V96L80 142L34 96V44L80 18Z" stroke="url(#grandmasterStroke)" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M80 30L115 50V90L80 126L45 90V50L80 30Z" stroke="url(#grandmasterStroke)" stroke-width="3.5" stroke-linejoin="round" opacity="0.85"/>
+  <rect x="66" y="52" width="28" height="20" rx="4" stroke="url(#grandmasterStroke)" stroke-width="5"/>
+  <rect x="42" y="88" width="24" height="18" rx="4" stroke="url(#grandmasterStroke)" stroke-width="5"/>
+  <rect x="94" y="88" width="24" height="18" rx="4" stroke="url(#grandmasterStroke)" stroke-width="5"/>
+  <path d="M80 72V90" stroke="url(#grandmasterStroke)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M54 88L80 78L106 88" stroke="url(#grandmasterStroke)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M80 40L80 52" stroke="url(#grandmasterStroke)" stroke-width="5" stroke-linecap="round"/>
+  <circle cx="80" cy="34" r="5" fill="#FDBA74"/>
+</svg>

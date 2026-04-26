@@ -14,9 +14,10 @@ interface RankSummaryCardProps {
   snapshot: UserRankSnapshot;
   className?: string;
   compact?: boolean;
+  onClick?: () => void;
 }
 
-const RankSummaryCard = ({ snapshot, className, compact = false }: RankSummaryCardProps) => {
+const RankSummaryCard = ({ snapshot, className, compact = false, onClick }: RankSummaryCardProps) => {
   const rank = getRankForId(snapshot.rankId);
   const levelProgress = getLevelProgressPercent(snapshot.totalXp);
   const xpIntoLevel = getXpForCurrentLevel(snapshot.totalXp);
@@ -24,7 +25,14 @@ const RankSummaryCard = ({ snapshot, className, compact = false }: RankSummaryCa
   const isMaxLevel = snapshot.level >= MAX_LEVEL;
 
   return (
-    <Card className={cn("overflow-hidden border-border/70 bg-card/85", className)}>
+    <Card 
+      onClick={onClick}
+      className={cn(
+        "overflow-hidden border-border/70 bg-card/85", 
+        onClick && "cursor-pointer hover:bg-card/95 hover:border-primary/40 transition-all",
+        className
+      )}
+    >
       <CardContent className={cn("relative", compact ? "p-4" : "p-5")}>
         <div
           className={cn(

@@ -181,6 +181,8 @@ export interface MockExamSavedSession {
 export interface MockExamSharedExamSummary {
   sharedExamId: string;
   sourceSessionId: string | null;
+  ownerUserId: string | null;
+  ownerDisplayName: string;
   mode: MockExamMode;
   topic: string;
   difficulty: MockExamDifficulty;
