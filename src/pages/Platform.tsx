@@ -10,6 +10,8 @@ import MockExamMode from "@/components/MockExamMode";
 import SimulationsMode from "@/components/SimulationsMode";
 import Feedback from "@/components/Feedback";
 import CompareMode from "@/components/compare/CompareMode";
+import RankChip from "@/components/rank/RankChip";
+import RankLadderDialog from "@/components/rank/RankLadderDialog";
 import ThemeToggle from "@/components/ThemeToggle";
 import AccountSettings from "@/components/AccountSettings";
 import AdminDropdown from "@/components/AdminDropdown";
@@ -35,7 +37,7 @@ const overflowModes = ["feedback"];
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useUserProgress();
+  const { user, rankSnapshot } = useUserProgress();
   const location = useLocation();
   const [activeMode, setActiveMode] = useState<PlatformTabId>(() => {
     const fromNavigation = (location.state as { mode?: string } | null)?.mode;
@@ -46,6 +48,7 @@ const Index = () => {
     return readLastMode() ?? "chat";
   });
   const [tipIndex, setTipIndex] = useState(0);
+  const [rankDialogOpen, setRankDialogOpen] = useState(false);
 
   useEffect(() => {
     const nextMode = (location.state as { mode?: string } | null)?.mode;
@@ -97,6 +100,12 @@ const Index = () => {
                   <span className="hidden text-sm text-muted-foreground sm:block">
                     {user.email}
                   </span>
+                  <RankChip
+                    snapshot={rankSnapshot}
+                    showRankName={false}
+                    className="hidden bg-background/70 md:inline-flex"
+                    onClick={() => setRankDialogOpen(true)}
+                  />
                   <AdminDropdown />
                   <AccountSettings userEmail={user.email || ""} />
                   <Button
@@ -259,6 +268,11 @@ const Index = () => {
         </div>
       </footer>
       </div>
+      <RankLadderDialog
+        open={rankDialogOpen}
+        onOpenChange={setRankDialogOpen}
+        snapshot={rankSnapshot}
+      />
     </ThemeProvider>
   );
 };
